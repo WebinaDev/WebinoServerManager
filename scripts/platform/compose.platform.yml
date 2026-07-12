@@ -1,0 +1,41 @@
+# Platform stack — shared Caddy (SSL) and Redis for all Webino sites.
+services:
+  redis:
+    container_name: webino-redis
+    image: ${PLATFORM_REDIS_IMAGE:-redis:7-alpine}
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - webino_platform
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  caddy:
+    container_name: webino-caddy
+    image: ${PLATFORM_CADDY_IMAGE:-caddy:2-alpine}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy-data:/data
+      - ./caddy-config:/config
+    networks:
+      - webino_platform
+    depends_on:
+      redis:
+        condition: service_healthy
+
+networks:
+  webino_platform:
+    external: true
+    name: webino_platform
+
+volumes:
+  redis_data:

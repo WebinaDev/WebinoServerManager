@@ -1,0 +1,6 @@
+{
+  "name": "Metrics",
+  "alias": "metrics",
+  "providers": ["Modules\\Metrics\\Providers\\MetricsServiceProvider"],
+  "requires": []
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Support",
+  "alias": "support",
+  "providers": ["Modules\\Support\\Providers\\SupportServiceProvider"],
+  "requires": []
+}

@@ -1,0 +1,7 @@
+{
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+# Site blocks appended below by webina caddy sync

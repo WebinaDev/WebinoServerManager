@@ -1,0 +1,6 @@
+{
+  "name": "Files",
+  "alias": "files",
+  "providers": ["Modules\\Files\\Providers\\FilesServiceProvider"],
+  "requires": []
+}

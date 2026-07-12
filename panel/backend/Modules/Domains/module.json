@@ -1,0 +1,6 @@
+{
+  "name": "Domains",
+  "alias": "domains",
+  "providers": ["Modules\\Domains\\Providers\\DomainsServiceProvider"],
+  "requires": []
+}

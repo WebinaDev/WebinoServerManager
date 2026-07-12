@@ -1,0 +1,6 @@
+{
+  "name": "Backup",
+  "alias": "backup",
+  "providers": ["Modules\\Backup\\Providers\\BackupServiceProvider"],
+  "requires": []
+}

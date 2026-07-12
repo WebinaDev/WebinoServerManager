@@ -1,0 +1,6 @@
+{
+  "name": "Email",
+  "alias": "email",
+  "providers": ["Modules\\Email\\Providers\\EmailServiceProvider"],
+  "requires": []
+}

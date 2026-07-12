@@ -1,0 +1,6 @@
+{
+  "name": "Cron",
+  "alias": "cron",
+  "providers": ["Modules\\Cron\\Providers\\CronServiceProvider"],
+  "requires": []
+}

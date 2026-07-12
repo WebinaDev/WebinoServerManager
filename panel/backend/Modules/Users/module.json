@@ -1,0 +1,6 @@
+{
+  "name": "Users",
+  "alias": "users",
+  "providers": ["Modules\\Users\\Providers\\UsersServiceProvider"],
+  "requires": []
+}

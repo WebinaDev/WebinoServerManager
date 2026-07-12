@@ -1,0 +1,6 @@
+{
+  "name": "Databases",
+  "alias": "databases",
+  "providers": ["Modules\\Databases\\Providers\\DatabasesServiceProvider"],
+  "requires": []
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Apps",
+  "alias": "apps",
+  "providers": ["Modules\\Apps\\Providers\\AppsServiceProvider"],
+  "requires": []
+}

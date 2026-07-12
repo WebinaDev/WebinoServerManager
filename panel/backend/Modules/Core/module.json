@@ -1,0 +1,6 @@
+{
+  "name": "Core",
+  "alias": "core",
+  "providers": ["Modules\\Core\\Providers\\CoreServiceProvider"],
+  "requires": []
+}

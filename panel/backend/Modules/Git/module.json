@@ -1,0 +1,6 @@
+{
+  "name": "Git",
+  "alias": "git",
+  "providers": ["Modules\\Git\\Providers\\GitServiceProvider"],
+  "requires": []
+}

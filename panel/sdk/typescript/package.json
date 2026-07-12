@@ -1,0 +1,16 @@
+{
+  "name": "@webina/panel-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript client for WebinoServer panel API",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "generate": "openapi-typescript ../../backend/storage/app/openapi.json -o src/schema.d.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.0",
+    "typescript": "^5.6.0"
+  }
+}

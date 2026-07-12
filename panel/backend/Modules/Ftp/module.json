@@ -1,0 +1,6 @@
+{
+  "name": "Ftp",
+  "alias": "ftp",
+  "providers": ["Modules\\Ftp\\Providers\\FtpServiceProvider"],
+  "requires": []
+}

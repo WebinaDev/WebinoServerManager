@@ -1,0 +1,6 @@
+{
+  "name": "Wordpress",
+  "alias": "wordpress",
+  "providers": ["Modules\\Wordpress\\Providers\\WordpressServiceProvider"],
+  "requires": []
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Webserver",
+  "alias": "webserver",
+  "providers": ["Modules\\Webserver\\Providers\\WebserverServiceProvider"],
+  "requires": []
+}

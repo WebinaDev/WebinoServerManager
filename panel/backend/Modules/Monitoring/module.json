@@ -1,0 +1,6 @@
+{
+  "name": "Monitoring",
+  "alias": "monitoring",
+  "providers": ["Modules\\Monitoring\\Providers\\MonitoringServiceProvider"],
+  "requires": []
+}

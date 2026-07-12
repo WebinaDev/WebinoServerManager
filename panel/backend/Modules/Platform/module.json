@@ -1,0 +1,6 @@
+{
+  "name": "Platform",
+  "alias": "platform",
+  "providers": ["Modules\\Platform\\Providers\\PlatformServiceProvider"],
+  "requires": []
+}

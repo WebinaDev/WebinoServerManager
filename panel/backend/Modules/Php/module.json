@@ -1,0 +1,6 @@
+{
+  "name": "Php",
+  "alias": "php",
+  "providers": ["Modules\\Php\\Providers\\PhpServiceProvider"],
+  "requires": []
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Webhooks",
+  "alias": "webhooks",
+  "description": "Outbound webhook endpoints and delivery log",
+  "providers": [
+    "Modules\\Webhooks\\Providers\\WebhooksServiceProvider"
+  ]
+}

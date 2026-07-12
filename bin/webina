@@ -1,0 +1,280 @@
+#!/usr/bin/env bash
+# WebinoServer control panel and multi-site platform CLI.
+set -euo pipefail
+
+WEBINO_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/webina/install-path"
+
+resolve_webino_root() {
+  local config_path="$1"
+  if [[ -f "$config_path" ]]; then
+    local configured
+    configured=$(tr -d '\n' <"$config_path")
+    if [[ -n "$configured" && -d "$configured" && -f "$configured/install.sh" ]]; then
+      printf '%s' "$configured"
+      return 0
+    fi
+  fi
+
+  local script path
+  script="${BASH_SOURCE[0]}"
+  while [[ -L "$script" ]]; do
+    path="$(readlink "$script")"
+    if [[ "$path" != /* ]]; then
+      path="$(cd "$(dirname "$script")" && pwd)/$path"
+    fi
+    script="$path"
+  done
+  cd "$(dirname "$script")/.." && pwd
+}
+
+ROOT="$(resolve_webino_root "$WEBINO_CONFIG")"
+cd "$ROOT"
+
+source "${ROOT}/scripts/install/common.sh"
+source "${ROOT}/scripts/platform/load.sh"
+
+YES=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --yes|-y) YES=true; shift ;;
+    *) break ;;
+  esac
+done
+
+webina_help() {
+  cat <<EOF
+Usage: webina [command] [options]
+
+Open the WebinoServer control panel or manage multi-site platform.
+
+Project root: $ROOT
+Platform data: ${WEBINA_DATA_ROOT:-/var/lib/webina}
+
+Commands:
+  (none)              Open interactive control panel (default)
+  platform init       Initialize multi-site platform (Caddy + Redis)
+  platform status     Show platform status
+  platform repair     Sync compose template, network, and restart stack
+  platform logs       Show platform logs [--service caddy|redis]
+  platform rebuild    Rebuild Docker images for installed products
+
+  product list        List products and install/build status
+  product install     Install product source + images (--channel Dev|LTS|Beta)
+  product update      Update product source
+  product rebuild     Rebuild product Docker images
+  product status      Show product details
+
+  site list           List all sites
+  site status SLUG    Show site URL, SSL, and container status
+  site create         Create site (--slug SLUG --domain DOMAIN [--product Webino|WebinoERM] [--alias ALIASES])
+  site delete SLUG    Delete site (--yes to skip confirm)
+  site start SLUG     Start site containers
+  site stop SLUG      Stop site containers
+  site restart SLUG   Restart site containers
+  site update SLUG    Recreate site from latest images
+  site logs SLUG [backend|next] [--tail N]
+  site domain SLUG    Set domain (--set DOMAIN [--alias ALIASES])
+
+  container ACTION SLUG SERVICE
+                      ACTION: start|stop|restart|update
+                      SERVICE: backend|next
+
+Examples:
+  webina
+  webina platform init
+  webina product install Webino --channel Dev
+  webina product install WebinoERM
+  webina site create --slug shop1 --domain shop1.example.com --product Webino
+  webina site status shop1
+EOF
+}
+
+cmd_platform() {
+  local sub="${1:-}"
+  shift || true
+  case "$sub" in
+    init) init_platform ;;
+    status) platform_status ;;
+    repair) platform_repair ;;
+    rebuild) rebuild_platform_images ;;
+    logs)
+      local svc="" tail=100
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --service) svc="$2"; shift 2 ;;
+          --tail) tail="$2"; shift 2 ;;
+          *) shift ;;
+        esac
+      done
+      platform_logs "$svc" "$tail"
+      ;;
+    ""|-h|--help)
+      echo "Usage: webina platform init|status|repair|logs|rebuild"
+      ;;
+    *) die "Unknown platform command: $sub" ;;
+  esac
+}
+
+cmd_product() {
+  local sub="${1:-}"
+  shift || true
+  case "$sub" in
+    list)
+      list_products_status
+      ;;
+    install)
+      local product="" channel="Dev"
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --channel) channel="$2"; shift 2 ;;
+          Webino|WebinoERM) product="$1"; shift ;;
+          *) die "Unknown option or product: $1" ;;
+        esac
+      done
+      [[ -n "$product" ]] || die "Usage: webina product install Webino|WebinoERM [--channel Dev|LTS|Beta]"
+      product_install "$product" "$channel"
+      ;;
+    update)
+      local product="" channel=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --channel) channel="$2"; shift 2 ;;
+          Webino|WebinoERM) product="$1"; shift ;;
+          *) die "Unknown option: $1" ;;
+        esac
+      done
+      [[ -n "$product" ]] || die "Usage: webina product update Webino|WebinoERM [--channel CHANNEL]"
+      product_update "$product" "$channel"
+      ;;
+    rebuild)
+      local product="${1:-}"
+      [[ -n "$product" ]] || die "Usage: webina product rebuild Webino|WebinoERM"
+      rebuild_product_images "$product"
+      ;;
+    status)
+      local product="${1:-}"
+      [[ -n "$product" ]] || die "Usage: webina product status Webino|WebinoERM"
+      product_status_report "$product"
+      ;;
+    ""|-h|--help)
+      echo "Usage: webina product list|install|update|rebuild|status"
+      ;;
+    *) die "Unknown product command: $sub" ;;
+  esac
+}
+
+cmd_site() {
+  local sub="${1:-}"
+  shift || true
+  case "$sub" in
+    list)
+      local slug domain status product
+      echo "Sites ($(registry_count)):"
+      while IFS= read -r slug; do
+        [[ -n "$slug" ]] || continue
+        product=$(registry_get_field "$slug" product)
+        [[ -n "$product" ]] || product="$WEBINO_DEFAULT_PRODUCT"
+        domain=$(registry_get_field "$slug" domain)
+        status=$(site_container_status "$slug" 2>/dev/null || echo "?")
+        printf '  %-20s %-12s %-30s %s\n' "$slug" "$product" "$domain" "$status"
+      done < <(registry_list_slugs)
+      ;;
+    status)
+      site_status_report "${1:?slug}"
+      ;;
+    create)
+      local slug="" domain="" aliases="" product="$WEBINO_DEFAULT_PRODUCT" channel="Dev" env_patch_b64=""
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --slug) slug="$2"; shift 2 ;;
+          --domain) domain="$2"; shift 2 ;;
+          --alias) aliases="$2"; shift 2 ;;
+          --product) product="$2"; shift 2 ;;
+          --channel) channel="$2"; shift 2 ;;
+          --env-patch-base64) env_patch_b64="$2"; shift 2 ;;
+          *) die "Unknown option: $1" ;;
+        esac
+      done
+      [[ -n "$slug" && -n "$domain" ]] || die "Usage: webina site create --slug SLUG --domain DOMAIN [--product Webino|WebinoERM]"
+      create_site "$slug" "$domain" "$aliases" "$product" "$channel" "$env_patch_b64"
+      ;;
+    delete)
+      local slug="${1:-}" confirm=""
+      [[ -n "$slug" ]] || die "Usage: webina site delete SLUG [--yes]"
+      shift || true
+      if [[ "$YES" == false ]]; then
+        read -r -p "Type slug to confirm deletion of '$slug': " confirm
+      else
+        confirm="$slug"
+      fi
+      delete_site "$slug" "$confirm"
+      ;;
+    start) site_start "${1:?slug}" ;;
+    stop) site_stop "${1:?slug}" ;;
+    restart) site_restart "${1:?slug}" ;;
+    update) site_update "${1:?slug}" ;;
+    logs)
+      local slug="${1:?slug}"
+      shift
+      local service="" tail=100
+      if [[ $# -gt 0 && "$1" != --* ]]; then
+        service="$1"
+        shift
+      fi
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --tail) tail="$2"; shift 2 ;;
+          *) shift ;;
+        esac
+      done
+      if [[ -n "$service" ]]; then
+        container_logs "$slug" "$service" "$tail"
+      else
+        site_compose "$slug" logs --tail="$tail"
+      fi
+      ;;
+    domain)
+      local slug="${1:?slug}" domain="" aliases=""
+      shift || true
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --set) domain="$2"; shift 2 ;;
+          --alias) aliases="$2"; shift 2 ;;
+          *) die "Unknown option: $1" ;;
+        esac
+      done
+      [[ -n "$domain" ]] || die "Usage: webina site domain SLUG --set DOMAIN [--alias ALIASES]"
+      update_site_domain "$slug" "$domain" "$aliases"
+      ;;
+    ""|-h|--help)
+      echo "Usage: webina site list|status|create|delete|start|stop|restart|update|logs|domain"
+      ;;
+    *) die "Unknown site command: $sub" ;;
+  esac
+}
+
+cmd_container() {
+  local action="${1:?action}" slug="${2:?slug}" service="${3:?service}"
+  container_action "$slug" "$service" "$action"
+}
+
+webina_open_tui() {
+  if [[ -e /dev/tty ]]; then
+    exec "$ROOT/install.sh" --tui "$@" </dev/tty >/dev/tty 2>&1
+  else
+    exec "$ROOT/install.sh" --tui "$@"
+  fi
+}
+
+case "${1:-}" in
+  -h|--help) webina_help; exit 0 ;;
+  --uninstall) shift; exec "$ROOT/install.sh" --uninstall "$@" ;;
+  --tui|"") webina_open_tui ;;
+  platform) load_platform_libs; shift; cmd_platform "$@" ;;
+  product) load_platform_libs; shift; cmd_product "$@" ;;
+  site) load_platform_libs; shift; cmd_site "$@" ;;
+  container) load_platform_libs; shift; cmd_container "$@" ;;
+  panel) shift; source "${ROOT}/scripts/install/panel.sh"; panel_up ;;
+  *) webina_open_tui ;;
+esac

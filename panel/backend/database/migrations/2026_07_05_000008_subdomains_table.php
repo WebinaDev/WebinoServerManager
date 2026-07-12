@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('hosting_subdomains', function (Blueprint $table) {
+            $table->id();
+            $table->string('parent_domain');
+            $table->string('subdomain');
+            $table->string('fqdn')->unique();
+            $table->string('document_root');
+            $table->string('status')->default('pending');
+            $table->text('last_error')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('hosting_subdomains');
+    }
+};

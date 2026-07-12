@@ -1,0 +1,6 @@
+{
+  "name": "Subdomains",
+  "alias": "subdomains",
+  "providers": ["Modules\\Subdomains\\Providers\\SubdomainsServiceProvider"],
+  "requires": []
+}

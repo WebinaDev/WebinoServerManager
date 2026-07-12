@@ -1,0 +1,6 @@
+{
+  "name": "Embed",
+  "alias": "embed",
+  "providers": ["Modules\\Embed\\Providers\\EmbedServiceProvider"],
+  "requires": []
+}

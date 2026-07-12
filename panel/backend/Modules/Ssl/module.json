@@ -1,0 +1,6 @@
+{
+  "name": "Ssl",
+  "alias": "ssl",
+  "providers": ["Modules\\Ssl\\Providers\\SslServiceProvider"],
+  "requires": []
+}

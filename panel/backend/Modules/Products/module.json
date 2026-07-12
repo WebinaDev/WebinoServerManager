@@ -1,0 +1,6 @@
+{
+  "name": "Products",
+  "alias": "products",
+  "providers": ["Modules\\Products\\Providers\\ProductsServiceProvider"],
+  "requires": []
+}

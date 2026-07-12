@@ -1,0 +1,17 @@
+{
+  "name": "webinoserver-docs",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.7.0",
+    "@docusaurus/preset-classic": "^3.7.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "redoc": "^2.4.0"
+  }
+}

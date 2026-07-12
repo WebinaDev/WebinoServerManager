@@ -1,0 +1,6 @@
+{
+  "name": "System",
+  "alias": "system",
+  "providers": ["Modules\\System\\Providers\\SystemServiceProvider"],
+  "requires": []
+}
