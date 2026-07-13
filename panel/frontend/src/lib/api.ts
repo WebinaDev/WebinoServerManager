@@ -61,7 +61,9 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
       !path.includes("/auth/login") &&
       !path.includes("/auth/check")
     ) {
-      window.location.assign("/login")
+      if (!window.location.pathname.startsWith("/login")) {
+        window.location.assign("/login")
+      }
     }
     if (
       typeof window !== "undefined" &&

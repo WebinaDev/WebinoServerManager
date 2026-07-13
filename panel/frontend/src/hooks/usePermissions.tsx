@@ -14,6 +14,7 @@ type PermissionUser = {
 
 export function usePermissions() {
   const router = useRouter()
+  const pathname = usePathname()
   const { data: user, isPending, isError, error } = useQuery({
     queryKey: ["auth-user"],
     queryFn: () => api<PermissionUser>("/api/v1/auth/user"),
@@ -25,14 +26,16 @@ export function usePermissions() {
       return
     }
     if (error.status === 401) {
-      router.replace("/login")
+      if (pathname !== "/login" && pathname !== "/setup") {
+        router.replace("/login")
+      }
       return
     }
     const code = error.data?.code
     if (error.status === 403 && code === "two_factor_setup_required") {
       router.replace("/security/2fa")
     }
-  }, [error, isError, router])
+  }, [error, isError, pathname, router])
 
   const names = new Set((user?.permissions ?? []).map((p) => p.name))
 

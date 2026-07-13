@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "next/navigation"
 
@@ -60,20 +60,6 @@ export default function SetupWizardPage() {
   const [form, setForm] = useState<SetupForm>(initialForm)
   const [err, setErr] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    api<{ data: { needs_setup: boolean } }>("/api/v1/setup/status")
-      .then((r) => {
-        if (!cancelled && !r.data.needs_setup) {
-          window.location.replace("/login")
-        }
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   function updateField<K extends keyof SetupForm>(key: K, value: SetupForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -140,7 +126,7 @@ export default function SetupWizardPage() {
         },
       })
       await i18n.changeLanguage(form.default_locale)
-      window.location.replace("/login")
+      window.location.assign("/login")
     } catch (e) {
       setErr(e instanceof Error ? e.message : t("common:error_generic"))
     } finally {

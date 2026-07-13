@@ -95,9 +95,12 @@ class SetupController extends Controller
 
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
-        if (! empty($data['hostname'])) {
-            $port = (int) config('app.panel_http_port', env('PANEL_HTTP_PORT', 2090));
-            $this->envPatcher->applyHostname($data['hostname'], $port, false);
+        $port = (int) config('app.panel_http_port', env('PANEL_HTTP_PORT', 2090));
+        $host = ! empty($data['hostname'])
+            ? (string) $data['hostname']
+            : $request->getHost();
+        if ($host !== '' && $host !== 'localhost' && $host !== '127.0.0.1') {
+            $this->envPatcher->applyHostname($host, $port, $request->isSecure());
         }
 
         return response()->json([

@@ -31,6 +31,7 @@ English reference for common errors during bootstrap, platform setup, site manag
 | Hangs on "Downloading WebinoServerManager..." | GitHub archive unreachable or curl with no timeout | Progress shows elapsed time; fails within ~2 min. Verify archive: `curl -I https://github.com/WebinaDev/WebinoServerManager/archive/refs/heads/main.tar.gz` (expect 200). Run `./scripts/verify-package-server.sh` |
 | `--full` installs platform but panel never starts | Old server-bootstrap exec'd TUI before panel step | Pull latest code; `./install.sh --server --panel --yes` or re-run `./install.sh --panel` |
 | `Panel compose failed` / mount `not a directory` on `phppgadmin/config.inc.php` | Embed config files missing from repo; Docker created directories instead of files | `rm -rf panel/docker/phpmyadmin/config.user.inc.php panel/docker/phpmyadmin/signon.php panel/docker/phppgadmin/config.inc.php panel/docker/phppgadmin/signon.php panel/docker/roundcube/config.inc.php` then pull latest and `./install.sh --panel` |
+| Page refreshes rapidly after setup (`/login` ↔ `/setup`) | Middleware treated unreachable API as setup-only; client redirected back to login | Pull latest and rebuild: `sudo -E ./scripts/update-server.sh --panel --yes` (see README — Update & rebuild) |
 | `Root or passwordless sudo required` | Bootstrap run as non-root without sudo | `sudo bash <(curl -fsSL .../bootstrap.sh) --full` |
 
 ## Install commands (TTY)

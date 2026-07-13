@@ -2,7 +2,6 @@
 
 import { useState, type ComponentPropsWithoutRef, type FormEvent } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
@@ -17,7 +16,6 @@ export function LoginForm({
   ...props
 }: ComponentPropsWithoutRef<"form">) {
   const { t } = useTranslation(["auth"])
-  const router = useRouter()
   const { setToken } = useAuth()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -42,7 +40,7 @@ export function LoginForm({
         },
       })
       setToken(null)
-      router.replace("/")
+      window.location.assign("/")
     } catch (err) {
       if (err instanceof ApiError && err.data?.two_factor_required) {
         setNeedsOtp(true)

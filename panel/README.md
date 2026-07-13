@@ -64,6 +64,16 @@ panel/
 
 After `install.sh --panel`, open the printed URL (e.g. `http://<server-ip>:2090`). The setup wizard creates the administrator account and basic panel settings. Optional `hostname` in the wizard updates `APP_URL` / CORS / Sanctum domains in `.env`.
 
+## Update & rebuild
+
+From the WebinoServerManager checkout on the server:
+
+```bash
+cd ~/WebinoServerManager
+export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
+sudo -E ./scripts/update-server.sh --panel --yes
+```
+
 ## Verify install
 
 ```bash

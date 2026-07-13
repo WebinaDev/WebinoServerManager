@@ -44,6 +44,31 @@ If Docker Hub is blocked in your region, panel/platform image pulls auto-configu
 
 After panel install, open `http://<server-ip>:2090` and complete the setup wizard. See [panel/README.md](panel/README.md).
 
+## Update & rebuild (VPS)
+
+Pull the latest code, rebuild the panel stack, and restart services (fixes setup/login refresh loops and panel Docker fixes after `git pull`):
+
+```bash
+cd ~/WebinoServerManager
+export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
+sudo -E ./scripts/update-server.sh --panel --yes
+```
+
+Full platform + panel sync from GitHub:
+
+```bash
+cd ~/WebinoServerManager
+export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
+sudo -E ./scripts/update-server.sh --full --yes
+```
+
+One-liner from any directory (downloads latest `update-server.sh` from GitHub):
+
+```bash
+export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
+sudo -E bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh) --panel --yes
+```
+
 ## Install products
 
 Products are separate repositories. Install from the control panel (**Products**) or CLI:
