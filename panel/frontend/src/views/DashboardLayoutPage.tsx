@@ -41,7 +41,7 @@ export default function DashboardLayoutPage({
 }: {
   children: ReactNode
 }) {
-  const { t } = useTranslation(["nav", "dashboard", "sidebar", "common"])
+  const { t, i18n } = useTranslation(["nav", "dashboard", "sidebar", "common"])
   const { navSections } = useDashboardNav()
 
   const { data: user } = useQuery({
@@ -52,6 +52,7 @@ export default function DashboardLayoutPage({
   useLocaleSync()
 
   const tenantLabel = user?.name ?? "…"
+  const sidebarSide = i18n.dir() === "rtl" ? "right" : "left"
 
   return (
     <RequirePermission>
@@ -59,6 +60,7 @@ export default function DashboardLayoutPage({
         <SkipLink href="#main-content" />
         <OnboardingTour />
         <AppSidebar
+          side={sidebarSide}
           navSections={navSections}
           projects={[]}
           projectsGroupLabel={t("nav:projects")}
@@ -69,7 +71,7 @@ export default function DashboardLayoutPage({
           tenantLabel={tenantLabel}
           tenantPlanLabel={t("sidebar:plan_tenant")}
         />
-        <SidebarInset>
+        <SidebarInset dir={i18n.dir()}>
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex flex-1 items-center gap-2 px-4">
               <SidebarTrigger

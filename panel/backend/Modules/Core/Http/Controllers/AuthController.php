@@ -14,6 +14,14 @@ use PragmaRX\Google2FA\Google2FA;
 
 class AuthController extends Controller
 {
+    private function userPayload(User $user): User
+    {
+        $user->load('roles', 'permissions');
+        $user->setRelation('permissions', $user->getAllPermissions());
+
+        return $user;
+    }
+
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -104,7 +112,7 @@ class AuthController extends Controller
         return $this->attachAuthCookie(response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user->load('roles', 'permissions'),
+            'user' => $this->userPayload($user),
         ]), $token);
     }
 
@@ -122,7 +130,7 @@ class AuthController extends Controller
 
         return response()->json([
             'authenticated' => true,
-            'user' => $user->load('roles', 'permissions'),
+            'user' => $this->userPayload($user),
         ]);
     }
 
@@ -165,7 +173,10 @@ class AuthController extends Controller
 
     public function user(Request $request): JsonResponse
     {
-        return response()->json($request->user()->load('roles', 'permissions'));
+        /** @var User $user */
+        $user = $request->user();
+
+        return response()->json($this->userPayload($user));
     }
 
     public function updateProfile(Request $request): JsonResponse
