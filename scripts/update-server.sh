@@ -2,13 +2,18 @@
 # Update WebinoServer on a VPS (bootstrap sync + panel/product rebuild).
 set -euo pipefail
 
-_SCRIPT_REF="${BASH_SOURCE[0]}"
+_SCRIPT_REF="${BASH_SOURCE[0]:-}"
 case "$_SCRIPT_REF" in
-  /dev/fd/*|/proc/self/fd/*|-)
+  ""|bash|/dev/fd/*|/proc/self/fd/*|-)
+    # Piped (curl | bash), process substitution, or stdin — no local dir.
     _SCRIPT_DIR=""
     ;;
   *)
-    _SCRIPT_DIR="$(cd "$(dirname "$_SCRIPT_REF")" && pwd)"
+    if [[ -f "$_SCRIPT_REF" ]]; then
+      _SCRIPT_DIR="$(cd "$(dirname "$_SCRIPT_REF")" && pwd)"
+    else
+      _SCRIPT_DIR=""
+    fi
     ;;
 esac
 
@@ -106,10 +111,8 @@ Examples:
   ./scripts/update-server.sh --panel --yes
   ./scripts/update-server.sh --full --yes
 
-One-liner (from any directory; uses ~/.config/webina/install-path or ~/WebinoServerManager):
-  curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh -o /tmp/webina-update.sh
-  chmod +x /tmp/webina-update.sh
-  WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1 /tmp/webina-update.sh --panel --yes
+One-liner (from any directory; auto-detects install dir, syncs code, rebuilds):
+  curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh | WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1 bash -s -- --panel --yes
 EOF
 }
 
@@ -161,13 +164,86 @@ verify_package_server() {
   fi
 }
 
-sync_git_checkout() {
+# Files that must never be overwritten during a code sync (secrets/state).
+_SYNC_PRESERVE=(
+  ".env"
+  "panel/.env"
+  "panel/backend/.env"
+  "panel/frontend/.env"
+)
+
+# Embed mount targets Docker may have auto-created as directories; the repo
+# ships them as files, so a stale directory breaks the file copy and the mount.
+_SYNC_EMBED_FILES=(
+  "panel/docker/phpmyadmin/config.user.inc.php"
+  "panel/docker/phpmyadmin/signon.php"
+  "panel/docker/phppgadmin/config.inc.php"
+  "panel/docker/phppgadmin/signon.php"
+  "panel/docker/roundcube/config.inc.php"
+)
+
+sync_tarball() {
+  local tmpdir archive extract_dir url downloaded=0 rel
+  local -a archive_urls=()
+  mapfile -t archive_urls < <(webino_package_archive_urls "$WEBINO_REPO_SLUG" "$WEBINO_BRANCH")
+
+  tmpdir=$(mktemp -d)
+  archive="$tmpdir/archive.tar.gz"
+  log "Downloading latest source (${WEBINO_BRANCH})..."
+  for url in "${archive_urls[@]}"; do
+    if curl -fL --connect-timeout "${WEBINO_CURL_CONNECT_TIMEOUT:-15}" \
+      --max-time "${WEBINO_CURL_MAX_TIME:-120}" --retry 1 --retry-delay 2 \
+      -o "$archive" "$url" 2>/dev/null; then
+      downloaded=1
+      break
+    fi
+  done
+  [[ "$downloaded" -eq 1 && -s "$archive" ]] || { rm -rf "$tmpdir"; warn "Source download failed — using existing files"; return 1; }
+
+  tar -xzf "$archive" -C "$tmpdir" || { rm -rf "$tmpdir"; warn "Extract failed — using existing files"; return 1; }
+  extract_dir=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -1)
+  [[ -n "$extract_dir" ]] || { rm -rf "$tmpdir"; warn "Empty archive — using existing files"; return 1; }
+
+  # Remove stale Docker-created directories where the repo ships a file.
+  for rel in "${_SYNC_EMBED_FILES[@]}"; do
+    if [[ -d "${ROOT}/${rel}" && -f "${extract_dir}/${rel}" ]]; then
+      rm -rf "${ROOT:?}/${rel}"
+    fi
+  done
+
+  log "Applying update to ${ROOT} (preserving secrets)..."
+  local -a rsync_excludes=()
+  for rel in "${_SYNC_PRESERVE[@]}"; do
+    rsync_excludes+=(--exclude "$rel")
+  done
+
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a --no-perms --chmod=ugo=rwX "${rsync_excludes[@]}" "${extract_dir}/" "${ROOT}/" \
+      || { rm -rf "$tmpdir"; warn "rsync failed — using existing files"; return 1; }
+  else
+    cp -a "${extract_dir}/." "${ROOT}/" 2>/dev/null || true
+    for rel in "${_SYNC_PRESERVE[@]}"; do
+      if [[ -f "${ROOT}/${rel}.updsync.bak" ]]; then
+        mv -f "${ROOT}/${rel}.updsync.bak" "${ROOT}/${rel}"
+      fi
+    done
+  fi
+
+  rm -rf "$tmpdir"
+  chmod +x "${ROOT}/install.sh" "${ROOT}/bootstrap.sh" "${ROOT}/bin/webina" 2>/dev/null || true
+  find "${ROOT}/scripts" -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
+  log "Source updated."
+  return 0
+}
+
+sync_code() {
   if [[ -d "$ROOT/.git" ]]; then
     log "Syncing git checkout at ${ROOT}..."
-    git -C "$ROOT" fetch origin main && git -C "$ROOT" reset --hard origin/main \
+    git -C "$ROOT" fetch origin "$WEBINO_BRANCH" \
+      && git -C "$ROOT" reset --hard "origin/${WEBINO_BRANCH}" \
       || warn "Git sync failed — continuing with existing files"
   else
-    warn "No .git in ${ROOT} — use --full for tarball bootstrap sync"
+    sync_tarball || true
   fi
 }
 
@@ -187,7 +263,7 @@ bootstrap_full() {
 
 rebuild_panel() {
   log "Rebuilding panel stack..."
-  run_root "$ROOT/install.sh" --panel "${INSTALL_YES[@]}"
+  run_root bash "$ROOT/install.sh" --panel ${INSTALL_YES[@]+"${INSTALL_YES[@]}"}
 }
 
 update_products() {
@@ -231,7 +307,7 @@ case "$MODE" in
   panel)
     if [[ "$SKIP_UPDATE" != "1" ]]; then
       verify_package_server || true
-      sync_git_checkout
+      sync_code
     else
       log "Skipping code sync (--skip-update)"
     fi

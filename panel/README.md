@@ -66,13 +66,10 @@ After `install.sh --panel`, open the printed URL (e.g. `http://<server-ip>:2090`
 
 ## Update & rebuild
 
-From the WebinoServerManager checkout on the server:
+One command (auto-detects install dir, syncs latest code via git or tarball, preserves `.env`, rebuilds the panel):
 
 ```bash
-cd ~/WebinoServerManager
-git pull origin main
-export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
-./scripts/update-server.sh --panel --yes
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh | WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1 bash -s -- --panel --yes
 ```
 
 ## Verify install

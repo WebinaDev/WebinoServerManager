@@ -46,34 +46,27 @@ After panel install, open `http://<server-ip>:2090` and complete the setup wizar
 
 ## Update & rebuild (VPS)
 
-Pull the latest code, rebuild the panel stack, and restart services (fixes setup/login refresh loops and panel Docker fixes after `git pull`).
+One command does everything automatically: auto-detects the install directory, downloads the latest code (git **or** tarball — works even without `.git`), preserves your secrets/`.env`, and rebuilds + restarts the panel stack. Fixes the setup/login refresh loop and the phpPgAdmin/embed mount errors.
 
-**As root** (no `sudo` needed):
-
-```bash
-cd ~/WebinoServerManager
-git pull origin main
-export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
-./scripts/update-server.sh --panel --yes
-```
-
-**One-liner** (download script to a temp file — do not use `bash <(curl ...)`):
+**One-liner (recommended — exactly like the installer):**
 
 ```bash
-export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
-curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh -o /tmp/webina-update.sh
-chmod +x /tmp/webina-update.sh
-/tmp/webina-update.sh --panel --yes
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh | WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1 bash -s -- --panel --yes
 ```
 
 Full platform + panel sync:
 
 ```bash
-cd ~/WebinoServerManager
-git pull origin main
-export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
-./scripts/update-server.sh --full --yes
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh | WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1 bash -s -- --full --yes
 ```
+
+Products + sites too:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh | WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1 bash -s -- --panel --products --yes
+```
+
+> If the install is not at `~/WebinoServerManager` and no `~/.config/webina/install-path` is registered, prefix with `WEBINO_INSTALL_DIR=/path/to/WebinoServerManager`.
 
 ## Install products
 
