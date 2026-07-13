@@ -12,15 +12,35 @@ case "$_SCRIPT_REF" in
     ;;
 esac
 
+_update_valid_root() {
+  [[ -n "$1" && -f "${1}/install.sh" && -d "${1}/scripts/install" ]]
+}
+
+ROOT=""
 if [[ -n "$_SCRIPT_DIR" ]]; then
-  ROOT="$(cd "${_SCRIPT_DIR}/.." && pwd)"
-else
+  _candidate="$(cd "${_SCRIPT_DIR}/.." && pwd)"
+  _update_valid_root "$_candidate" && ROOT="$_candidate"
+fi
+
+if [[ -z "$ROOT" && -n "${WEBINO_INSTALL_DIR:-}" ]]; then
+  _update_valid_root "$WEBINO_INSTALL_DIR" && ROOT="$WEBINO_INSTALL_DIR"
+fi
+
+if [[ -z "$ROOT" ]]; then
   _INSTALL_PATH_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/webina/install-path"
   if [[ -f "$_INSTALL_PATH_FILE" ]]; then
-    ROOT="$(tr -d '\n' <"$_INSTALL_PATH_FILE")"
-  else
-    ROOT="${WEBINO_INSTALL_DIR:-$HOME/WebinoServerManager}"
+    _candidate="$(tr -d '\n' <"$_INSTALL_PATH_FILE")"
+    _update_valid_root "$_candidate" && ROOT="$_candidate"
   fi
+fi
+
+if [[ -z "$ROOT" ]]; then
+  for _candidate in "$HOME/WebinoServerManager" "$PWD/WebinoServerManager" "$PWD"; do
+    if _update_valid_root "$_candidate"; then
+      ROOT="$_candidate"
+      break
+    fi
+  done
 fi
 
 webino_update_load_package_urls() {
@@ -55,9 +75,9 @@ log() { printf '\033[1;34m[update-server]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[update-server]\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31m[update-server]\033[0m %s\n' "$*" >&2; exit 1; }
 
-[[ -d "$ROOT" ]] || die "Install directory not found: ${ROOT}
-Clone first: git clone https://github.com/WebinaDev/WebinoServerManager.git ${ROOT}
-Or set WEBINO_INSTALL_DIR=/path/to/WebinoServerManager"
+_update_valid_root "$ROOT" || die "Could not locate a WebinoServerManager install (with install.sh).
+Run this from inside the checkout, or set WEBINO_INSTALL_DIR=/path/to/WebinoServerManager.
+Fresh install: git clone https://github.com/WebinaDev/WebinoServerManager.git && cd WebinoServerManager && ./install.sh --panel --yes"
 
 MODE="panel"
 SKIP_UPDATE=0
