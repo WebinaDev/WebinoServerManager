@@ -29,9 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: [
             env('AUTH_COOKIE_NAME', 'webino_auth_token'),
         ]);
+        // Bridge the auth cookie into a Bearer token for EVERY request. Module
+        // routes (Modules/*/Routes/api.php) are registered via loadRoutesFrom()
+        // and are NOT in the "api" group, so registering this only on the api
+        // group left all /v1/* protected routes unable to see the cookie (401),
+        // which caused the login <-> dashboard redirect loop.
+        $middleware->prepend(\App\Http\Middleware\AuthenticateFromCookie::class);
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \App\Http\Middleware\AuthenticateFromCookie::class,
             \App\Http\Middleware\IpAllowlistMiddleware::class,
         ]);
         $middleware->api(append: [
