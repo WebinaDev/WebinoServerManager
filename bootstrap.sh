@@ -2,9 +2,45 @@
 # WebinoServerManager one-liner bootstrap — installs the server orchestrator (not products).
 set -euo pipefail
 
-_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/install/package-urls.sh
-source "${_SCRIPT_DIR}/scripts/install/package-urls.sh"
+WEBINO_CURL_CONNECT_TIMEOUT="${WEBINO_CURL_CONNECT_TIMEOUT:-15}"
+WEBINO_CURL_MAX_TIME="${WEBINO_CURL_MAX_TIME:-120}"
+
+_SCRIPT_REF="${BASH_SOURCE[0]}"
+case "$_SCRIPT_REF" in
+  /dev/fd/*|/proc/self/fd/*|-)
+    _SCRIPT_DIR=""
+    ;;
+  *)
+    _SCRIPT_DIR="$(cd "$(dirname "$_SCRIPT_REF")" && pwd)"
+    ;;
+esac
+
+webino_bootstrap_load_package_urls() {
+  if [[ -n "$_SCRIPT_DIR" && -f "${_SCRIPT_DIR}/scripts/install/package-urls.sh" ]]; then
+    # shellcheck source=scripts/install/package-urls.sh
+    source "${_SCRIPT_DIR}/scripts/install/package-urls.sh"
+    return 0
+  fi
+
+  local slug="${WEBINO_REPO_SLUG:-WebinaDev/WebinoServerManager}"
+  local branch="${WEBINO_BRANCH:-main}"
+  local tmp
+  tmp=$(mktemp)
+  if ! curl -fsSL \
+    --connect-timeout "$WEBINO_CURL_CONNECT_TIMEOUT" \
+    --max-time "$WEBINO_CURL_MAX_TIME" \
+    "https://raw.githubusercontent.com/${slug}/${branch}/scripts/install/package-urls.sh" \
+    -o "$tmp"; then
+    rm -f "$tmp"
+    printf '\033[1;31m[bootstrap]\033[0m Failed to fetch scripts/install/package-urls.sh from GitHub\n' >&2
+    exit 1
+  fi
+  # shellcheck source=/dev/null
+  source "$tmp"
+  rm -f "$tmp"
+}
+
+webino_bootstrap_load_package_urls
 
 BRANCH="${WEBINO_BRANCH:-main}"
 REF="$BRANCH"
@@ -12,8 +48,6 @@ REPO="${WEBINO_REPO:-$(webino_package_git_url "$WEBINO_REPO_SLUG")}"
 BOOTSTRAP_SELF_URL="${WEBINO_BOOTSTRAP_URL:-$(webino_package_bootstrap_url "$WEBINO_REPO_SLUG" "$BRANCH")}"
 TARGET="${WEBINO_INSTALL_DIR:-./WebinoServerManager}"
 WEBINO_SKIP_UPDATE="${WEBINO_SKIP_UPDATE:-0}"
-WEBINO_CURL_CONNECT_TIMEOUT="${WEBINO_CURL_CONNECT_TIMEOUT:-15}"
-WEBINO_CURL_MAX_TIME="${WEBINO_CURL_MAX_TIME:-120}"
 
 GIT_HTTP_OPTS=( -c http.postBuffer=524288 )
 
