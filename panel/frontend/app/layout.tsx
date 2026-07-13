@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next"
 
-import { yekanBakh } from "@/lib/fonts/yekan-bakh"
 import { AppProviders } from "@/providers/AppProviders"
 import { QueryProvider } from "@/providers/QueryProvider"
 
@@ -31,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" suppressHydrationWarning>
-      <body className={`${yekanBakh.variable} min-h-svh font-sans`}>
+      <body className="min-h-svh font-sans">
         <QueryProvider>
           <AppProviders>{children}</AppProviders>
         </QueryProvider>
