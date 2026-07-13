@@ -40,6 +40,31 @@ ensure_panel_runtime_dirs() {
   chmod -R ug+rwx "${backend}/storage" "${backend}/bootstrap/cache" 2>/dev/null || true
 }
 
+panel_embed_mount_paths=(
+  "${PANEL}/docker/phpmyadmin/config.user.inc.php"
+  "${PANEL}/docker/phpmyadmin/signon.php"
+  "${PANEL}/docker/phppgadmin/config.inc.php"
+  "${PANEL}/docker/phppgadmin/signon.php"
+  "${PANEL}/docker/roundcube/config.inc.php"
+)
+
+ensure_panel_embed_mounts() {
+  local path
+  for path in "${panel_embed_mount_paths[@]}"; do
+    if [[ -d "$path" ]]; then
+      die "Embed mount path is a directory (Docker auto-created it): ${path}
+Remove it and re-run panel install:
+  rm -rf ${path}
+  git -C ${ROOT} checkout -- ${path#${ROOT}/}
+Or pull latest WebinoServerManager and run: ./install.sh --panel"
+    fi
+    if [[ ! -f "$path" ]]; then
+      die "Missing panel embed file: ${path}
+Pull latest WebinoServerManager (panel/docker/*) and re-run: ./install.sh --panel"
+    fi
+  done
+}
+
 panel_compose_up() {
   local -a compose_args=(-f "$COMPOSE" --env-file "${PANEL_ENV}")
   local override=""
@@ -76,6 +101,7 @@ panel_up() {
   have docker || die "Docker required for web panel"
   ensure_panel_secrets
   ensure_panel_runtime_dirs
+  ensure_panel_embed_mounts
   ensure_platform_network
 
   export BUILDKIT_NO_CLIENT_TOKEN="${BUILDKIT_NO_CLIENT_TOKEN:-1}"

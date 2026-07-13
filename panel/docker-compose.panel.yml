@@ -125,7 +125,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/phppgadmin/config.inc.php:/var/www/conf/config.inc.php:ro
-      - ./docker/phppgadmin/signon.php:/var/www/html/signon.php:ro
+      - ./docker/phppgadmin/signon.php:/var/www/signon.php:ro
     networks:
       - webino_panel
 
@@ -134,11 +134,11 @@ services:
     container_name: webinoserver-panel-roundcube
     restart: unless-stopped
     environment:
-      ROUNDCUBE_DEFAULT_HOST: ${WEBINO_IMAP_HOST:-host.docker.internal}
-      ROUNDCUBE_SMTP_SERVER: ${WEBINO_SMTP_HOST:-host.docker.internal}
+      ROUNDCUBEMAIL_DEFAULT_HOST: ${WEBINO_IMAP_HOST:-host.docker.internal}
+      ROUNDCUBEMAIL_SMTP_SERVER: ${WEBINO_SMTP_HOST:-host.docker.internal}
+      ROUNDCUBEMAIL_DES_KEY: ${ROUNDCUBE_DES_KEY:?ROUNDCUBE_DES_KEY is required}
       ROUNDCUBE_VERIFY_URL: http://panel-api:8080/api/v1/embeds/webmail/verify
       WEBINO_AGENT_TOKEN: ${WEBINO_AGENT_TOKEN:?WEBINO_AGENT_TOKEN is required}
-      ROUNDCUBE_DES_KEY: ${ROUNDCUBE_DES_KEY:?ROUNDCUBE_DES_KEY is required}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
