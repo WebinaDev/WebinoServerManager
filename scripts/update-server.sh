@@ -3,8 +3,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WEBINO_PACKAGE_BASE="${WEBINO_PACKAGE_BASE:-https://package.webina.dev}"
-BOOTSTRAP_URL="${WEBINO_PACKAGE_BASE}/webina/WebinoServer/raw/branch/main/bootstrap.sh"
+# shellcheck source=scripts/install/package-urls.sh
+source "${ROOT}/scripts/install/package-urls.sh"
+BOOTSTRAP_URL="$(webino_package_bootstrap_url "$WEBINO_REPO_SLUG" main)"
 
 MODE="panel"
 SKIP_UPDATE=0
@@ -14,7 +15,7 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [options]
 
-Update WebinoServer from package.webina.dev and rebuild services.
+Update WebinoServerManager from GitHub and rebuild services.
 
 Options:
   --full            Bootstrap platform + panel (bootstrap.sh --full --yes)
@@ -68,17 +69,17 @@ run_root() {
 }
 
 verify_package_server() {
-  local code
-  code=$(curl -sI --connect-timeout 10 --max-time 30 \
-    "${WEBINO_PACKAGE_BASE}/webina/WebinoServer/archive/main.tar.gz" \
-    | head -1 | awk '{print $2}')
+  local url code
+  mapfile -t _verify_urls < <(webino_package_archive_urls "$WEBINO_REPO_SLUG" "$WEBINO_BRANCH")
+  url="${_verify_urls[0]}"
+  code=$(curl -sI --connect-timeout 10 --max-time 30 "$url" | head -1 | awk '{print $2}')
   if [[ "$code" != "200" ]]; then
-    warn "Package server archive returned HTTP ${code:-unknown} (expected 200)."
+    warn "Package archive returned HTTP ${code:-unknown} (expected 200)."
     if [[ "$SKIP_UPDATE" != "1" && "$MODE" == "full" ]]; then
-      die "Cannot bootstrap without package server. Use --skip-update or fix Gitea."
+      die "Cannot bootstrap without package server. Use --skip-update or verify GitHub access."
     fi
   else
-    log "Package server archive OK (HTTP 200)"
+    log "Package archive OK (HTTP 200)"
   fi
 }
 

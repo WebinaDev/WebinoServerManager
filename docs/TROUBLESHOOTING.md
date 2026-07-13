@@ -18,17 +18,17 @@ English reference for common errors during bootstrap, platform setup, site manag
 | Control panel did not open after curl pipe | No `/dev/tty` (CI, non-SSH) | Connect via SSH and run `webina` — first-run wizard opens automatically |
 | Control panel did not open after curl pipe | Running from cron/script | Use interactive SSH session for first site creation |
 | `Recv failure: Connection reset by peer` / `SSL connection timeout` | Package server unreachable during git fetch | Retry; or `WEBINO_SKIP_UPDATE=1`; or `cd WebinoServer && ./install.sh --server --yes` |
-| `Operation too slow. Less than 1000 bytes/sec` | Old bootstrap enforced git low-speed limit | Pull latest bootstrap; or manual clone from package.webina.dev |
-| `cd: ./WebinoServer: No such file or directory` | Download failed but bootstrap continued | Pull latest bootstrap (validates before cd); manual clone below |
-| `Your local changes ... would be overwritten by merge` | Old bootstrap used `git pull` on a dirty clone | Latest bootstrap uses fetch + hard reset. Manual: `cd WebinoServer && git fetch origin main && git reset --hard origin/main` |
-| Slow bootstrap / repeated git retries | Old bootstrap retried failed git pull/fetch | Latest bootstrap: tarball from package.webina.dev first |
+| `Operation too slow. Less than 1000 bytes/sec` | Old bootstrap enforced git low-speed limit | Pull latest bootstrap; or manual clone from GitHub |
+| `cd: ./WebinoServerManager: No such file or directory` | Download failed but bootstrap continued | Pull latest bootstrap (validates before cd); manual clone below |
+| `Your local changes ... would be overwritten by merge` | Old bootstrap used `git pull` on a dirty clone | Latest bootstrap uses fetch + hard reset. Manual: `cd WebinoServerManager && git fetch origin main && git reset --hard origin/main` |
+| Slow bootstrap / repeated git retries | Old bootstrap retried failed git pull/fetch | Latest bootstrap: tarball from GitHub first |
 | `stderr_file: unbound variable` | Old bootstrap RETURN trap + `set -u` bug | Pull latest bootstrap.sh; or `cd WebinoServer && ./install.sh --server --yes` |
 | Install takes 10–20+ minutes first time | Docker image build (backend + Next.js) | Normal on first install; re-runs skip build if images exist |
 | `webina` clears screen, no dialog | Platform libs not loaded or dialog failed | Pull latest code; run `cd WebinoServer && ./install.sh --tui`. Falls back to text menu automatically |
 | `platform_is_initialized: command not found` | Platform libraries not loaded | Pull latest `webina` / `load.sh` fix |
-| Dialog does not appear during bootstrap | Used `curl \| bash` without TTY re-attach (old bootstrap) | Use recommended: `bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh)` or pull latest bootstrap |
-| Slow git clone on fresh VPS | Git protocol throttled from region | Latest bootstrap uses tarball from package.webina.dev first; git is fallback |
-| Hangs on "Downloading WebinoServer..." | Gitea archive/git 500 or curl with no timeout | Progress shows elapsed time; fails within ~2 min. Verify archive: `curl -I https://package.webina.dev/webina/WebinoServer/archive/main.tar.gz` (expect 200). See [GITEA_PACKAGE_SERVER.md](GITEA_PACKAGE_SERVER.md) |
+| Dialog does not appear during bootstrap | Used `curl \| bash` without TTY re-attach (old bootstrap) | Use recommended: `bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)` or pull latest bootstrap |
+| Slow git clone on fresh VPS | Git protocol throttled from region | Latest bootstrap uses tarball from GitHub first; git is fallback |
+| Hangs on "Downloading WebinoServerManager..." | GitHub archive unreachable or curl with no timeout | Progress shows elapsed time; fails within ~2 min. Verify archive: `curl -I https://github.com/WebinaDev/WebinoServerManager/archive/refs/heads/main.tar.gz` (expect 200). Run `./scripts/verify-package-server.sh` |
 | `--full` installs platform but panel never starts | Old server-bootstrap exec'd TUI before panel step | Pull latest code; `./install.sh --server --panel --yes` or re-run `./install.sh --panel` |
 | `Panel API did not become ready` | First Docker build still running or port conflict | Wait for build; check `docker compose -f panel/docker-compose.panel.yml logs panel-api`; free port 2090 or set `PANEL_HTTP_PORT` |
 | `Root or passwordless sudo required` | Bootstrap run as non-root without sudo | `sudo bash <(curl -fsSL .../bootstrap.sh) --full` |
@@ -44,7 +44,7 @@ English reference for common errors during bootstrap, platform setup, site manag
 
 Both bootstrap commands run the same installer. Prefer `--full` on a fresh VPS. Use process substitution for fastest interactive UX (like Hiddify / 3x-ui).
 
-Fresh install downloads a **tarball** from [package.webina.dev](https://package.webina.dev/webina/WebinoServer) (no git required). Git is only used as fallback or for updating git-based installs.
+Fresh install downloads a **tarball** from [GitHub — WebinaDev/WebinoServerManager](https://github.com/WebinaDev/WebinoServerManager) (no git required). Git is only used as fallback or for updating git-based installs.
 
 ## Control panel (webina / dialog)
 
@@ -101,7 +101,7 @@ The **WebinoServer panel** (`panel/`) is separate from the platform TUI (`webina
 | `Expression expected` in `usePermissions.ts` / `Unterminated regexp literal` | JSX in a `.ts` file (SWC does not parse JSX in `.ts`) | Pull latest WebinoServer — hook renamed to `usePermissions.tsx` |
 | `Module not found: Can't resolve '@/lib/createPage'` | Wrong import path on forbidden page | Pull latest WebinoServer — use `@/lib/create-page` (matches `src/lib/create-page.tsx`) |
 | `sqlite3 not found` / `pdo_sqlite` configure failed | Missing `libsqlite3-dev` (no longer bundled in PHP image) | Pull latest WebinoServer; Dockerfile now installs `libsqlite3-dev` |
-| VPS still shows old Dockerfile errors after local fix | `curl bootstrap` pulls **main** from package.webina.dev — fixes must be pushed to main first | Push/commit WebinoServer to main, then re-run bootstrap |
+| VPS still shows old Dockerfile errors after local fix | `curl bootstrap` pulls **main** from GitHub — fixes must be pushed to main first | Push/commit WebinoServerManager to main, then re-run bootstrap |
 | Login works but API 401 | Cookie domain / `SANCTUM_STATEFUL_DOMAINS` wrong | Re-run panel install or set `APP_URL` / `FRONTEND_URL` to your panel URL in `panel/backend/.env` |
 
 Full stack install (platform + panel):
@@ -120,7 +120,7 @@ cd WebinoServer && ./install.sh --panel
 
 After pushing latest code to the package server, run through this checklist on the VPS:
 
-1. `bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh)` — welcome dialog appears, install completes
+1. `bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)` — welcome dialog appears, install completes
 2. `webina` — dialog main menu (not text list); Esc exits cleanly
 3. Platform Setup — network present + stack running; optional Repair/Restart offered when healthy
 4. Create Site (slug + domain) — completes without Docker network error
@@ -251,10 +251,10 @@ If the wizard does not appear, run `webina` over SSH — it detects first run an
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `WEBINO_PACKAGE_BASE` | `https://package.webina.dev` | Gitea package server host |
+| `WEBINO_PACKAGE_BASE` | `https://github.com` | Package host (GitHub default; set to legacy Gitea URL to override) |
 | `WEBINO_PRODUCT` | `Webino` | Product to install: `Webino` or `WebinoERM` |
 | `WEBINO_CHANNEL` | `Dev` | Version channel: `LTS`, `Beta`, or `Dev` |
-| `WEBINO_REPO_SLUG` | `webina/WebinoServer` | Owner/repo path on the package server (orchestrator) |
+| `WEBINO_REPO_SLUG` | `WebinaDev/WebinoServerManager` | Owner/repo on GitHub (orchestrator) |
 | `WEBINO_REPO` | derived | Git clone URL |
 | `WEBINO_BOOTSTRAP_URL` | derived | Raw bootstrap.sh URL |
 | `WEBINO_BOOTSTRAP_MODE` | — | Set to `full` for platform + panel (same as `--full` flag) |
@@ -262,34 +262,34 @@ If the wizard does not appear, run `webina` over SSH — it detects first run an
 | `WEBINO_SKIP_DEPS=1` | — | Skip apt package installs (check only) |
 | `WEBINO_SKIP_UPDATE=1` | — | Skip sync on existing install (use as-is; no hard reset) |
 | `WEBINO_FORCE_REBUILD=1` | — | Force rebuild platform Docker images on init |
-| `WEBINO_INSTALL_DIR` | `./WebinoServer` | Custom install directory for bootstrap |
+| `WEBINO_INSTALL_DIR` | `./WebinoServerManager` | Custom install directory for bootstrap |
 | `WEBINO_DATA_ROOT` | `/var/lib/webina` | Override platform data path |
 | `WEBINO_CURL_CONNECT_TIMEOUT` | `15` | Seconds before curl connect timeout during download |
 | `WEBINO_CURL_MAX_TIME` | `120` | Max seconds per archive download attempt |
 
-GitHub fallback example:
+Custom fork example:
 
 ```bash
-WEBINO_PACKAGE_BASE=https://github.com WEBINO_REPO_SLUG=arsalanarghavan/WebinoServer \
-  bash <(curl -fsSL https://raw.githubusercontent.com/arsalanarghavan/WebinoServer/main/bootstrap.sh)
+WEBINO_REPO_SLUG=your-org/WebinoServerManager \
+  bash <(curl -fsSL https://raw.githubusercontent.com/your-org/WebinoServerManager/main/bootstrap.sh)
 ```
 
-## Package server (Gitea)
+## Package server (GitHub)
 
-If bootstrap hangs or fails during download, verify endpoints on the Gitea host:
+If bootstrap hangs or fails during download, verify endpoints:
 
 ```bash
 ./scripts/verify-package-server.sh
 ```
 
-Full server-side fix guide: [GITEA_PACKAGE_SERVER.md](GITEA_PACKAGE_SERVER.md)
-
 Quick checks:
 
 ```bash
-curl -I "https://package.webina.dev/webina/WebinoServer/archive/main.tar.gz"   # expect 200
-git ls-remote https://package.webina.dev/webina/WebinoServer.git HEAD           # expect SHA
+curl -I "https://github.com/WebinaDev/WebinoServerManager/archive/refs/heads/main.tar.gz"   # expect 200
+git ls-remote https://github.com/WebinaDev/WebinoServerManager.git HEAD                   # expect SHA
 ```
+
+Legacy Gitea override: set `WEBINO_PACKAGE_BASE=https://package.webina.dev` and `WEBINO_PACKAGE_BACKEND=gitea`. See [GITEA_PACKAGE_SERVER.md](GITEA_PACKAGE_SERVER.md).
 
 ## Sync on re-run
 
@@ -319,7 +319,7 @@ Immediate recovery:
 cd WebinoServer && ./install.sh --server --yes
 
 # Or skip update on re-run:
-WEBINO_SKIP_UPDATE=1 bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh)
+WEBINO_SKIP_UPDATE=1 bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)
 ```
 
 ## Fallback manual recovery
@@ -329,8 +329,8 @@ If the one-liner fails completely:
 ```bash
 curl -fsSL https://get.docker.com | sh
 systemctl enable --now docker
-git clone https://package.webina.dev/webina/WebinoServer.git
-cd WebinoServer
+git clone https://github.com/WebinaDev/WebinoServerManager.git
+cd WebinoServerManager
 ./install.sh --server --yes
 # Control panel opens automatically; if not:
 webina

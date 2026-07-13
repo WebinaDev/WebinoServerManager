@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Product catalog: names, repos, image tags, and source paths.
 
-WEBINO_PACKAGE_BASE="${WEBINO_PACKAGE_BASE:-https://package.webina.dev}"
+_PKG_URLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../install" && pwd)"
+# shellcheck source=scripts/install/package-urls.sh
+source "${_PKG_URLS_DIR}/package-urls.sh"
+
 WEBINO_PRODUCT_BRANCH="${WEBINO_PRODUCT_BRANCH:-main}"
 WEBINO_SUPPORTED_PRODUCTS=(Webino WebinoERM)
 
@@ -15,8 +18,8 @@ product_normalize() {
 
 product_repo_slug() {
   case "$(product_normalize "$1")" in
-    Webino) printf 'webina/Webino' ;;
-    WebinoERM) printf 'webina/WebinoERM' ;;
+    Webino) printf 'WebinaDev/WebinoDashboard' ;;
+    WebinoERM) printf 'WebinaDev/WebinoERP' ;;
     *) return 1 ;;
   esac
 }
@@ -57,7 +60,9 @@ product_local_monorepo_path() {
   product="$(product_normalize "$1")" || return 1
   [[ -n "${ROOT:-}" ]] || return 1
   local -a dir_names=("$product")
-  if [[ "$product" == "WebinoERM" ]]; then
+  if [[ "$product" == "Webino" ]]; then
+    dir_names+=(WebinoDashboard)
+  elif [[ "$product" == "WebinoERM" ]]; then
     dir_names+=(WebinoERP)
   fi
   local name candidate

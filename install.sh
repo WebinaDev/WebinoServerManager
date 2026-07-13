@@ -36,8 +36,8 @@ Options:
   -h, --help           Show this help
 
 Examples:
-  bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh) --full
-  bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh)
+  bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh) --full
+  bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)
   ./install.sh --server --yes
   ./install.sh --panel
   ./install.sh --server --panel --yes

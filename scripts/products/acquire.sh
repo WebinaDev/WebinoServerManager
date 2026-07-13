@@ -36,11 +36,7 @@ _acquire_ensure_git() {
 _acquire_git_http_opts=( -c http.postBuffer=524288 )
 
 _acquire_latest_release_tag() {
-  local repo_slug="$1" prerelease="$2" url
-  url="${WEBINO_PACKAGE_BASE}/api/v1/repos/${repo_slug}/releases?draft=false&pre-release=${prerelease}&limit=1"
-  curl -fsSL --connect-timeout 10 --max-time 30 "$url" 2>/dev/null \
-    | grep -m1 '"tag_name"' \
-    | sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/'
+  webino_package_latest_release_tag "$1" "$2"
 }
 
 _acquire_resolve_ref() {
@@ -79,17 +75,7 @@ _acquire_resolve_ref() {
 }
 
 _acquire_remote_commit_sha() {
-  local repo_slug="$1" ref="$2" sha=""
-  sha=$(curl -fsSL --connect-timeout 10 --max-time 30 \
-    "${WEBINO_PACKAGE_BASE}/api/v1/repos/${repo_slug}/git/refs/heads/${ref}" \
-    2>/dev/null | grep -m1 '"sha"' | sed 's/.*"sha": "\([^"]*\)".*/\1/' || true)
-  if [[ -n "$sha" ]]; then
-    printf '%s' "$sha"
-    return 0
-  fi
-  curl -fsSL --connect-timeout 10 --max-time 30 \
-    "${WEBINO_PACKAGE_BASE}/api/v1/repos/${repo_slug}/commits?limit=1" \
-    2>/dev/null | grep -m1 '"sha"' | sed 's/.*"sha": "\([^"]*\)".*/\1/' || true
+  webino_package_remote_commit_sha "$1" "$2"
 }
 
 _acquire_is_network_error() {
@@ -112,10 +98,8 @@ _acquire_write_meta() {
 _acquire_download_tarball() {
   local product="$1" repo_slug="$2" ref="$3" target="$4"
   local url tmpdir extract_dir sha archive downloaded=0
-  local -a archive_urls=(
-    "${WEBINO_PACKAGE_BASE}/${repo_slug}/archive/${ref}.tar.gz"
-    "${WEBINO_PACKAGE_BASE}/api/v1/repos/${repo_slug}/archive/${ref}.tar.gz"
-  )
+  local -a archive_urls=()
+  mapfile -t archive_urls < <(webino_package_archive_urls "$repo_slug" "$ref")
 
   tmpdir=$(mktemp -d)
   archive="$tmpdir/archive.tar.gz"
@@ -161,7 +145,7 @@ _acquire_download_tarball() {
 
 _acquire_git_clone() {
   local repo_slug="$1" ref="$2" target="$3" repo
-  repo="${WEBINO_PACKAGE_BASE}/${repo_slug}.git"
+  repo="$(webino_package_git_url "$repo_slug")"
   rm -rf "$target"
   if git "${_acquire_git_http_opts[@]}" clone --depth 1 --branch "$ref" "$repo" "$target" 2>/dev/null; then
     printf 'git\n' >"${target}/.webino-source"
@@ -248,7 +232,7 @@ acquire_product() {
     return 0
   fi
 
-  die "Failed to acquire ${product} from ${WEBINO_PACKAGE_BASE}/${repo_slug}"
+  die "Failed to acquire ${product} from $(webino_package_git_url "$repo_slug")"
 }
 
 product_source_ready() {

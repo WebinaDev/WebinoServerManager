@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Verify package.webina.dev (Gitea) endpoints used by bootstrap.
+# Verify GitHub (default) or legacy Gitea endpoints used by bootstrap.
 set -euo pipefail
 
-WEBINO_PACKAGE_BASE="${WEBINO_PACKAGE_BASE:-https://package.webina.dev}"
-WEBINO_REPO_SLUG="${WEBINO_REPO_SLUG:-webina/WebinoServer}"
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/install/package-urls.sh
+source "${_SCRIPT_DIR}/install/package-urls.sh"
+
 BRANCH="${WEBINO_BRANCH:-main}"
 
 pass=0
@@ -27,33 +29,46 @@ check() {
   fi
 }
 
-echo "Package server verification: ${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}"
+echo "Package server verification: ${WEBINO_REPO_SLUG} (${WEBINO_PACKAGE_BASE})"
 echo
 
-check "raw bootstrap" \
-  "${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}/raw/branch/${BRANCH}/bootstrap.sh"
-check "web archive" \
-  "${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}/archive/${BRANCH}.tar.gz"
-check "API archive" \
-  "${WEBINO_PACKAGE_BASE}/api/v1/repos/${WEBINO_REPO_SLUG}/archive/${BRANCH}.tar.gz"
-check "git smart HTTP" \
-  "${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}/info/refs?service=git-upload-pack"
-check "branch ref API" \
-  "${WEBINO_PACKAGE_BASE}/api/v1/repos/${WEBINO_REPO_SLUG}/git/refs/heads/${BRANCH}"
+check "raw bootstrap" "$(webino_package_bootstrap_url "$WEBINO_REPO_SLUG" "$BRANCH")"
+
+if webino_package_is_gitea; then
+  check "web archive" \
+    "${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}/archive/${BRANCH}.tar.gz"
+  check "API archive" \
+    "${WEBINO_PACKAGE_BASE}/api/v1/repos/${WEBINO_REPO_SLUG}/archive/${BRANCH}.tar.gz"
+  check "git smart HTTP" \
+    "${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}/info/refs?service=git-upload-pack"
+  check "branch ref API" \
+    "${WEBINO_PACKAGE_BASE}/api/v1/repos/${WEBINO_REPO_SLUG}/git/refs/heads/${BRANCH}"
+else
+  check "branch archive" \
+    "https://github.com/${WEBINO_REPO_SLUG}/archive/refs/heads/${BRANCH}.tar.gz"
+  check "codeload archive" \
+    "https://codeload.github.com/${WEBINO_REPO_SLUG}/tar.gz/refs/heads/${BRANCH}"
+  check "commits API" \
+    "https://api.github.com/repos/${WEBINO_REPO_SLUG}/commits/${BRANCH}"
+fi
 
 printf 'Checking %-28s ... ' "git ls-remote"
-if git ls-remote "${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}.git" "refs/heads/${BRANCH}" >/dev/null 2>&1; then
+if git ls-remote "$(webino_package_git_url "$WEBINO_REPO_SLUG")" "refs/heads/${BRANCH}" >/dev/null 2>&1; then
   echo "OK"
   pass=$((pass + 1))
 else
   echo "FAIL"
-  echo "  URL: ${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}.git"
+  echo "  URL: $(webino_package_git_url "$WEBINO_REPO_SLUG")"
   fail=$((fail + 1))
 fi
 
 echo
 echo "Results: ${pass} passed, ${fail} failed"
 if [[ "$fail" -gt 0 ]]; then
-  echo "See docs/GITEA_PACKAGE_SERVER.md for server-side fixes."
+  if webino_package_is_gitea; then
+    echo "See docs/GITEA_PACKAGE_SERVER.md for legacy Gitea fixes."
+  else
+    echo "Verify the repository is public: https://github.com/${WEBINO_REPO_SLUG}"
+  fi
   exit 1
 fi

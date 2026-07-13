@@ -7,7 +7,7 @@ Laravel 13 API-first backend, Next.js 14.2.35 + shadcn frontend, Go `webino-agen
 **One-liner (VPS — platform + panel):**
 
 ```bash
-bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh) --full
+bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh) --full
 ```
 
 **Panel only** (hosting UI without platform TUI):

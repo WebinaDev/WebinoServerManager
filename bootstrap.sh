@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# WebinoServer one-liner bootstrap — installs the server orchestrator (not products).
+# WebinoServerManager one-liner bootstrap — installs the server orchestrator (not products).
 set -euo pipefail
 
-WEBINO_PACKAGE_BASE="${WEBINO_PACKAGE_BASE:-https://package.webina.dev}"
-WEBINO_REPO_SLUG="${WEBINO_REPO_SLUG:-webina/WebinoServer}"
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/install/package-urls.sh
+source "${_SCRIPT_DIR}/scripts/install/package-urls.sh"
+
 BRANCH="${WEBINO_BRANCH:-main}"
 REF="$BRANCH"
-REPO="${WEBINO_REPO:-${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}.git}"
-BOOTSTRAP_SELF_URL="${WEBINO_BOOTSTRAP_URL:-${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}/raw/branch/${BRANCH}/bootstrap.sh}"
-TARGET="${WEBINO_INSTALL_DIR:-./WebinoServer}"
+REPO="${WEBINO_REPO:-$(webino_package_git_url "$WEBINO_REPO_SLUG")}"
+BOOTSTRAP_SELF_URL="${WEBINO_BOOTSTRAP_URL:-$(webino_package_bootstrap_url "$WEBINO_REPO_SLUG" "$BRANCH")}"
+TARGET="${WEBINO_INSTALL_DIR:-./WebinoServerManager}"
 WEBINO_SKIP_UPDATE="${WEBINO_SKIP_UPDATE:-0}"
 WEBINO_CURL_CONNECT_TIMEOUT="${WEBINO_CURL_CONNECT_TIMEOUT:-15}"
 WEBINO_CURL_MAX_TIME="${WEBINO_CURL_MAX_TIME:-120}"
@@ -76,18 +78,18 @@ bootstrap_require_root() {
   if have sudo && sudo -n true 2>/dev/null; then
     return 0
   fi
-  die "WebinoServer bootstrap requires root (or passwordless sudo).
+  die "WebinoServerManager bootstrap requires root (or passwordless sudo).
   Fix: sudo bash <(curl -fsSL ${BOOTSTRAP_SELF_URL}) --full"
 }
 
 bootstrap_show_welcome() {
   bootstrap_ensure_dialog || true
   if have dialog && [[ -t 1 ]] && [[ "${TERM:-dumb}" != "dumb" ]]; then
-    dialog --title "WebinoServer" --msgbox \
-      "Welcome to WebinoServer installer.\n\nThis installs the server orchestrator (control panel, platform stack).\nProducts (Webino, WebinoERM) are installed separately from the control panel." \
+    dialog --title "WebinoServerManager" --msgbox \
+      "Welcome to WebinoServerManager installer.\n\nThis installs the server orchestrator (control panel, platform stack).\nProducts (Webino, WebinoERM) are installed separately from the control panel." \
       12 72 </dev/tty >/dev/tty 2>&1 || true
   else
-    log "WebinoServer installer"
+    log "WebinoServerManager installer"
   fi
 }
 
@@ -97,14 +99,12 @@ bootstrap_clone_valid() {
 
 bootstrap_download_tarball() {
   local url tmpdir extract_dir archive downloaded=0 start_t=$SECONDS
-  local -a archive_urls=(
-    "${WEBINO_PACKAGE_BASE}/${WEBINO_REPO_SLUG}/archive/${REF}.tar.gz"
-    "${WEBINO_PACKAGE_BASE}/api/v1/repos/${WEBINO_REPO_SLUG}/archive/${REF}.tar.gz"
-  )
+  local -a archive_urls=()
+  mapfile -t archive_urls < <(webino_package_archive_urls "$WEBINO_REPO_SLUG" "$REF")
 
   tmpdir=$(mktemp -d)
   archive="$tmpdir/archive.tar.gz"
-  log "Downloading WebinoServer (${REF})..."
+  log "Downloading WebinoServerManager (${REF})..."
 
   for url in "${archive_urls[@]}"; do
     if curl -fL \

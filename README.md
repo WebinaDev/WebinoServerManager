@@ -7,24 +7,24 @@ Server orchestrator for the Webina platform. Manages Docker, Caddy (SSL), Redis,
 **Recommended — full stack** (Docker + platform + web panel on `:2090`):
 
 ```bash
-bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh) --full
+bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh) --full
 ```
 
 Non-interactive / pipe:
 
 ```bash
-curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh | bash -s -- --full
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh | bash -s -- --full
 ```
 
 **Platform only** (TUI control panel, no web panel):
 
 ```bash
-bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)
 ```
 
 What happens with `--full`:
 
-1. Downloads **WebinoServer** (this repo) — not a product
+1. Downloads **WebinoServerManager** (this repo) — not a product
 2. Installs Docker, python3, gettext, dialog (if missing)
 3. Initializes platform stack (Caddy + Redis + shared network)
 4. Registers the `webina` CLI
@@ -127,7 +127,7 @@ webina container restart SLUG backend
 
 ## Monorepo / local development
 
-When WebinoServer sits next to `Webino/`, `WebinoERM/`, or `WebinoERP/` (folder alias for WebinoERM), product install uses local sources automatically. Set `WEBINA_USE_LOCAL_PRODUCTS=0` to force download from the package server.
+When WebinoServerManager sits next to `WebinoDashboard/`, `Webino/`, `WebinoERM/`, or `WebinoERP/` (folder aliases), product install uses local sources automatically. Set `WEBINA_USE_LOCAL_PRODUCTS=0` to force download from GitHub.
 
 ## Project structure
 

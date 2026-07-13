@@ -1,17 +1,22 @@
-# Gitea Package Server (package.webina.dev)
+# Legacy Gitea Package Server (package.webina.dev)
 
-Bootstrap downloads **WebinoServer** from `package.webina.dev`. If archive or git endpoints return **500** or hang, the installer appears stuck on "Downloading WebinoServer...".
+> **Default:** Installers now download from [GitHub — WebinaDev](https://github.com/WebinaDev/). This document applies only when overriding with `WEBINO_PACKAGE_BASE=https://package.webina.dev` and `WEBINO_PACKAGE_BACKEND=gitea`.
 
-Run the verification script from any machine:
+Bootstrap can download **WebinoServerManager** from a self-hosted Gitea instance. If archive or git endpoints return **500** or hang, the installer appears stuck on "Downloading WebinoServerManager...".
+
+Run the verification script from any machine (with Gitea env vars set):
 
 ```bash
-curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/scripts/verify-package-server.sh | bash
+WEBINO_PACKAGE_BASE=https://package.webina.dev \
+WEBINO_PACKAGE_BACKEND=gitea \
+WEBINO_REPO_SLUG=webina/WebinoServerManager \
+  ./scripts/verify-package-server.sh
 ```
 
-Or from a local clone:
+Or pipe from GitHub (default):
 
 ```bash
-./scripts/verify-package-server.sh
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/verify-package-server.sh | bash
 ```
 
 All checks should return **OK**. Archive and git smart HTTP must return HTTP **200**.
@@ -27,9 +32,9 @@ journalctl -u gitea -f
 In another terminal:
 
 ```bash
-curl -I "https://package.webina.dev/webina/WebinoServer/archive/main.tar.gz"
-curl -I "https://package.webina.dev/webina/WebinoServer/info/refs?service=git-upload-pack"
-git ls-remote https://package.webina.dev/webina/WebinoServer.git HEAD
+curl -I "https://package.webina.dev/webina/WebinoServerManager/archive/main.tar.gz"
+curl -I "https://package.webina.dev/webina/WebinoServerManager/info/refs?service=git-upload-pack"
+git ls-remote https://package.webina.dev/webina/WebinoServerManager.git HEAD
 ```
 
 ## Common causes of 500 on archive/git
@@ -57,14 +62,14 @@ Restart Gitea after changes.
 Find the repo on disk (path varies by install):
 
 ```bash
-sudo -u git ls -la /var/lib/gitea/data/gitea-repositories/webina/webinoserver.git
-sudo -u git git --git-dir=/path/to/webinoserver.git fsck
+sudo -u git ls -la /var/lib/gitea/data/gitea-repositories/webina/webinoservermanager.git
+sudo -u git git --git-dir=/path/to/webinoservermanager.git fsck
 ```
 
 Re-push from a known-good clone if the bare repo is corrupt:
 
 ```bash
-git remote add gitea https://package.webina.dev/webina/WebinoServer.git
+git remote add gitea https://package.webina.dev/webina/WebinoServerManager.git
 git push gitea main --force
 ```
 
@@ -76,17 +81,6 @@ Ensure nginx/Caddy passes through without truncating:
 - `GET /{owner}/{repo}/info/refs?service=git-upload-pack`
 - `POST /{owner}/{repo}/git-upload-pack`
 
-Example nginx additions:
-
-```nginx
-location ~ ^/.+/[^/]+/(git-upload-pack|git-receive-pack|info/refs|archive/) {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_buffering off;
-    proxy_request_buffering off;
-    client_max_body_size 0;
-}
-```
-
 ### 4. Insufficient memory during archive generation
 
 Archive creation runs `git archive` on the server. Add swap or increase RAM if OOM kills appear in logs during tarball requests.
@@ -94,22 +88,23 @@ Archive creation runs `git archive` on the server. Add swap or increase RAM if O
 ## Verify after fix
 
 ```bash
-curl -fsSLI "https://package.webina.dev/webina/WebinoServer/archive/main.tar.gz"   # expect 200
-git ls-remote https://package.webina.dev/webina/WebinoServer.git HEAD              # expect SHA
-./scripts/verify-package-server.sh                                                 # all OK
+curl -fsSLI "https://package.webina.dev/webina/WebinoServerManager/archive/main.tar.gz"   # expect 200
+git ls-remote https://package.webina.dev/webina/WebinoServerManager.git HEAD              # expect SHA
+./scripts/verify-package-server.sh                                                        # all OK
 ```
 
-Then re-run bootstrap on the VPS:
+## GitHub (recommended)
+
+Default bootstrap — no env overrides needed:
 
 ```bash
-bash <(curl -fsSL https://package.webina.dev/webina/WebinoServer/raw/branch/main/bootstrap.sh) --full
+bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh) --full
 ```
 
-## GitHub mirror fallback
+Product repos on GitHub:
 
-If Gitea is temporarily unavailable, point bootstrap at another git host (adjust owner/repo as needed):
-
-```bash
-WEBINO_PACKAGE_BASE=https://github.com WEBINO_REPO_SLUG=your-org/WebinoServer \
-  bash <(curl -fsSL https://raw.githubusercontent.com/your-org/WebinoServer/main/bootstrap.sh) --full
-```
+| Product | Repository |
+|---------|------------|
+| Webino | [WebinaDev/WebinoDashboard](https://github.com/WebinaDev/WebinoDashboard) |
+| WebinoERM | [WebinaDev/WebinoERP](https://github.com/WebinaDev/WebinoERP) |
+| Orchestrator | [WebinaDev/WebinoServerManager](https://github.com/WebinaDev/WebinoServerManager) |
