@@ -70,8 +70,9 @@ From the WebinoServerManager checkout on the server:
 
 ```bash
 cd ~/WebinoServerManager
+git pull origin main
 export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
-sudo -E ./scripts/update-server.sh --panel --yes
+./scripts/update-server.sh --panel --yes
 ```
 
 ## Verify install

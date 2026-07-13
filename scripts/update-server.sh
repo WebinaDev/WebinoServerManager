@@ -2,10 +2,62 @@
 # Update WebinoServer on a VPS (bootstrap sync + panel/product rebuild).
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# shellcheck source=scripts/install/package-urls.sh
-source "${ROOT}/scripts/install/package-urls.sh"
+_SCRIPT_REF="${BASH_SOURCE[0]}"
+case "$_SCRIPT_REF" in
+  /dev/fd/*|/proc/self/fd/*|-)
+    _SCRIPT_DIR=""
+    ;;
+  *)
+    _SCRIPT_DIR="$(cd "$(dirname "$_SCRIPT_REF")" && pwd)"
+    ;;
+esac
+
+if [[ -n "$_SCRIPT_DIR" ]]; then
+  ROOT="$(cd "${_SCRIPT_DIR}/.." && pwd)"
+else
+  _INSTALL_PATH_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/webina/install-path"
+  if [[ -f "$_INSTALL_PATH_FILE" ]]; then
+    ROOT="$(tr -d '\n' <"$_INSTALL_PATH_FILE")"
+  else
+    ROOT="${WEBINO_INSTALL_DIR:-$HOME/WebinoServerManager}"
+  fi
+fi
+
+webino_update_load_package_urls() {
+  if [[ -f "${ROOT}/scripts/install/package-urls.sh" ]]; then
+    # shellcheck source=scripts/install/package-urls.sh
+    source "${ROOT}/scripts/install/package-urls.sh"
+    return 0
+  fi
+
+  local slug="${WEBINO_REPO_SLUG:-WebinaDev/WebinoServerManager}"
+  local branch="${WEBINO_BRANCH:-main}"
+  local tmp
+  tmp=$(mktemp)
+  if ! curl -fsSL \
+    --connect-timeout "${WEBINO_CURL_CONNECT_TIMEOUT:-15}" \
+    --max-time "${WEBINO_CURL_MAX_TIME:-120}" \
+    "https://raw.githubusercontent.com/${slug}/${branch}/scripts/install/package-urls.sh" \
+    -o "$tmp"; then
+    rm -f "$tmp"
+    printf '\033[1;31m[update-server]\033[0m Failed to fetch scripts/install/package-urls.sh\n' >&2
+    exit 1
+  fi
+  # shellcheck source=/dev/null
+  source "$tmp"
+  rm -f "$tmp"
+}
+
+webino_update_load_package_urls
 BOOTSTRAP_URL="$(webino_package_bootstrap_url "$WEBINO_REPO_SLUG" main)"
+
+log() { printf '\033[1;34m[update-server]\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m[update-server]\033[0m %s\n' "$*"; }
+die() { printf '\033[1;31m[update-server]\033[0m %s\n' "$*" >&2; exit 1; }
+
+[[ -d "$ROOT" ]] || die "Install directory not found: ${ROOT}
+Clone first: git clone https://github.com/WebinaDev/WebinoServerManager.git ${ROOT}
+Or set WEBINO_INSTALL_DIR=/path/to/WebinoServerManager"
 
 MODE="panel"
 SKIP_UPDATE=0
@@ -31,9 +83,13 @@ Environment (recommended on Iran VPS):
 
 Examples:
   export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
-  sudo -E ./scripts/update-server.sh --full --yes
-  sudo -E ./scripts/update-server.sh --panel --yes
-  sudo -E ./scripts/update-server.sh --panel --products --yes
+  ./scripts/update-server.sh --panel --yes
+  ./scripts/update-server.sh --full --yes
+
+One-liner (from any directory; uses ~/.config/webina/install-path or ~/WebinoServerManager):
+  curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh -o /tmp/webina-update.sh
+  chmod +x /tmp/webina-update.sh
+  WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1 /tmp/webina-update.sh --panel --yes
 EOF
 }
 
@@ -54,18 +110,20 @@ done
 export WEBINA_DOCKER_BUILD_NETWORK="${WEBINA_DOCKER_BUILD_NETWORK:-host}"
 export WEBINA_DOCKER_BUILD_RETRY_HOST="${WEBINA_DOCKER_BUILD_RETRY_HOST:-1}"
 
-log() { printf '\033[1;34m[update-server]\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m[update-server]\033[0m %s\n' "$*"; }
-die() { printf '\033[1;31m[update-server]\033[0m %s\n' "$*" >&2; exit 1; }
-
 run_root() {
   if [[ "${EUID:-0}" -eq 0 ]]; then
-    "$@"
-  elif sudo -n true 2>/dev/null; then
-    sudo -E "$@"
-  else
-    "$@"
+    WEBINA_DOCKER_BUILD_NETWORK="$WEBINA_DOCKER_BUILD_NETWORK" \
+    WEBINA_DOCKER_BUILD_RETRY_HOST="$WEBINA_DOCKER_BUILD_RETRY_HOST" \
+      "$@"
+    return
   fi
+  if sudo -n true 2>/dev/null; then
+    sudo WEBINA_DOCKER_BUILD_NETWORK="$WEBINA_DOCKER_BUILD_NETWORK" \
+         WEBINA_DOCKER_BUILD_RETRY_HOST="$WEBINA_DOCKER_BUILD_RETRY_HOST" \
+      "$@"
+    return
+  fi
+  "$@"
 }
 
 verify_package_server() {
@@ -99,7 +157,12 @@ bootstrap_full() {
   if [[ "$SKIP_UPDATE" == "1" ]]; then
     export WEBINO_SKIP_UPDATE=1
   fi
-  run_root bash -c "bash <(curl -fsSL '$BOOTSTRAP_URL') --full ${INSTALL_YES[*]:-}"
+  local bootstrap_tmp
+  bootstrap_tmp=$(mktemp)
+  curl -fsSL "$BOOTSTRAP_URL" -o "$bootstrap_tmp"
+  chmod +x "$bootstrap_tmp"
+  run_root bash "$bootstrap_tmp" --full ${INSTALL_YES[@]+"${INSTALL_YES[@]}"}
+  rm -f "$bootstrap_tmp"
 }
 
 rebuild_panel() {

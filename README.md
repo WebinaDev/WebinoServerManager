@@ -46,27 +46,33 @@ After panel install, open `http://<server-ip>:2090` and complete the setup wizar
 
 ## Update & rebuild (VPS)
 
-Pull the latest code, rebuild the panel stack, and restart services (fixes setup/login refresh loops and panel Docker fixes after `git pull`):
+Pull the latest code, rebuild the panel stack, and restart services (fixes setup/login refresh loops and panel Docker fixes after `git pull`).
+
+**As root** (no `sudo` needed):
 
 ```bash
 cd ~/WebinoServerManager
+git pull origin main
 export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
-sudo -E ./scripts/update-server.sh --panel --yes
+./scripts/update-server.sh --panel --yes
 ```
 
-Full platform + panel sync from GitHub:
+**One-liner** (download script to a temp file — do not use `bash <(curl ...)`):
+
+```bash
+export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
+curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh -o /tmp/webina-update.sh
+chmod +x /tmp/webina-update.sh
+/tmp/webina-update.sh --panel --yes
+```
+
+Full platform + panel sync:
 
 ```bash
 cd ~/WebinoServerManager
+git pull origin main
 export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
-sudo -E ./scripts/update-server.sh --full --yes
-```
-
-One-liner from any directory (downloads latest `update-server.sh` from GitHub):
-
-```bash
-export WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1
-sudo -E bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/scripts/update-server.sh) --panel --yes
+./scripts/update-server.sh --full --yes
 ```
 
 ## Install products
