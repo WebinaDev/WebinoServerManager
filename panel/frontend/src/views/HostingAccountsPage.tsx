@@ -2,18 +2,27 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
+import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 type AccountRow = {
   id: number
   username: string
   primary_domain: string | null
+  plan_id?: number
   status: string
   disk_used_mb: number
   inodes_used: number
@@ -46,6 +55,13 @@ const QUOTA_RESOURCES = [
 function QuotaAlertsPanel({ accountId, username }: { accountId: number; username: string }) {
   const { t } = useTranslation(["hosting", "common"])
   const qc = useQueryClient()
+  const [editingAlert, setEditingAlert] = useState<QuotaAlertRow | null>(null)
+  const [editForm, setEditForm] = useState({
+    threshold_percent: 80,
+    escalation_minutes: 60,
+    escalation_channel: "email",
+    enabled: true,
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ["quota-alerts", accountId],
@@ -64,7 +80,36 @@ function QuotaAlertsPanel({ accountId, username }: { accountId: number; username
         method: "POST",
         json: body,
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["quota-alerts", accountId] }),
+    onSuccess: () => {
+      toast.success(t("hosting:quota_alert_saved", { defaultValue: "Quota alert saved" }))
+      qc.invalidateQueries({ queryKey: ["quota-alerts", accountId] })
+    },
+    onError: toastMutationError,
+  })
+
+  const updateAlert = useMutation({
+    mutationFn: (body: {
+      alertId: number
+      threshold_percent: number
+      escalation_minutes: number
+      escalation_channel: string
+      enabled: boolean
+    }) =>
+      api(`/api/v1/hosting/accounts/${accountId}/quota-alerts/${body.alertId}`, {
+        method: "PATCH",
+        json: {
+          threshold_percent: body.threshold_percent,
+          escalation_minutes: body.escalation_minutes,
+          escalation_channel: body.escalation_channel,
+          enabled: body.enabled,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(t("hosting:quota_alert_saved", { defaultValue: "Quota alert saved" }))
+      setEditingAlert(null)
+      qc.invalidateQueries({ queryKey: ["quota-alerts", accountId] })
+    },
+    onError: toastMutationError,
   })
 
   const remove = useMutation({
@@ -72,7 +117,11 @@ function QuotaAlertsPanel({ accountId, username }: { accountId: number; username
       api(`/api/v1/hosting/accounts/${accountId}/quota-alerts/${alertId}`, {
         method: "DELETE",
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["quota-alerts", accountId] }),
+    onSuccess: () => {
+      toast.success(t("common:delete", { defaultValue: "Deleted" }))
+      qc.invalidateQueries({ queryKey: ["quota-alerts", accountId] })
+    },
+    onError: toastMutationError,
   })
 
   return (
@@ -94,14 +143,32 @@ function QuotaAlertsPanel({ accountId, username }: { accountId: number; username
                   {alert.resource} ≥ {alert.threshold_percent}% · {alert.escalation_channel} ·{" "}
                   {alert.escalation_minutes}m
                 </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => remove.mutate(alert.id)}
-                >
-                  {t("common:delete")}
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditingAlert(alert)
+                      setEditForm({
+                        threshold_percent: alert.threshold_percent,
+                        escalation_minutes: alert.escalation_minutes,
+                        escalation_channel: alert.escalation_channel,
+                        enabled: alert.enabled,
+                      })
+                    }}
+                  >
+                    {t("common:edit", { defaultValue: "Edit" })}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => remove.mutate(alert.id)}
+                  >
+                    {t("common:delete")}
+                  </Button>
+                </div>
               </li>
             ))
           )}
@@ -165,6 +232,78 @@ function QuotaAlertsPanel({ accountId, username }: { accountId: number; username
           </Button>
         </div>
       </form>
+
+      <Dialog open={editingAlert !== null} onOpenChange={(open) => !open && setEditingAlert(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("hosting:edit_quota_alert", { defaultValue: "Edit quota alert" })}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-1">
+              <Label>{t("hosting:quota_threshold", { defaultValue: "Threshold %" })}</Label>
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                value={editForm.threshold_percent}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, threshold_percent: Number(e.target.value) })
+                }
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>{t("hosting:quota_escalation_minutes", { defaultValue: "Escalation (minutes)" })}</Label>
+              <Input
+                type="number"
+                min={5}
+                value={editForm.escalation_minutes}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, escalation_minutes: Number(e.target.value) })
+                }
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>{t("hosting:quota_escalation_channel", { defaultValue: "Channel" })}</Label>
+              <select
+                className="border-input bg-background flex h-9 w-full rounded-md border px-2 text-sm"
+                value={editForm.escalation_channel}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, escalation_channel: e.target.value })
+                }
+              >
+                <option value="email">email</option>
+                <option value="telegram">telegram</option>
+                <option value="slack">slack</option>
+                <option value="webhook">webhook</option>
+                <option value="all">all</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={editForm.enabled}
+                onChange={(e) => setEditForm({ ...editForm, enabled: e.target.checked })}
+              />
+              {t("hosting:enabled", { defaultValue: "Enabled" })}
+            </label>
+          </div>
+          <Button
+            type="button"
+            disabled={!editingAlert || updateAlert.isPending}
+            onClick={() => {
+              if (!editingAlert) return
+              updateAlert.mutate({
+                alertId: editingAlert.id,
+                ...editForm,
+              })
+            }}
+          >
+            {t("common:save", { defaultValue: "Save" })}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -193,6 +332,9 @@ export default function HostingAccountsPage() {
   const [planId, setPlanId] = useState("")
   const [domain, setDomain] = useState("")
   const [alertsAccountId, setAlertsAccountId] = useState<number | null>(null)
+  const [editingAccount, setEditingAccount] = useState<AccountRow | null>(null)
+  const [editPlanId, setEditPlanId] = useState("")
+  const [editDomain, setEditDomain] = useState("")
 
   const { data, isLoading } = useQuery({
     queryKey: ["hosting-accounts"],
@@ -203,6 +345,12 @@ export default function HostingAccountsPage() {
     queryKey: ["hosting-plans"],
     queryFn: () => api<{ plans: PlanOption[] }>("/api/v1/hosting/plans"),
   })
+
+  const accounts = data?.accounts ?? []
+  const alertsAccount = useMemo(
+    () => accounts.find((a) => a.id === alertsAccountId) ?? null,
+    [accounts, alertsAccountId],
+  )
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["hosting-accounts"] })
 
@@ -217,26 +365,145 @@ export default function HostingAccountsPage() {
         },
       }),
     onSuccess: () => {
+      toast.success(t("hosting:create_account"))
       invalidate()
       setUsername("")
       setDomain("")
     },
+    onError: toastMutationError,
   })
 
   const suspend = useMutation({
     mutationFn: (id: number) => api(`/api/v1/hosting/accounts/${id}/suspend`, { method: "POST", json: {} }),
     onSuccess: invalidate,
+    onError: toastMutationError,
   })
 
   const unsuspend = useMutation({
     mutationFn: (id: number) => api(`/api/v1/hosting/accounts/${id}/unsuspend`, { method: "POST" }),
     onSuccess: invalidate,
+    onError: toastMutationError,
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/hosting/accounts/${id}`, { method: "DELETE" }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("common:delete", { defaultValue: "Deleted" }))
+      if (alertsAccountId) setAlertsAccountId(null)
+      invalidate()
+    },
+    onError: toastMutationError,
   })
+
+  const updateAccount = useMutation({
+    mutationFn: ({
+      id,
+      plan_id,
+      primary_domain,
+    }: {
+      id: number
+      plan_id: number
+      primary_domain: string | null
+    }) =>
+      api(`/api/v1/hosting/accounts/${id}`, {
+        method: "PATCH",
+        json: { plan_id, primary_domain },
+      }),
+    onSuccess: () => {
+      toast.success(t("hosting:account_saved", { defaultValue: "Account saved" }))
+      setEditingAccount(null)
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const columns: DataTableColumn<AccountRow>[] = [
+    {
+      id: "username",
+      header: t("hosting:field_username"),
+      sortValue: (row) => row.username,
+      cell: (a) => (
+        <div>
+          <div className="font-medium">{a.username}</div>
+          <div className="text-muted-foreground">
+            {a.plan?.name ?? t("common:em_dash")} ·{" "}
+            <span className={a.status === "suspended" ? "text-destructive" : ""}>{a.status}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "usage",
+      header: t("hosting:usage_disk"),
+      cell: (a) =>
+        a.plan ? (
+          <div className="grid min-w-[200px] gap-2">
+            <UsageBar
+              used={a.disk_used_mb}
+              limit={a.plan.disk_mb}
+              label={t("hosting:usage_disk")}
+            />
+            <UsageBar
+              used={a.inodes_used}
+              limit={a.plan.inodes}
+              label={t("hosting:usage_inodes")}
+            />
+          </div>
+        ) : (
+          <span className="text-muted-foreground">{t("common:em_dash")}</span>
+        ),
+    },
+    {
+      id: "actions",
+      header: t("common:actions", { defaultValue: "Actions" }),
+      cell: (a) => (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setEditingAccount(a)
+              setEditPlanId(String(a.plan_id ?? ""))
+              setEditDomain(a.primary_domain ?? "")
+            }}
+          >
+            {t("common:edit", { defaultValue: "Edit" })}
+          </Button>
+          {a.status === "suspended" ? (
+            <Button size="sm" variant="outline" onClick={() => unsuspend.mutate(a.id)}>
+              {t("hosting:unsuspend")}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (window.confirm(t("hosting:suspend_confirm"))) suspend.mutate(a.id)
+              }}
+            >
+              {t("hosting:suspend")}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setAlertsAccountId((cur) => (cur === a.id ? null : a.id))}
+          >
+            {t("hosting:quota_alerts")}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              if (window.confirm(t("hosting:delete_account_confirm"))) remove.mutate(a.id)
+            }}
+          >
+            {t("common:delete")}
+          </Button>
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -277,81 +544,68 @@ export default function HostingAccountsPage() {
             {t("hosting:create_account")}
           </Button>
 
-          {isLoading ? (
-            <p>{t("common:loading")}</p>
-          ) : (
-            <ul className="divide-y rounded-md border">
-              {(data?.accounts ?? []).map((a) => (
-                <li key={a.id} className="space-y-2 px-4 py-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <div className="font-medium">{a.username}</div>
-                      <div className="text-muted-foreground">
-                        {a.plan?.name ?? t("common:em_dash")} ·{" "}
-                        <span className={a.status === "suspended" ? "text-destructive" : ""}>
-                          {a.status}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {a.status === "suspended" ? (
-                        <Button size="sm" variant="outline" onClick={() => unsuspend.mutate(a.id)}>
-                          {t("hosting:unsuspend")}
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            if (window.confirm(t("hosting:suspend_confirm"))) suspend.mutate(a.id)
-                          }}
-                        >
-                          {t("hosting:suspend")}
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          setAlertsAccountId((cur) => (cur === a.id ? null : a.id))
-                        }
-                      >
-                        {t("hosting:quota_alerts")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          if (window.confirm(t("hosting:delete_account_confirm"))) remove.mutate(a.id)
-                        }}
-                      >
-                        {t("common:delete")}
-                      </Button>
-                    </div>
-                  </div>
-                  {alertsAccountId === a.id && (
-                    <QuotaAlertsPanel accountId={a.id} username={a.username} />
-                  )}
-                  {a.plan && (
-                    <div className="grid gap-2 md:grid-cols-2">
-                      <UsageBar
-                        used={a.disk_used_mb}
-                        limit={a.plan.disk_mb}
-                        label={t("hosting:usage_disk")}
-                      />
-                      <UsageBar
-                        used={a.inodes_used}
-                        limit={a.plan.inodes}
-                        label={t("hosting:usage_inodes")}
-                      />
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+          <DataTable
+            columns={columns}
+            data={accounts}
+            rowKey={(row) => row.id}
+            isLoading={isLoading}
+            searchPlaceholder={t("hosting:search_accounts", { defaultValue: "Search accounts…" })}
+            searchFilter={(row, q) =>
+              row.username.toLowerCase().includes(q) ||
+              (row.plan?.name ?? "").toLowerCase().includes(q) ||
+              row.status.toLowerCase().includes(q)
+            }
+            emptyMessage={t("hosting:empty_accounts", { defaultValue: "No hosting accounts yet." })}
+          />
+
+          {alertsAccount ? (
+            <QuotaAlertsPanel accountId={alertsAccount.id} username={alertsAccount.username} />
+          ) : null}
         </CardContent>
       </Card>
+
+      <Dialog open={editingAccount !== null} onOpenChange={(open) => !open && setEditingAccount(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("hosting:edit_account", { defaultValue: "Edit account" })}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-1">
+              <Label>{t("hosting:field_plan")}</Label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={editPlanId}
+                onChange={(e) => setEditPlanId(e.target.value)}
+              >
+                <option value="">{t("hosting:select_plan")}</option>
+                {(plansData?.plans ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>{t("hosting:field_domain")}</Label>
+              <Input value={editDomain} onChange={(e) => setEditDomain(e.target.value)} />
+            </div>
+          </div>
+          <Button
+            type="button"
+            disabled={!editingAccount || !editPlanId || updateAccount.isPending}
+            onClick={() => {
+              if (!editingAccount) return
+              updateAccount.mutate({
+                id: editingAccount.id,
+                plan_id: Number(editPlanId),
+                primary_domain: editDomain || null,
+              })
+            }}
+          >
+            {t("common:save", { defaultValue: "Save" })}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

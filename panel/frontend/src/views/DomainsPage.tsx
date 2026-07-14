@@ -3,12 +3,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 
+import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 type DomainRow = {
   id: number
@@ -25,16 +27,61 @@ export default function DomainsPage() {
     queryFn: () => api<{ domains: DomainRow[] }>("/api/v1/domains"),
   })
 
+  const domains = data?.domains ?? []
+
   const create = useMutation({
     mutationFn: (body: { domain: string; slug?: string }) =>
       api("/api/v1/domains", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["domains"] }),
+    onSuccess: () => {
+      toast.success(t("domains:add"))
+      qc.invalidateQueries({ queryKey: ["domains"] })
+    },
+    onError: toastMutationError,
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/domains/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["domains"] }),
+    onSuccess: () => {
+      toast.success(t("domains:delete"))
+      qc.invalidateQueries({ queryKey: ["domains"] })
+    },
+    onError: toastMutationError,
   })
+
+  const columns: DataTableColumn<DomainRow>[] = [
+    {
+      id: "domain",
+      header: t("domains:field_domain"),
+      sortValue: (row) => row.domain,
+      cell: (d) => <span dir="ltr">{d.domain}</span>,
+    },
+    {
+      id: "status",
+      header: t("common:status", { defaultValue: "Status" }),
+      sortValue: (row) => row.status,
+      cell: (d) => <span className="text-muted-foreground">{d.status}</span>,
+    },
+    {
+      id: "actions",
+      header: t("common:actions", { defaultValue: "Actions" }),
+      cell: (d) => (
+        <RequireRouteWrite>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (window.confirm(t("domains:delete_confirm"))) {
+                remove.mutate(d.id)
+              }
+            }}
+          >
+            {t("domains:delete")}
+          </Button>
+        </RequireRouteWrite>
+      ),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -71,34 +118,17 @@ export default function DomainsPage() {
               </div>
             </form>
           </RequireRouteWrite>
-          {isLoading ? (
-            <p>{t("common:loading")}</p>
-          ) : (
-            <ul className="divide-y rounded-md border">
-              {(data?.domains ?? []).map((d) => (
-                <li key={d.id} className="flex items-center justify-between gap-2 px-4 py-3 text-sm">
-                  <span>{d.domain}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">{d.status}</span>
-                    <RequireRouteWrite>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (window.confirm(t("domains:delete_confirm"))) {
-                            remove.mutate(d.id)
-                          }
-                        }}
-                      >
-                        {t("domains:delete")}
-                      </Button>
-                    </RequireRouteWrite>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <DataTable
+            columns={columns}
+            data={domains}
+            rowKey={(row) => row.id}
+            isLoading={isLoading}
+            searchPlaceholder={t("domains:search", { defaultValue: "Search domains…" })}
+            searchFilter={(row, q) =>
+              row.domain.toLowerCase().includes(q) || row.status.toLowerCase().includes(q)
+            }
+            emptyMessage={t("domains:empty", { defaultValue: "No domains yet." })}
+          />
         </CardContent>
       </Card>
     </div>

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -163,7 +164,9 @@ func handleFiles(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Action  string `json:"action"`
 		Path    string `json:"path"`
+		Dest    string `json:"dest"`
 		Content string `json:"content"`
+		Mode    string `json:"mode"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid body"})
@@ -211,6 +214,38 @@ func handleFiles(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data, _ := json.Marshal(map[string]string{"path": body.Path})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "rename":
+		if body.Dest == "" {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "dest required"})
+			return
+		}
+		destAbs, err := safeFilePath(body.Dest)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		if err := os.Rename(abs, destAbs); err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(map[string]string{"path": body.Path, "dest": body.Dest})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "chmod":
+		if body.Mode == "" {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "mode required"})
+			return
+		}
+		mode, err := parseFileMode(body.Mode)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		if err := os.Chmod(abs, mode); err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(map[string]string{"path": body.Path, "mode": body.Mode})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 	default:
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "unknown action"})
@@ -353,6 +388,21 @@ func resolvePathUnderRoot(path, root string) (string, error) {
 	return filepath.Join(parentReal, filepath.Base(abs)), nil
 }
 
+func parseFileMode(mode string) (os.FileMode, error) {
+	mode = strings.TrimSpace(mode)
+	if mode == "" {
+		return 0, fmt.Errorf("empty mode")
+	}
+	if strings.HasPrefix(mode, "0") {
+		mode = mode[1:]
+	}
+	n, err := strconv.ParseUint(mode, 8, 32)
+	if err != nil {
+		return 0, fmt.Errorf("invalid mode")
+	}
+	return os.FileMode(n), nil
+}
+
 func listDir(abs string) ([]map[string]any, error) {
 	entries, err := os.ReadDir(abs)
 	if err != nil {
@@ -365,10 +415,15 @@ func listDir(abs string) ([]map[string]any, error) {
 		if info != nil {
 			size = info.Size()
 		}
+		modeStr := ""
+		if info != nil {
+			modeStr = fmt.Sprintf("%04o", info.Mode().Perm())
+		}
 		out = append(out, map[string]any{
-			"name":  e.Name(),
+			"name":   e.Name(),
 			"is_dir": e.IsDir(),
-			"size":  size,
+			"size":   size,
+			"mode":   modeStr,
 		})
 	}
 	return out, nil

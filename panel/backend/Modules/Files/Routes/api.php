@@ -8,5 +8,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'permission:system.manage'])->g
     Route::post('/files/read', [FilesController::class, 'read']);
     Route::post('/files/write', [FilesController::class, 'write']);
     Route::post('/files/mkdir', [FilesController::class, 'mkdir']);
+    Route::post('/files/rename', [FilesController::class, 'rename']);
+    Route::post('/files/chmod', [FilesController::class, 'chmod']);
     Route::delete('/files', [FilesController::class, 'destroy']);
 });

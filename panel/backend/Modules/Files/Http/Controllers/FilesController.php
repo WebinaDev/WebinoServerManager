@@ -107,6 +107,46 @@ class FilesController extends Controller
         return response()->json(['message' => __('files.deleted')]);
     }
 
+    public function rename(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['required', 'string', 'max:1024'],
+            'dest' => ['required', 'string', 'max:1024'],
+        ]);
+
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'rename',
+            'path' => $data['path'],
+            'dest' => $data['dest'],
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('files.rename_failed')], 422);
+        }
+
+        return response()->json(['message' => __('files.renamed')]);
+    }
+
+    public function chmod(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['required', 'string', 'max:1024'],
+            'mode' => ['required', 'string', 'max:8'],
+        ]);
+
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'chmod',
+            'path' => $data['path'],
+            'mode' => $data['mode'],
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('files.chmod_failed')], 422);
+        }
+
+        return response()->json(['message' => __('files.chmod_ok')]);
+    }
+
     /**
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>

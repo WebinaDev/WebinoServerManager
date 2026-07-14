@@ -6,10 +6,17 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 type BackupRow = {
   id: number
@@ -45,10 +52,42 @@ type TargetRow = {
   enabled: boolean
 }
 
+type TargetForm = {
+  name: string
+  driver: string
+  config: Record<string, string>
+  enabled: boolean
+}
+
+const TARGET_CONFIG_KEYS = ["repo", "password", "bucket", "host", "path", "url"] as const
+
+function targetToForm(target: TargetRow): TargetForm {
+  return {
+    name: target.name,
+    driver: target.driver,
+    config: {
+      repo: target.config.repo ?? "",
+      password: target.config.password ?? "",
+      bucket: target.config.bucket ?? "",
+      host: target.config.host ?? "",
+      path: target.config.path ?? "",
+      url: target.config.url ?? "",
+    },
+    enabled: target.enabled,
+  }
+}
+
 export default function BackupsPage() {
   const { t } = useTranslation(["backups", "common"])
   const qc = useQueryClient()
   const [restoreTarget, setRestoreTarget] = useState<Record<number, string>>({})
+  const [editingTarget, setEditingTarget] = useState<TargetRow | null>(null)
+  const [editTargetForm, setEditTargetForm] = useState<TargetForm>({
+    name: "",
+    driver: "s3",
+    config: { repo: "", password: "", bucket: "", host: "", path: "", url: "" },
+    enabled: true,
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ["backups"],
@@ -74,51 +113,98 @@ export default function BackupsPage() {
   const create = useMutation({
     mutationFn: (body: { type: string; target: string; target_id?: number }) =>
       api("/api/v1/backups", { method: "POST", json: body }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("backups:created", { defaultValue: "Backup created" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const createSchedule = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       api("/api/v1/backups/schedules", { method: "POST", json: body }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("backups:schedule_created", { defaultValue: "Schedule created" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const createTarget = useMutation({
     mutationFn: (body: { name: string; driver: string; config: Record<string, string> }) =>
       api("/api/v1/backups/targets", { method: "POST", json: body }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("backups:target_created", { defaultValue: "Target created" }))
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const updateTarget = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: TargetForm }) =>
+      api(`/api/v1/backups/targets/${id}`, { method: "PATCH", json: body }),
+    onSuccess: () => {
+      toast.success(t("backups:target_updated", { defaultValue: "Target updated" }))
+      invalidate()
+      setEditingTarget(null)
+    },
+    onError: toastMutationError,
   })
 
   const toggleSchedule = useMutation({
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/api/v1/backups/schedules/${id}`, { method: "PATCH", json: { enabled } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("backups:schedule_updated", { defaultValue: "Schedule updated" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const removeSchedule = useMutation({
     mutationFn: (id: number) => api(`/api/v1/backups/schedules/${id}`, { method: "DELETE" }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("backups:schedule_deleted", { defaultValue: "Schedule deleted" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const removeTarget = useMutation({
     mutationFn: (id: number) => api(`/api/v1/backups/targets/${id}`, { method: "DELETE" }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("backups:target_deleted", { defaultValue: "Target deleted" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const restore = useMutation({
     mutationFn: ({ id, restore_target }: { id: number; restore_target: string }) =>
       api(`/api/v1/backups/${id}/restore`, { method: "POST", json: { restore_target } }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("backups:restore_started", { defaultValue: "Restore started" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const verify = useMutation({
     mutationFn: (id: number) => api(`/api/v1/backups/${id}/verify`, { method: "POST" }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("backups:verified_ok", { defaultValue: "Backup verified" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/backups/${id}`, { method: "DELETE" }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("backups:deleted", { defaultValue: "Backup deleted" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const targets = targetsData?.targets ?? []
@@ -184,11 +270,24 @@ export default function BackupsPage() {
               <li key={tgt.id} className="flex items-center justify-between px-4 py-3 text-sm">
                 <span>
                   {tgt.name} · {tgt.driver}
+                  {!tgt.enabled ? ` · ${t("backups:disabled")}` : ""}
                 </span>
                 <RequireRouteWrite>
-                  <Button size="sm" variant="outline" onClick={() => removeTarget.mutate(tgt.id)}>
-                    {t("backups:delete")}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingTarget(tgt)
+                        setEditTargetForm(targetToForm(tgt))
+                      }}
+                    >
+                      {t("common:edit", { defaultValue: "Edit" })}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => removeTarget.mutate(tgt.id)}>
+                      {t("backups:delete")}
+                    </Button>
+                  </div>
                 </RequireRouteWrite>
               </li>
             ))}
@@ -411,6 +510,74 @@ export default function BackupsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={editingTarget !== null} onOpenChange={(open) => !open && setEditingTarget(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t("backups:edit_target", { defaultValue: "Edit backup target" })}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>{t("backups:target_name")}</Label>
+              <Input
+                value={editTargetForm.name}
+                onChange={(e) => setEditTargetForm({ ...editTargetForm, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("backups:target_driver")}</Label>
+              <select
+                className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
+                value={editTargetForm.driver}
+                onChange={(e) => setEditTargetForm({ ...editTargetForm, driver: e.target.value })}
+              >
+                <option value="s3">S3</option>
+                <option value="sftp">SFTP</option>
+                <option value="rest">REST</option>
+                <option value="local">local</option>
+              </select>
+            </div>
+            {TARGET_CONFIG_KEYS.map((key) => (
+              <div key={key} className="space-y-2">
+                <Label>{t(`backups:target_${key}`, { defaultValue: key })}</Label>
+                <Input
+                  type={key === "password" ? "password" : "text"}
+                  value={editTargetForm.config[key] ?? ""}
+                  onChange={(e) =>
+                    setEditTargetForm({
+                      ...editTargetForm,
+                      config: { ...editTargetForm.config, [key]: e.target.value },
+                    })
+                  }
+                  dir="ltr"
+                  className={key === "repo" || key === "url" ? "font-mono" : undefined}
+                />
+              </div>
+            ))}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={editTargetForm.enabled}
+                onChange={(e) => setEditTargetForm({ ...editTargetForm, enabled: e.target.checked })}
+              />
+              {t("backups:enabled")}
+            </label>
+            <div className="flex gap-2">
+              <Button
+                onClick={() =>
+                  editingTarget && updateTarget.mutate({ id: editingTarget.id, body: editTargetForm })
+                }
+                disabled={updateTarget.isPending || !editTargetForm.name}
+              >
+                {t("common:save", { defaultValue: "Save" })}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setEditingTarget(null)}>
+                {t("common:cancel", { defaultValue: "Cancel" })}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

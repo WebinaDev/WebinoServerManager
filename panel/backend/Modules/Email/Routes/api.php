@@ -25,6 +25,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/email/domains/{domain}/auth/generate', [MailAuthController::class, 'generate']);
         Route::post('/email/accounts', [EmailController::class, 'storeAccount']);
         Route::patch('/email/accounts/{account}/password', [EmailController::class, 'updateAccountPassword']);
+        Route::patch('/email/accounts/{account}/quota', [EmailController::class, 'updateAccountQuota']);
         Route::delete('/email/accounts/{account}', [EmailController::class, 'destroyAccount']);
         Route::post('/email/forwarders', [EmailController::class, 'storeForwarder']);
         Route::delete('/email/forwarders/{forwarder}', [EmailController::class, 'destroyForwarder']);

@@ -140,6 +140,12 @@
     @apply bg-background text-foreground;
   }
 
+  body[class*="theme-"] {
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-ring: var(--ring);
+  }
+
   body[data-scroll-locked] [data-slot="sidebar"][data-side="right"] [data-slot="sidebar-container"] {
     right: var(--removed-body-scroll-bar-size, 0px);
   }

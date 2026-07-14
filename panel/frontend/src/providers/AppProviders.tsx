@@ -13,6 +13,7 @@ import { I18nextProvider } from "react-i18next"
 
 import i18n from "@/i18n"
 import { normalizeUiLocale } from "@/i18n/locales"
+import { AppToaster } from "@/components/ui/sonner"
 
 type ThemeMode = "light" | "dark"
 export type Accent =
@@ -144,6 +145,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <AuthContext.Provider value={authValue}>
         <ThemeContext.Provider value={themeValue}>
           {children}
+          <AppToaster />
         </ThemeContext.Provider>
       </AuthContext.Provider>
     </I18nextProvider>

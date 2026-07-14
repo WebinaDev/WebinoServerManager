@@ -166,6 +166,30 @@ class EmailController extends Controller
         return response()->json(['message' => __('email.password_updated')]);
     }
 
+    public function updateAccountQuota(Request $request, MailAccount $account): JsonResponse
+    {
+        $data = $request->validate([
+            'quota_mb' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $result = $this->agent->post('/v1/mail/accounts', [
+            'address' => $account->address,
+            'quota_mb' => $data['quota_mb'],
+            'action' => 'quota',
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('email.quota_failed')], 422);
+        }
+
+        $account->update(['quota_mb' => $data['quota_mb']]);
+
+        return response()->json([
+            'account' => $account->fresh(),
+            'message' => __('email.quota_updated'),
+        ]);
+    }
+
     public function updateDomainCatchall(Request $request, MailDomain $domain): JsonResponse
     {
         $data = $request->validate([

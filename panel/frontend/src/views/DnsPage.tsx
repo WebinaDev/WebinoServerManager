@@ -4,12 +4,14 @@ import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 
+import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 const RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "TXT", "SRV", "CAA", "PTR"] as const
 
@@ -65,19 +67,31 @@ export default function DnsPage() {
   const createZone = useMutation({
     mutationFn: (domain: string) =>
       api("/api/v1/dns/zones", { method: "POST", json: { domain } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dns-zones"] }),
+    onSuccess: () => {
+      toast.success(t("dns:add_zone"))
+      qc.invalidateQueries({ queryKey: ["dns-zones"] })
+    },
+    onError: toastMutationError,
   })
 
   const createSlaveZone = useMutation({
     mutationFn: (body: { domain: string; master_ns: string }) =>
       api("/api/v1/dns/zones/slave", { method: "POST", json: body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dns-zones"] }),
+    onSuccess: () => {
+      toast.success(t("dns:add_slave_zone"))
+      qc.invalidateQueries({ queryKey: ["dns-zones"] })
+    },
+    onError: toastMutationError,
   })
 
   const deleteZone = useMutation({
     mutationFn: (id: number) =>
       api(`/api/v1/dns/zones/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dns-zones"] }),
+    onSuccess: () => {
+      toast.success(t("dns:delete"))
+      qc.invalidateQueries({ queryKey: ["dns-zones"] })
+    },
+    onError: toastMutationError,
   })
 
   const createRecord = useMutation({
@@ -89,7 +103,11 @@ export default function DnsPage() {
       ttl: number
       priority?: number
     }) => api("/api/v1/dns/records", { method: "POST", json: body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dns-zones"] }),
+    onSuccess: () => {
+      toast.success(t("dns:add_record"))
+      qc.invalidateQueries({ queryKey: ["dns-zones"] })
+    },
+    onError: toastMutationError,
   })
 
   const updateRecord = useMutation({
@@ -120,7 +138,11 @@ export default function DnsPage() {
   const deleteRecord = useMutation({
     mutationFn: (id: number) =>
       api(`/api/v1/dns/records/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["dns-zones"] }),
+    onSuccess: () => {
+      toast.success(t("dns:delete"))
+      qc.invalidateQueries({ queryKey: ["dns-zones"] })
+    },
+    onError: toastMutationError,
   })
 
   const toggleDnssec = useMutation({
@@ -162,8 +184,85 @@ export default function DnsPage() {
 
   const zones = data?.zones ?? []
   const selectedZone = zones.find((z) => z.id === selectedZoneId) ?? zones[0]
+  const records = selectedZone?.records ?? []
   const needsPriority = recordType === "MX" || recordType === "SRV"
   const ptrZone = ptrZoneFromIp(ptrIp)
+
+  const recordColumns: DataTableColumn<DnsRecord>[] = [
+    {
+      id: "type",
+      header: t("dns:field_type"),
+      sortValue: (row) => row.type,
+      cell: (r) => (
+        <span dir="ltr" className="font-mono">
+          {r.type}
+        </span>
+      ),
+    },
+    {
+      id: "name",
+      header: t("dns:field_name"),
+      sortValue: (row) => row.name,
+      cell: (r) => (
+        <span dir="ltr" className="font-mono">
+          {r.name}
+        </span>
+      ),
+    },
+    {
+      id: "content",
+      header: t("dns:field_content"),
+      sortValue: (row) => row.content,
+      cell: (r) => (
+        <span dir="ltr" className="font-mono">
+          {r.content}
+          {r.priority != null ? ` (pri ${r.priority})` : ""}
+        </span>
+      ),
+    },
+    {
+      id: "ttl",
+      header: t("dns:field_ttl"),
+      sortValue: (row) => row.ttl,
+      cell: (r) => (
+        <span dir="ltr" className="text-muted-foreground">
+          {r.ttl}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      header: t("dns:status"),
+      sortValue: (row) => row.status,
+      cell: (r) => <span className="text-muted-foreground">{r.status}</span>,
+    },
+    {
+      id: "actions",
+      header: t("common:actions", { defaultValue: "Actions" }),
+      cell: (r) => (
+        <div className="flex gap-2">
+          <RequireRouteWrite>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setEditingRecord(r)}
+            >
+              {t("dns:edit")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => deleteRecord.mutate(r.id)}
+            >
+              {t("dns:delete")}
+            </Button>
+          </RequireRouteWrite>
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -410,40 +509,18 @@ export default function DnsPage() {
                 </form>
               </RequireRouteWrite>
 
-              <ul className="divide-y rounded-md border">
-                {(selectedZone.records ?? []).map((r) => (
-                  <li
-                    key={r.id}
-                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
-                  >
-                    <span dir="ltr" className="font-mono">
-                      {r.type} {r.name}
-                      {r.priority != null ? ` (pri ${r.priority})` : ""} → {r.content} TTL {r.ttl}
-                    </span>
-                    <span className="text-muted-foreground">{r.status}</span>
-                    <div className="flex gap-2">
-                      <RequireRouteWrite>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingRecord(r)}
-                        >
-                          {t("dns:edit")}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteRecord.mutate(r.id)}
-                        >
-                          {t("dns:delete")}
-                        </Button>
-                      </RequireRouteWrite>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <DataTable
+                columns={recordColumns}
+                data={records}
+                rowKey={(row) => row.id}
+                searchPlaceholder={t("dns:search_records", { defaultValue: "Search records…" })}
+                searchFilter={(row, q) =>
+                  row.type.toLowerCase().includes(q) ||
+                  row.name.toLowerCase().includes(q) ||
+                  row.content.toLowerCase().includes(q)
+                }
+                emptyMessage={t("dns:empty_records", { defaultValue: "No DNS records in this zone." })}
+              />
             </CardContent>
           </Card>
         </>

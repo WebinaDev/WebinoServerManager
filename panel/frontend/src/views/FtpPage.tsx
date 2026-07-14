@@ -3,12 +3,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 
+import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 type FtpRow = {
   id: number
@@ -26,6 +28,8 @@ export default function FtpPage() {
     queryFn: () => api<{ accounts: FtpRow[] }>("/api/v1/ftp/accounts"),
   })
 
+  const accounts = data?.accounts ?? []
+
   const create = useMutation({
     mutationFn: (body: {
       username: string
@@ -33,14 +37,67 @@ export default function FtpPage() {
       home_dir: string
       domain?: string
     }) => api("/api/v1/ftp/accounts", { method: "POST", json: body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ftp-accounts"] }),
+    onSuccess: () => {
+      toast.success(t("ftp:add"))
+      qc.invalidateQueries({ queryKey: ["ftp-accounts"] })
+    },
+    onError: toastMutationError,
   })
 
   const remove = useMutation({
     mutationFn: (id: number) =>
       api(`/api/v1/ftp/accounts/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ftp-accounts"] }),
+    onSuccess: () => {
+      toast.success(t("ftp:delete"))
+      qc.invalidateQueries({ queryKey: ["ftp-accounts"] })
+    },
+    onError: toastMutationError,
   })
+
+  const columns: DataTableColumn<FtpRow>[] = [
+    {
+      id: "username",
+      header: t("ftp:field_username"),
+      sortValue: (row) => row.username,
+      cell: (a) => (
+        <span dir="ltr">
+          {a.username} → {a.home_dir}
+        </span>
+      ),
+    },
+    {
+      id: "domain",
+      header: t("ftp:field_domain"),
+      sortValue: (row) => row.domain ?? "",
+      cell: (a) => (
+        <span className="text-muted-foreground" dir="ltr">
+          {a.domain ?? t("common:em_dash")}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      header: t("ftp:status"),
+      sortValue: (row) => row.status,
+      cell: (a) => <span className="text-muted-foreground">{a.status}</span>,
+    },
+    {
+      id: "actions",
+      header: t("common:actions", { defaultValue: "Actions" }),
+      cell: (a) => (
+        <RequireRouteWrite>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => remove.mutate(a.id)}
+          >
+            {t("ftp:delete")}
+          </Button>
+        </RequireRouteWrite>
+      ),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -87,33 +144,19 @@ export default function FtpPage() {
               </div>
             </form>
           </RequireRouteWrite>
-          {isLoading ? (
-            <p>{t("common:loading")}</p>
-          ) : (
-            <ul className="divide-y rounded-md border">
-              {(data?.accounts ?? []).map((a) => (
-                <li
-                  key={a.id}
-                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
-                >
-                  <span dir="ltr">
-                    {a.username} → {a.home_dir}
-                  </span>
-                  <span className="text-muted-foreground">{a.status}</span>
-                  <RequireRouteWrite>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => remove.mutate(a.id)}
-                    >
-                      {t("ftp:delete")}
-                    </Button>
-                  </RequireRouteWrite>
-                </li>
-              ))}
-            </ul>
-          )}
+          <DataTable
+            columns={columns}
+            data={accounts}
+            rowKey={(row) => row.id}
+            isLoading={isLoading}
+            searchPlaceholder={t("ftp:search", { defaultValue: "Search FTP accounts…" })}
+            searchFilter={(row, q) =>
+              row.username.toLowerCase().includes(q) ||
+              row.home_dir.toLowerCase().includes(q) ||
+              (row.domain ?? "").toLowerCase().includes(q)
+            }
+            emptyMessage={t("ftp:empty", { defaultValue: "No FTP accounts yet." })}
+          />
         </CardContent>
       </Card>
     </div>

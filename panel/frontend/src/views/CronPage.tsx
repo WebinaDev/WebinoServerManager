@@ -3,11 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 
+import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 type CronRow = {
   id: number
@@ -36,19 +38,82 @@ export default function CronPage() {
     queryFn: () => api<{ accounts: AccountOption[] }>("/api/v1/hosting/accounts"),
   })
 
+  const jobs = data?.jobs ?? []
+
   const create = useMutation({
     mutationFn: (body: {
       schedule: string
       command: string
       hosting_account_id?: number
     }) => api("/api/v1/cron/jobs", { method: "POST", json: body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["cron-jobs"] }),
+    onSuccess: () => {
+      toast.success(t("cron:add"))
+      qc.invalidateQueries({ queryKey: ["cron-jobs"] })
+    },
+    onError: toastMutationError,
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/cron/jobs/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["cron-jobs"] }),
+    onSuccess: () => {
+      toast.success(t("cron:delete"))
+      qc.invalidateQueries({ queryKey: ["cron-jobs"] })
+    },
+    onError: toastMutationError,
   })
+
+  const columns: DataTableColumn<CronRow>[] = [
+    {
+      id: "schedule",
+      header: t("cron:field_schedule"),
+      sortValue: (row) => row.schedule,
+      cell: (job) => (
+        <span dir="ltr" className="font-mono">
+          {job.schedule}
+        </span>
+      ),
+    },
+    {
+      id: "command",
+      header: t("cron:field_command"),
+      sortValue: (row) => row.command,
+      cell: (job) => (
+        <span dir="ltr" className="font-mono">
+          {job.command}
+        </span>
+      ),
+    },
+    {
+      id: "account",
+      header: t("cron:field_account"),
+      sortValue: (row) => row.hosting_account?.username ?? "",
+      cell: (job) => (
+        <span className="text-muted-foreground">
+          {job.hosting_account?.username ?? t("cron:account_system")}
+        </span>
+      ),
+    },
+    {
+      id: "status",
+      header: t("cron:status"),
+      sortValue: (row) => row.status,
+      cell: (job) => <span className="text-muted-foreground">{job.status}</span>,
+    },
+    {
+      id: "actions",
+      header: t("common:actions", { defaultValue: "Actions" }),
+      cell: (job) => (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => remove.mutate(job.id)}
+        >
+          {t("cron:delete")}
+        </Button>
+      ),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -108,33 +173,19 @@ export default function CronPage() {
               </Button>
             </div>
           </form>
-          {isLoading ? (
-            <p>{t("common:loading")}</p>
-          ) : (
-            <ul className="divide-y rounded-md border">
-              {(data?.jobs ?? []).map((job) => (
-                <li
-                  key={job.id}
-                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
-                >
-                  <span dir="ltr" className="font-mono">
-                    {job.schedule} {job.command}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {job.hosting_account?.username ?? t("cron:account_system")} · {job.status}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => remove.mutate(job.id)}
-                  >
-                    {t("cron:delete")}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <DataTable
+            columns={columns}
+            data={jobs}
+            rowKey={(row) => row.id}
+            isLoading={isLoading}
+            searchPlaceholder={t("cron:search", { defaultValue: "Search cron jobs…" })}
+            searchFilter={(row, q) =>
+              row.schedule.toLowerCase().includes(q) ||
+              row.command.toLowerCase().includes(q) ||
+              (row.hosting_account?.username ?? "").toLowerCase().includes(q)
+            }
+            emptyMessage={t("cron:empty", { defaultValue: "No cron jobs yet." })}
+          />
         </CardContent>
       </Card>
     </div>

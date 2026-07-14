@@ -5,12 +5,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { useState, useEffect } from "react"
 
+import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 type DbRow = {
   id: number
@@ -46,13 +54,15 @@ export default function DatabasesPage() {
   const [newUser, setNewUser] = useState({ username: "", password: "", host: "localhost" })
   const [remoteEnabled, setRemoteEnabled] = useState(false)
   const [remoteIps, setRemoteIps] = useState("")
+  const [passwordUser, setPasswordUser] = useState<DbUserRow | null>(null)
+  const [passwordValue, setPasswordValue] = useState("")
 
   const { data, isLoading } = useQuery({
     queryKey: ["databases"],
     queryFn: () => api<{ databases: DbRow[] }>("/api/v1/databases"),
   })
 
-  const { data: usersData } = useQuery({
+  const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ["database-users"],
     queryFn: () => api<{ users: DbUserRow[] }>("/api/v1/databases/users"),
   })
@@ -70,6 +80,9 @@ export default function DatabasesPage() {
     setRemoteIps((remoteData.remote_access.allowed_ips ?? []).join("\n"))
   }, [remoteData])
 
+  const databases = data?.databases ?? []
+  const dbUsers = usersData?.users ?? []
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["databases"] })
     qc.invalidateQueries({ queryKey: ["database-users"] })
@@ -81,16 +94,25 @@ export default function DatabasesPage() {
         method: "POST",
         json: { name, engine, create_user: engine === "mysql" },
       }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("databases:create"))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/databases/${id}`, { method: "DELETE" }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("databases:delete"))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const exportDb = useMutation({
     mutationFn: (id: number) => api(`/api/v1/databases/${id}/export`, { method: "POST" }),
+    onError: toastMutationError,
   })
 
   const importDb = useMutation({
@@ -100,6 +122,7 @@ export default function DatabasesPage() {
         json: { name: importName, file: importFile, engine },
       }),
     onSuccess: invalidate,
+    onError: toastMutationError,
   })
 
   const createUser = useMutation({
@@ -109,14 +132,31 @@ export default function DatabasesPage() {
         json: { ...newUser, grant: true },
       }),
     onSuccess: () => {
+      toast.success(t("databases:create_user"))
       invalidate()
       setNewUser({ username: "", password: "", host: "localhost" })
     },
+    onError: toastMutationError,
   })
 
   const removeUser = useMutation({
     mutationFn: (id: number) => api(`/api/v1/databases/users/${id}`, { method: "DELETE" }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      toast.success(t("databases:delete_user"))
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const updateUserPassword = useMutation({
+    mutationFn: ({ id, password }: { id: number; password: string }) =>
+      api(`/api/v1/databases/users/${id}`, { method: "PATCH", json: { password } }),
+    onSuccess: () => {
+      toast.success(t("databases:user_password_updated", { defaultValue: "Password updated" }))
+      setPasswordUser(null)
+      setPasswordValue("")
+    },
+    onError: toastMutationError,
   })
 
   const saveRemoteAccess = useMutation({
@@ -132,9 +172,102 @@ export default function DatabasesPage() {
         },
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["databases-remote-access"] }),
+    onError: toastMutationError,
   })
 
   const remote = remoteData?.remote_access
+
+  const databaseColumns: DataTableColumn<DbRow>[] = [
+    {
+      id: "name",
+      header: t("databases:field_name"),
+      sortValue: (row) => row.name,
+      cell: (d) => (
+        <span>
+          {d.name}{" "}
+          <span className="text-muted-foreground">
+            ({d.engine ?? "mysql"} · {d.size_mb ?? 0} MB)
+          </span>
+        </span>
+      ),
+    },
+    {
+      id: "user",
+      header: t("databases:field_user"),
+      sortValue: (row) => row.db_user ?? "",
+      cell: (d) => (
+        <span className="text-muted-foreground">{d.db_user ?? t("common:em_dash")}</span>
+      ),
+    },
+    {
+      id: "actions",
+      header: t("common:actions", { defaultValue: "Actions" }),
+      cell: (d) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {d.engine === "pgsql" ? (
+            <Button size="sm" variant="outline" asChild>
+              <Link href={`/phppgadmin?db=${d.id}`}>{t("databases:open_phppgadmin")}</Link>
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" asChild>
+              <Link href={`/phpmyadmin?db=${d.id}`}>{t("databases:open_phpmyadmin")}</Link>
+            </Button>
+          )}
+          <RequireRouteWrite>
+            <Button size="sm" variant="outline" onClick={() => exportDb.mutate(d.id)}>
+              {t("databases:export")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (window.confirm(t("databases:delete_confirm"))) remove.mutate(d.id)
+              }}
+            >
+              {t("databases:delete")}
+            </Button>
+          </RequireRouteWrite>
+        </div>
+      ),
+    },
+  ]
+
+  const userColumns: DataTableColumn<DbUserRow>[] = [
+    {
+      id: "username",
+      header: t("databases:field_user"),
+      sortValue: (row) => row.username,
+      cell: (u) => (
+        <span dir="ltr">
+          {u.username}@{u.host} ({u.engine})
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: t("common:actions", { defaultValue: "Actions" }),
+      cell: (u) => (
+        <RequireRouteWrite>
+          <div className="flex flex-wrap gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setPasswordUser(u)
+                setPasswordValue("")
+              }}
+            >
+              {t("databases:change_password", { defaultValue: "Change password" })}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => removeUser.mutate(u.id)}>
+              {t("databases:delete_user")}
+            </Button>
+          </div>
+        </RequireRouteWrite>
+      ),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -173,49 +306,19 @@ export default function DatabasesPage() {
               </Button>
             </form>
           </RequireRouteWrite>
-          {isLoading ? (
-            <p>{t("common:loading")}</p>
-          ) : (
-            <ul className="divide-y rounded-md border">
-              {(data?.databases ?? []).map((d) => (
-                <li key={d.id} className="flex items-center justify-between gap-2 px-4 py-3 text-sm">
-                  <span>
-                    {d.name}{" "}
-                    <span className="text-muted-foreground">
-                      ({d.engine ?? "mysql"} · {d.size_mb ?? 0} MB)
-                    </span>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">{d.db_user ?? t("common:em_dash")}</span>
-                    {d.engine === "pgsql" ? (
-                      <Button size="sm" variant="outline" asChild>
-                        <Link href={`/phppgadmin?db=${d.id}`}>{t("databases:open_phppgadmin")}</Link>
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" asChild>
-                        <Link href={`/phpmyadmin?db=${d.id}`}>{t("databases:open_phpmyadmin")}</Link>
-                      </Button>
-                    )}
-                    <RequireRouteWrite>
-                      <Button size="sm" variant="outline" onClick={() => exportDb.mutate(d.id)}>
-                        {t("databases:export")}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (window.confirm(t("databases:delete_confirm"))) remove.mutate(d.id)
-                        }}
-                      >
-                        {t("databases:delete")}
-                      </Button>
-                    </RequireRouteWrite>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <DataTable
+            columns={databaseColumns}
+            data={databases}
+            rowKey={(row) => row.id}
+            isLoading={isLoading}
+            searchPlaceholder={t("databases:search", { defaultValue: "Search databases…" })}
+            searchFilter={(row, q) =>
+              row.name.toLowerCase().includes(q) ||
+              (row.engine ?? "mysql").toLowerCase().includes(q) ||
+              (row.db_user ?? "").toLowerCase().includes(q)
+            }
+            emptyMessage={t("databases:empty", { defaultValue: "No databases yet." })}
+          />
         </CardContent>
       </Card>
 
@@ -321,22 +424,54 @@ export default function DatabasesPage() {
               {t("databases:create_user")}
             </Button>
           </RequireRouteWrite>
-          <ul className="divide-y rounded-md border">
-            {(usersData?.users ?? []).map((u) => (
-              <li key={u.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                <span>
-                  {u.username}@{u.host} ({u.engine})
-                </span>
-                <RequireRouteWrite>
-                  <Button size="sm" variant="outline" onClick={() => removeUser.mutate(u.id)}>
-                    {t("databases:delete_user")}
-                  </Button>
-                </RequireRouteWrite>
-              </li>
-            ))}
-          </ul>
+          <DataTable
+            columns={userColumns}
+            data={dbUsers}
+            rowKey={(row) => row.id}
+            isLoading={usersLoading}
+            searchPlaceholder={t("databases:search_users", { defaultValue: "Search database users…" })}
+            searchFilter={(row, q) =>
+              row.username.toLowerCase().includes(q) ||
+              row.host.toLowerCase().includes(q) ||
+              row.engine.toLowerCase().includes(q)
+            }
+            emptyMessage={t("databases:empty_users", { defaultValue: "No database users yet." })}
+          />
         </CardContent>
       </Card>
+
+      <Dialog open={passwordUser !== null} onOpenChange={(open) => !open && setPasswordUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("databases:change_password", { defaultValue: "Change password" })}</DialogTitle>
+          </DialogHeader>
+          {passwordUser ? (
+            <p className="text-muted-foreground text-sm" dir="ltr">
+              {passwordUser.username}@{passwordUser.host}
+            </p>
+          ) : null}
+          <div className="space-y-2">
+            <Label htmlFor="db-user-password">{t("databases:field_password")}</Label>
+            <Input
+              id="db-user-password"
+              type="password"
+              minLength={8}
+              value={passwordValue}
+              onChange={(e) => setPasswordValue(e.target.value)}
+            />
+          </div>
+          <Button
+            type="button"
+            disabled={!passwordUser || passwordValue.length < 8 || updateUserPassword.isPending}
+            onClick={() => {
+              if (!passwordUser) return
+              updateUserPassword.mutate({ id: passwordUser.id, password: passwordValue })
+            }}
+          >
+            {t("common:save", { defaultValue: "Save" })}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

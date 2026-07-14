@@ -1,13 +1,21 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 const EVENTS = [
   "backup.completed",
@@ -36,8 +44,9 @@ type DeliveryRow = {
 }
 
 export default function WebhooksPage() {
-  const { t } = useTranslation(["webhooks", "common"])
+  const { t } = useTranslation(["webhooks", "common", "dns"])
   const qc = useQueryClient()
+  const [editingEndpoint, setEditingEndpoint] = useState<EndpointRow | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ["webhooks"],
@@ -50,26 +59,55 @@ export default function WebhooksPage() {
     queryFn: () => api<{ deliveries: DeliveryRow[] }>("/api/v1/webhooks/deliveries"),
   })
 
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["webhooks"] })
+
   const create = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       api("/api/v1/webhooks", { method: "POST", json: body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["webhooks"] }),
+    onSuccess: () => {
+      toast.success(t("webhooks:created", { defaultValue: "Webhook created" }))
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const update = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: Record<string, unknown> }) =>
+      api(`/api/v1/webhooks/${id}`, { method: "PATCH", json: body }),
+    onSuccess: () => {
+      toast.success(t("webhooks:updated", { defaultValue: "Webhook updated" }))
+      setEditingEndpoint(null)
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const toggle = useMutation({
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/api/v1/webhooks/${id}`, { method: "PATCH", json: { enabled } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["webhooks"] }),
+    onSuccess: () => {
+      toast.success(t("webhooks:updated", { defaultValue: "Webhook updated" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/webhooks/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["webhooks"] }),
+    onSuccess: () => {
+      toast.success(t("webhooks:deleted", { defaultValue: "Webhook deleted" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const test = useMutation({
     mutationFn: (id: number) => api(`/api/v1/webhooks/${id}/test`, { method: "POST" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["webhook-deliveries"] }),
+    onSuccess: () => {
+      toast.success(t("webhooks:test_sent", { defaultValue: "Test delivery sent" }))
+      qc.invalidateQueries({ queryKey: ["webhook-deliveries"] })
+    },
+    onError: toastMutationError,
   })
 
   const endpoints = data?.endpoints ?? []
@@ -159,6 +197,14 @@ export default function WebhooksPage() {
                         type="button"
                         variant="outline"
                         size="sm"
+                        onClick={() => setEditingEndpoint(ep)}
+                      >
+                        {t("dns:edit", { defaultValue: "Edit" })}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         disabled={test.isPending}
                         onClick={() => test.mutate(ep.id)}
                       >
@@ -215,6 +261,108 @@ export default function WebhooksPage() {
           </ul>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={editingEndpoint !== null}
+        onOpenChange={(open) => !open && setEditingEndpoint(null)}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t("webhooks:edit_title", { defaultValue: "Edit webhook" })}</DialogTitle>
+          </DialogHeader>
+          {editingEndpoint ? (
+            <form
+              key={editingEndpoint.id}
+              className="grid gap-3"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const fd = new FormData(e.currentTarget)
+                const secret = String(fd.get("secret") ?? "")
+                update.mutate({
+                  id: editingEndpoint.id,
+                  body: {
+                    name: String(fd.get("name")),
+                    url: String(fd.get("url")),
+                    secret: secret || undefined,
+                    events: fd.getAll("events").map(String),
+                    enabled: fd.get("enabled") === "on",
+                  },
+                })
+              }}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="edit-wh-name">{t("webhooks:field_name")}</Label>
+                <Input
+                  id="edit-wh-name"
+                  name="name"
+                  required
+                  defaultValue={editingEndpoint.name}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-wh-url">{t("webhooks:field_url")}</Label>
+                <Input
+                  id="edit-wh-url"
+                  name="url"
+                  type="url"
+                  required
+                  dir="ltr"
+                  defaultValue={editingEndpoint.url}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-wh-secret">{t("webhooks:field_secret")}</Label>
+                <Input
+                  id="edit-wh-secret"
+                  name="secret"
+                  dir="ltr"
+                  placeholder={t("webhooks:secret_unchanged", {
+                    defaultValue: "Leave empty to keep current secret",
+                  })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("webhooks:field_events")}</Label>
+                <div className="flex flex-wrap gap-3">
+                  {EVENTS.map((ev) => (
+                    <label key={ev} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="events"
+                        value={ev}
+                        className="rounded"
+                        defaultChecked={(editingEndpoint.events ?? []).includes(ev)}
+                      />
+                      <span dir="ltr">{ev}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="enabled"
+                  className="rounded"
+                  defaultChecked={editingEndpoint.enabled}
+                />
+                {t("webhooks:enabled")}
+              </label>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingEndpoint(null)}
+                >
+                  {t("common:cancel")}
+                </Button>
+                <Button type="submit" disabled={update.isPending}>
+                  {t("common:save")}
+                </Button>
+              </div>
+            </form>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

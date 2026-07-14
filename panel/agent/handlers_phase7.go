@@ -194,6 +194,19 @@ func handleMailAccounts(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 		return
 	}
+	if body.Action == "quota" {
+		if body.QuotaMB <= 0 {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "quota_mb required"})
+			return
+		}
+		if err := setMailQuota(address, body.QuotaMB); err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(map[string]any{"address": address, "quota_mb": body.QuotaMB})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return
+	}
 	maildir := filepath.Join(mailHome, domain, local)
 	_ = os.MkdirAll(filepath.Join(maildir, "cur"), 0o700)
 	_ = os.MkdirAll(filepath.Join(maildir, "new"), 0o700)

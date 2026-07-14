@@ -1,13 +1,21 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 type CheckRow = {
   id: number
@@ -69,8 +77,9 @@ function UptimeSparkline({ checkId }: { checkId: number }) {
 }
 
 export default function UptimePage() {
-  const { t } = useTranslation(["monitoring", "common"])
+  const { t } = useTranslation(["monitoring", "common", "dns"])
   const qc = useQueryClient()
+  const [editingCheck, setEditingCheck] = useState<CheckRow | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ["uptime-checks"],
@@ -78,21 +87,46 @@ export default function UptimePage() {
     refetchInterval: 60_000,
   })
 
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["uptime-checks"] })
+
   const create = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       api("/api/v1/monitoring/uptime", { method: "POST", json: body }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["uptime-checks"] }),
+    onSuccess: () => {
+      toast.success(t("monitoring:check_created", { defaultValue: "Uptime check created" }))
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const update = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: Record<string, unknown> }) =>
+      api(`/api/v1/monitoring/uptime/${id}`, { method: "PATCH", json: body }),
+    onSuccess: () => {
+      toast.success(t("monitoring:check_updated", { defaultValue: "Uptime check updated" }))
+      setEditingCheck(null)
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const toggle = useMutation({
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/api/v1/monitoring/uptime/${id}`, { method: "PATCH", json: { enabled } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["uptime-checks"] }),
+    onSuccess: () => {
+      toast.success(t("monitoring:check_updated", { defaultValue: "Uptime check updated" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/monitoring/uptime/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["uptime-checks"] }),
+    onSuccess: () => {
+      toast.success(t("monitoring:check_deleted", { defaultValue: "Uptime check deleted" }))
+      invalidate()
+    },
+    onError: toastMutationError,
   })
 
   const checks = data?.checks ?? []
@@ -195,6 +229,14 @@ export default function UptimePage() {
                         type="button"
                         variant="outline"
                         size="sm"
+                        onClick={() => setEditingCheck(check)}
+                      >
+                        {t("dns:edit", { defaultValue: "Edit" })}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() =>
                           toggle.mutate({ id: check.id, enabled: !check.enabled })
                         }
@@ -221,6 +263,96 @@ export default function UptimePage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={editingCheck !== null} onOpenChange={(open) => !open && setEditingCheck(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t("monitoring:edit_check", { defaultValue: "Edit uptime check" })}
+            </DialogTitle>
+          </DialogHeader>
+          {editingCheck ? (
+            <form
+              key={editingCheck.id}
+              className="grid gap-3"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const fd = new FormData(e.currentTarget)
+                update.mutate({
+                  id: editingCheck.id,
+                  body: {
+                    name: String(fd.get("name")),
+                    target: String(fd.get("target")),
+                    type: String(fd.get("type")),
+                    interval_minutes: Number(fd.get("interval_minutes") || 5),
+                    enabled: fd.get("enabled") === "on",
+                  },
+                })
+              }}
+            >
+              <div className="space-y-2">
+                <Label htmlFor="edit-check-name">{t("monitoring:check_name")}</Label>
+                <Input
+                  id="edit-check-name"
+                  name="name"
+                  required
+                  defaultValue={editingCheck.name}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-check-target">{t("monitoring:check_target")}</Label>
+                <Input
+                  id="edit-check-target"
+                  name="target"
+                  required
+                  dir="ltr"
+                  defaultValue={editingCheck.target}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-check-type">{t("monitoring:check_type")}</Label>
+                <select
+                  id="edit-check-type"
+                  name="type"
+                  className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
+                  defaultValue={editingCheck.type}
+                >
+                  <option value="http">HTTP</option>
+                  <option value="tcp">TCP</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-check-interval">{t("monitoring:check_interval")}</Label>
+                <Input
+                  id="edit-check-interval"
+                  name="interval_minutes"
+                  type="number"
+                  min={1}
+                  dir="ltr"
+                  defaultValue={editingCheck.interval_minutes}
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="enabled"
+                  className="rounded"
+                  defaultChecked={editingCheck.enabled}
+                />
+                {t("monitoring:enabled")}
+              </label>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditingCheck(null)}>
+                  {t("common:cancel")}
+                </Button>
+                <Button type="submit" disabled={update.isPending}>
+                  {t("common:save")}
+                </Button>
+              </div>
+            </form>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
