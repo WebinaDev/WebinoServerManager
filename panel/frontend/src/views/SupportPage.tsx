@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
+import { useLocale } from "@/hooks/useLocale"
 import { api } from "@/lib/api"
 
 type TicketRow = {
@@ -34,6 +35,7 @@ type TicketDetail = TicketRow & {
 
 export default function SupportPage() {
   const { t } = useTranslation(["support", "common"])
+  const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [selectedId, setSelectedId] = useState<number | null>(null)
 
@@ -148,7 +150,10 @@ export default function SupportPage() {
                       <ul className="space-y-2">
                         {ticket.replies.map((r) => (
                           <li key={r.id} className="bg-muted/40 rounded-md p-3 text-sm">
-                            <p className="font-medium">{r.author}</p>
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <p className="font-medium">{r.author}</p>
+                              <p className="text-muted-foreground text-xs">{formatDateTime(r.created_at)}</p>
+                            </div>
                             <p className="whitespace-pre-wrap">{r.body}</p>
                           </li>
                         ))}

@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
+import { useLocale } from "@/hooks/useLocale"
 import { toast, toastMutationError } from "@/lib/toast"
 
 type CheckRow = {
@@ -78,6 +79,7 @@ function UptimeSparkline({ checkId }: { checkId: number }) {
 
 export default function UptimePage() {
   const { t } = useTranslation(["monitoring", "common", "dns"])
+  const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [editingCheck, setEditingCheck] = useState<CheckRow | null>(null)
 
@@ -211,7 +213,7 @@ export default function UptimePage() {
                       </p>
                       {check.last_checked_at ? (
                         <p className="text-muted-foreground text-xs">
-                          {t("monitoring:last_checked")}: {check.last_checked_at}
+                          {t("monitoring:last_checked")}: {formatDateTime(check.last_checked_at)}
                           {check.last_latency_ms != null
                             ? ` · ${check.last_latency_ms}ms`
                             : ""}

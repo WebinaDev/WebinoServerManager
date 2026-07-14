@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
+import { useLocale } from "@/hooks/useLocale"
 import { api } from "@/lib/api"
 
 type CertRow = {
@@ -31,6 +32,7 @@ function daysUntil(date: string | null): number | null {
 
 export default function SslPage() {
   const { t } = useTranslation(["ssl", "common"])
+  const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [validation, setValidation] = useState<{ valid?: string; error?: string } | null>(null)
 
@@ -153,7 +155,7 @@ export default function SslPage() {
                       <span className="text-muted-foreground">
                         {c.status}
                         {days !== null ? ` · ${days}d` : ""}
-                        {c.expires_at ? ` · ${t("ssl:expires")}: ${c.expires_at}` : ""}
+                        {c.expires_at ? ` · ${t("ssl:expires")}: ${formatDateTime(c.expires_at)}` : ""}
                       </span>
                     </div>
                     <RequireRouteWrite>

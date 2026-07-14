@@ -4,9 +4,9 @@ import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 
-import { LocaleDatePicker } from "@/components/LocaleDatePicker"
+import { LocaleDatePickerDate } from "@/components/LocaleDatePicker"
+import { useLocale } from "@/hooks/useLocale"
 import { api } from "@/lib/api"
-import { formatInteger, formatLocalizedDate, formatNowDate } from "@/lib/format"
 
 type Summary = {
   domains: number
@@ -36,7 +36,8 @@ function MiniBar({ label, percent }: { label: string; percent?: number }) {
 }
 
 export default function DashboardHome() {
-  const { t, i18n } = useTranslation(["dashboard", "metrics", "common"])
+  const { t } = useTranslation(["dashboard", "metrics", "common"])
+  const { formatNumber, formatNowDate, formatLocalizedDate } = useLocale()
   const [summary, setSummary] = useState<Summary | null>(null)
   const [picked, setPicked] = useState<Date | null>(() => new Date())
 
@@ -46,11 +47,6 @@ export default function DashboardHome() {
   })
 
   const timeZone = authUser?.timezone ?? "UTC"
-  const lng = i18n.language.startsWith("fa")
-    ? "fa"
-    : i18n.language.startsWith("ar")
-      ? "ar"
-      : "en"
 
   useEffect(() => {
     let cancelled = false
@@ -84,14 +80,13 @@ export default function DashboardHome() {
       <div>
         <h1 className="text-2xl font-semibold">{t("dashboard:title")}</h1>
         <p className="text-muted-foreground text-sm">
-          {t("dashboard:sample_date_label")}: {formatNowDate(lng, timeZone)}
+          {t("dashboard:sample_date_label")}: {formatNowDate(timeZone)}
         </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <span className="text-muted-foreground text-sm">
             {t("dashboard:pick_date_label")}
           </span>
-          <LocaleDatePicker
-            locale={i18n.language}
+          <LocaleDatePickerDate
             value={picked}
             onChange={setPicked}
             aria-label={t("dashboard:pick_date_label")}
@@ -99,7 +94,7 @@ export default function DashboardHome() {
           <span className="text-muted-foreground text-sm">
             {t("dashboard:selected_date_label")}:{" "}
             {picked
-              ? formatLocalizedDate(lng, picked, timeZone)
+              ? formatLocalizedDate(picked, timeZone)
               : t("common:em_dash")}
           </span>
         </div>
@@ -108,19 +103,19 @@ export default function DashboardHome() {
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
           <div className="text-muted-foreground text-sm">{t("dashboard:kpi_domains")}</div>
           <div className="text-2xl font-semibold">
-            {summary ? formatInteger(summary.domains, lng) : t("common:em_dash")}
+            {summary ? formatNumber(summary.domains) : t("common:em_dash")}
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
           <div className="text-muted-foreground text-sm">{t("dashboard:kpi_databases")}</div>
           <div className="text-2xl font-semibold">
-            {summary ? formatInteger(summary.databases, lng) : t("common:em_dash")}
+            {summary ? formatNumber(summary.databases) : t("common:em_dash")}
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
           <div className="text-muted-foreground text-sm">{t("dashboard:kpi_sites")}</div>
           <div className="text-2xl font-semibold">
-            {summary ? formatInteger(summary.sites, lng) : t("common:em_dash")}
+            {summary ? formatNumber(summary.sites) : t("common:em_dash")}
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">

@@ -4,17 +4,20 @@ import Image from "next/image"
 import { useTranslation } from "react-i18next"
 
 import { LoginForm } from "@/components/login-02/login-form"
+import { LocaleSwitcher } from "@/components/LocaleSwitcher"
 import { SkipLink } from "@/components/SkipLink"
+import { useLocaleSync } from "@/hooks/useLocaleSync"
 
 export default function LoginPage() {
   const { t } = useTranslation(["common"])
+  useLocaleSync()
 
   return (
     <>
       <SkipLink href="#login-form" labelKey="common:a11y_skip_to_login" />
       <div className="grid min-h-svh lg:grid-cols-2">
         <div className="flex flex-col gap-4 p-6 md:p-10">
-          <div className="flex justify-center gap-2 md:justify-start">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 font-medium">
               <Image
                 src="/brand/logo.png"
@@ -26,6 +29,7 @@ export default function LoginPage() {
               />
               {t("common:appName")}
             </div>
+            <LocaleSwitcher />
           </div>
           <div className="flex flex-1 items-center justify-center">
             <div className="w-full max-w-xs">

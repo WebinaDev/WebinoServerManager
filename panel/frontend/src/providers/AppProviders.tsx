@@ -14,6 +14,7 @@ import { I18nextProvider } from "react-i18next"
 import i18n from "@/i18n"
 import { normalizeUiLocale } from "@/i18n/locales"
 import { AppToaster } from "@/components/ui/sonner"
+import { isRtlLocale, toAppLocale } from "@/lib/locale"
 
 type ThemeMode = "light" | "dark"
 export type Accent =
@@ -103,8 +104,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
       void i18n.changeLanguage(normalized)
     }
     document.documentElement.lang = normalized
-    document.documentElement.dir =
-      normalized === "fa" || normalized === "ar" ? "rtl" : "ltr"
+    document.documentElement.dir = isRtlLocale(normalized) ? "rtl" : "ltr"
+    document.documentElement.classList.remove("locale-en", "locale-fa")
+    document.documentElement.classList.add(
+      toAppLocale(normalized) === "fa" ? "locale-fa" : "locale-en",
+    )
     setHydrated(true)
   }, [])
 

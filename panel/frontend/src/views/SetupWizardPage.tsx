@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { LocaleSwitcher } from "@/components/LocaleSwitcher"
 import { SkipLink } from "@/components/SkipLink"
+import { useLocaleSync } from "@/hooks/useLocaleSync"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -54,6 +56,7 @@ const initialForm: SetupForm = {
 
 export default function SetupWizardPage() {
   const { t, i18n } = useTranslation(["setup", "common"])
+  useLocaleSync()
   const searchParams = useSearchParams()
   const apiUnavailable = searchParams?.get("error") === "unavailable"
   const [step, setStep] = useState(0)
@@ -149,9 +152,14 @@ export default function SetupWizardPage() {
         className="mx-auto flex min-h-svh max-w-lg flex-col justify-center gap-6 p-6 outline-none"
       >
       <Card>
-        <CardHeader>
-          <CardTitle>{t("setup:title")}</CardTitle>
-          <CardDescription>{t("setup:subtitle")}</CardDescription>
+        <CardHeader className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <CardTitle>{t("setup:title")}</CardTitle>
+              <CardDescription>{t("setup:subtitle")}</CardDescription>
+            </div>
+            <LocaleSwitcher />
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <ol className="text-muted-foreground flex flex-wrap gap-3 text-xs">
@@ -262,7 +270,10 @@ export default function SetupWizardPage() {
                       variant={
                         form.default_locale === locale ? "default" : "outline"
                       }
-                      onClick={() => updateField("default_locale", locale)}
+                      onClick={() => {
+                        updateField("default_locale", locale)
+                        void i18n.changeLanguage(locale)
+                      }}
                     >
                       {t(`setup:locale_${locale}`)}
                     </Button>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
+import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import type { ReactNode } from "react"
 
@@ -23,7 +24,9 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { api } from "@/lib/api"
+import { normalizeUiLocale } from "@/i18n/locales"
 import { useDashboardNav } from "@/hooks/useDashboardNav"
+import { useLocale } from "@/hooks/useLocale"
 import { useLocaleSync } from "@/hooks/useLocaleSync"
 import { RequirePermission } from "@/hooks/usePermissions"
 
@@ -42,7 +45,9 @@ export default function DashboardLayoutPage({
   children: ReactNode
 }) {
   const { t, i18n } = useTranslation(["nav", "dashboard", "sidebar", "common"])
+  const { dir } = useLocale()
   const { navSections } = useDashboardNav()
+  const syncedUserLocale = useRef(false)
 
   const { data: user } = useQuery({
     queryKey: ["auth-user"],
@@ -51,8 +56,20 @@ export default function DashboardLayoutPage({
 
   useLocaleSync()
 
+  useEffect(() => {
+    if (!user?.locale || syncedUserLocale.current) {
+      return
+    }
+    const preferred = normalizeUiLocale(user.locale)
+    const current = normalizeUiLocale(i18n.resolvedLanguage ?? i18n.language)
+    if (preferred !== current) {
+      void i18n.changeLanguage(preferred)
+    }
+    syncedUserLocale.current = true
+  }, [user?.locale, i18n])
+
   const tenantLabel = user?.name ?? "…"
-  const sidebarSide = i18n.dir() === "rtl" ? "right" : "left"
+  const sidebarSide = dir === "rtl" ? "right" : "left"
 
   return (
     <RequirePermission>
@@ -71,7 +88,7 @@ export default function DashboardLayoutPage({
           tenantLabel={tenantLabel}
           tenantPlanLabel={t("sidebar:plan_tenant")}
         />
-        <SidebarInset dir={i18n.dir()}>
+        <SidebarInset dir={dir}>
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex flex-1 items-center gap-2 px-4">
               <SidebarTrigger

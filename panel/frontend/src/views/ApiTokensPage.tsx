@@ -4,10 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
 
+import { LocaleDatePicker } from "@/components/LocaleDatePicker"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useLocale } from "@/hooks/useLocale"
 import { api } from "@/lib/api"
 
 type TokenRow = {
@@ -19,10 +21,24 @@ type TokenRow = {
   created_at: string
 }
 
+function toApiDateTime(value: string): string {
+  if (!value.trim()) {
+    return ""
+  }
+  const normalized = value.includes("T") ? value : value.replace(" ", "T")
+  const date = new Date(normalized)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+  return date.toISOString()
+}
+
 export default function ApiTokensPage() {
   const { t } = useTranslation(["tokens", "common"])
+  const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [plaintext, setPlaintext] = useState<string | null>(null)
+  const [expiresAt, setExpiresAt] = useState("")
 
   const { data, isLoading } = useQuery({
     queryKey: ["api-tokens"],
@@ -35,6 +51,7 @@ export default function ApiTokensPage() {
       api<{ token: string }>("/api/v1/auth/tokens", { method: "POST", json: body }),
     onSuccess: (res) => {
       setPlaintext(res.token)
+      setExpiresAt("")
       qc.invalidateQueries({ queryKey: ["api-tokens"] })
     },
   })
@@ -77,7 +94,7 @@ export default function ApiTokensPage() {
               e.preventDefault()
               const fd = new FormData(e.currentTarget)
               const selected = fd.getAll("abilities").map(String)
-              const expires = String(fd.get("expires_at") ?? "")
+              const expires = toApiDateTime(expiresAt)
               create.mutate({
                 name: String(fd.get("name")),
                 abilities: selected,
@@ -92,7 +109,12 @@ export default function ApiTokensPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="token-expires">{t("tokens:field_expires")}</Label>
-              <Input id="token-expires" name="expires_at" type="datetime-local" dir="ltr" />
+              <LocaleDatePicker
+                id="token-expires"
+                value={expiresAt}
+                onChange={setExpiresAt}
+                includeTime
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>{t("tokens:field_abilities")}</Label>
@@ -138,9 +160,12 @@ export default function ApiTokensPage() {
                       </p>
                       {tok.expires_at ? (
                         <p className="text-muted-foreground text-xs">
-                          {t("tokens:expires")}: {tok.expires_at}
+                          {t("tokens:expires")}: {formatDateTime(tok.expires_at)}
                         </p>
                       ) : null}
+                      <p className="text-muted-foreground text-xs">
+                        {t("tokens:created_label")}: {formatDateTime(tok.created_at)}
+                      </p>
                     </div>
                     <Button
                       type="button"

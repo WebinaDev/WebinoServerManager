@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fa" suppressHydrationWarning>
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className="min-h-svh font-sans">
         <QueryProvider>
           <AppProviders>{children}</AppProviders>

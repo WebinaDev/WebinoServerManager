@@ -146,11 +146,54 @@
     --sidebar-ring: var(--ring);
   }
 
+  html.locale-en {
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  html.locale-fa {
+    --font-sans: "Yekan Bakh", ui-sans-serif, system-ui, sans-serif;
+  }
+
   body[data-scroll-locked] [data-slot="sidebar"][data-side="right"] [data-slot="sidebar-container"] {
     right: var(--removed-body-scroll-bar-size, 0px);
   }
 
   body[data-scroll-locked] [data-slot="sidebar"][data-side="left"] [data-slot="sidebar-container"] {
     left: var(--removed-body-scroll-bar-size, 0px);
+  }
+}
+
+@import "react-multi-date-picker/styles/colors/teal.css";
+@import "react-multi-date-picker/styles/layouts/mobile.css";
+
+.rmdp-theme-panel.rmdp-wrapper {
+  border-radius: var(--radius-md);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+}
+
+.rmdp-theme-panel .rmdp-day.rmdp-selected span:not(.highlight) {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.rmdp-theme-panel .rmdp-day:not(.rmdp-disabled):not(.rmdp-day-hidden) span:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.rmdp-theme-panel .rmdp-arrow {
+  border-color: hsl(var(--foreground));
+}
+
+.rmdp-theme-panel .rmdp-arrow-container:hover {
+  background-color: hsl(var(--muted));
+}
+
+@media (max-width: 640px) {
+  .rmdp-theme-panel.rmdp-mobile.rmdp-wrapper {
+    max-width: min(100vw - 1rem, 22rem);
   }
 }

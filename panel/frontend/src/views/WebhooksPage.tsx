@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
+import { useLocale } from "@/hooks/useLocale"
 import { toast, toastMutationError } from "@/lib/toast"
 
 const EVENTS = [
@@ -45,6 +46,7 @@ type DeliveryRow = {
 
 export default function WebhooksPage() {
   const { t } = useTranslation(["webhooks", "common", "dns"])
+  const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [editingEndpoint, setEditingEndpoint] = useState<EndpointRow | null>(null)
 
@@ -191,6 +193,11 @@ export default function WebhooksPage() {
                       <p className="text-muted-foreground text-xs" dir="ltr">
                         {(ep.events ?? []).join(", ")}
                       </p>
+                      {ep.last_delivered_at ? (
+                        <p className="text-muted-foreground text-xs">
+                          {t("webhooks:last_delivered")}: {formatDateTime(ep.last_delivered_at)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -253,7 +260,7 @@ export default function WebhooksPage() {
               deliveries.map((d) => (
                 <li key={d.id} className="px-4 py-3 text-sm">
                   <span dir="ltr">
-                    {d.event} · {d.status} · {d.response_code ?? "—"} · {d.delivered_at}
+                    {d.event} · {d.status} · {d.response_code ?? "—"} · {formatDateTime(d.delivered_at)}
                   </span>
                 </li>
               ))

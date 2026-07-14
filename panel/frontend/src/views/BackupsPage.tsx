@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
+import { useLocale } from "@/hooks/useLocale"
 import { api } from "@/lib/api"
 import { toast, toastMutationError } from "@/lib/toast"
 
@@ -79,6 +80,7 @@ function targetToForm(target: TargetRow): TargetForm {
 
 export default function BackupsPage() {
   const { t } = useTranslation(["backups", "common"])
+  const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [restoreTarget, setRestoreTarget] = useState<Record<number, string>>({})
   const [editingTarget, setEditingTarget] = useState<TargetRow | null>(null)
@@ -378,6 +380,7 @@ export default function BackupsPage() {
                   <p className="font-medium">{s.name}</p>
                   <p className="text-muted-foreground text-xs">
                     {s.frequency} · {s.type} · {s.mode ?? "full"} · {s.target}
+                    {s.last_run_at ? ` · ${t("backups:last_run")}: ${formatDateTime(s.last_run_at)}` : ""}
                   </p>
                 </div>
                 <RequireRouteWrite>
@@ -463,7 +466,9 @@ export default function BackupsPage() {
                       {b.checksum ? (
                         <p className="text-muted-foreground text-xs font-mono" dir="ltr">
                           sha256: {b.checksum.slice(0, 16)}…
-                          {b.verified_at ? ` · ${t("backups:verified")}` : ""}
+                          {b.verified_at
+                            ? ` · ${t("backups:verified")} ${formatDateTime(b.verified_at)}`
+                            : ""}
                         </p>
                       ) : null}
                     </div>

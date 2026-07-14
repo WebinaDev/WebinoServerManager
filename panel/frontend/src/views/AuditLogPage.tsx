@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useLocale } from "@/hooks/useLocale"
 import { api } from "@/lib/api"
 
 type AuditUser = {
@@ -38,6 +39,7 @@ type Tab = "audit" | "login"
 
 export default function AuditLogPage() {
   const { t } = useTranslation(["security", "common"])
+  const { formatDateTime } = useLocale()
   const [tab, setTab] = useState<Tab>("audit")
 
   const audit = useQuery({
@@ -93,8 +95,8 @@ export default function AuditLogPage() {
                   <li key={row.id} className="space-y-1 px-4 py-3 text-sm">
                     <div className="flex flex-wrap justify-between gap-2">
                       <span className="font-medium">{row.action}</span>
-                      <span className="text-muted-foreground text-xs" dir="ltr">
-                        {row.created_at}
+                      <span className="text-muted-foreground text-xs">
+                        {formatDateTime(row.created_at)}
                       </span>
                     </div>
                     {row.target && (
@@ -130,8 +132,8 @@ export default function AuditLogPage() {
                         {row.success ? t("security:login_success") : t("security:login_failed")}
                       </span>
                     </div>
-                    <p className="text-muted-foreground text-xs" dir="ltr">
-                      {row.created_at} · {row.ip ?? "—"}
+                    <p className="text-muted-foreground text-xs">
+                      {formatDateTime(row.created_at)} · <span dir="ltr">{row.ip ?? "—"}</span>
                     </p>
                   </li>
                 ))

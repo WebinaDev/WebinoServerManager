@@ -4,10 +4,7 @@ import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 
 import { normalizeUiLocale } from "@/i18n/locales"
-
-function isRtlLocale(lng: string): boolean {
-  return lng.startsWith("fa") || lng.startsWith("ar")
-}
+import { isRtlLocale, toAppLocale } from "@/lib/locale"
 
 /** Keeps <html lang/dir> and persisted locale aligned with i18n. */
 export function useLocaleSync() {
@@ -25,6 +22,8 @@ export function useLocaleSync() {
     const html = document.documentElement
     html.setAttribute("lang", normalized)
     html.setAttribute("dir", isRtlLocale(normalized) ? "rtl" : "ltr")
+    html.classList.remove("locale-en", "locale-fa")
+    html.classList.add(toAppLocale(normalized) === "fa" ? "locale-fa" : "locale-en")
     localStorage.setItem("locale", normalized)
   }, [i18n, i18n.language, i18n.resolvedLanguage])
 }
