@@ -1,7 +1,8 @@
 "use client"
 
+import { useTranslations, useLocale } from "next-intl"
+import { useChangeLocale } from "@/i18n/changeLocale"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 import { useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -55,7 +56,10 @@ const initialForm: SetupForm = {
 }
 
 export default function SetupWizardPage() {
-  const { t, i18n } = useTranslation(["setup", "common"])
+  const t = useTranslations("setup")
+  const tCommon = useTranslations("common")
+  const locale = useLocale()
+  const changeLocale = useChangeLocale()
   useLocaleSync()
   const searchParams = useSearchParams()
   const apiUnavailable = searchParams?.get("error") === "unavailable"
@@ -70,18 +74,18 @@ export default function SetupWizardPage() {
 
   function validateStep(current: number): string | null {
     if (current === 0) {
-      if (!form.name.trim()) return t("setup:errors_name_required")
-      if (!form.username.trim()) return t("setup:errors_username_required")
+      if (!form.name.trim()) return t("errors_name_required")
+      if (!form.username.trim()) return t("errors_username_required")
       if (!/^[a-zA-Z0-9_]{3,32}$/.test(form.username)) {
-        return t("setup:errors_username_format")
+        return t("errors_username_format")
       }
-      if (form.password.length < 8) return t("setup:errors_password_min")
+      if (form.password.length < 8) return t("errors_password_min")
       if (form.password !== form.password_confirmation) {
-        return t("setup:errors_password_mismatch")
+        return t("errors_password_mismatch")
       }
     }
     if (current === 1) {
-      if (!form.panel_name.trim()) return t("setup:errors_panel_name_required")
+      if (!form.panel_name.trim()) return t("errors_panel_name_required")
     }
     return null
   }
@@ -128,24 +132,24 @@ export default function SetupWizardPage() {
             : {}),
         },
       })
-      await i18n.changeLanguage(form.default_locale)
+      changeLocale(form.default_locale)
       window.location.assign("/login")
     } catch (e) {
-      setErr(e instanceof Error ? e.message : t("common:error_generic"))
+      setErr(e instanceof Error ? e.message : tCommon("error_generic"))
     } finally {
       setPending(false)
     }
   }
 
   const steps = [
-    t("setup:step_admin_label"),
-    t("setup:step_settings_label"),
-    t("setup:step_review_label"),
+    t("step_admin_label"),
+    t("step_settings_label"),
+    t("step_review_label"),
   ]
 
   return (
     <>
-      <SkipLink href="#setup-main" labelKey="common:a11y_skip_to_setup" />
+      <SkipLink href="#setup-main" labelKey="a11y_skip_to_setup" />
       <main
         id="setup-main"
         tabIndex={-1}
@@ -155,8 +159,8 @@ export default function SetupWizardPage() {
         <CardHeader className="space-y-3">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <CardTitle>{t("setup:title")}</CardTitle>
-              <CardDescription>{t("setup:subtitle")}</CardDescription>
+              <CardTitle>{t("title")}</CardTitle>
+              <CardDescription>{t("subtitle")}</CardDescription>
             </div>
             <LocaleSwitcher />
           </div>
@@ -178,7 +182,7 @@ export default function SetupWizardPage() {
 
           {apiUnavailable ? (
             <p className="text-destructive text-sm" role="alert">
-              {t("setup:api_unavailable")}
+              {t("api_unavailable")}
             </p>
           ) : null}
 
@@ -191,7 +195,7 @@ export default function SetupWizardPage() {
           {step === 0 ? (
             <div className="flex flex-col gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">{t("setup:admin_name")}</Label>
+                <Label htmlFor="name">{t("admin_name")}</Label>
                 <Input
                   id="name"
                   value={form.name}
@@ -201,7 +205,7 @@ export default function SetupWizardPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="username">{t("setup:username")}</Label>
+                <Label htmlFor="username">{t("username")}</Label>
                 <Input
                   id="username"
                   value={form.username}
@@ -212,11 +216,11 @@ export default function SetupWizardPage() {
                   required
                 />
                 <p className="text-muted-foreground text-xs">
-                  {t("setup:username_hint")}
+                  {t("username_hint")}
                 </p>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="email">{t("setup:email_optional")}</Label>
+                <Label htmlFor="email">{t("email_optional")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -227,7 +231,7 @@ export default function SetupWizardPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">{t("setup:password")}</Label>
+                <Label htmlFor="password">{t("password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -239,7 +243,7 @@ export default function SetupWizardPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password_confirmation">
-                  {t("setup:password_confirm")}
+                  {t("password_confirm")}
                 </Label>
                 <Input
                   id="password_confirmation"
@@ -253,7 +257,7 @@ export default function SetupWizardPage() {
                 />
               </div>
               <Button type="button" onClick={goNext}>
-                {t("setup:continue")}
+                {t("continue")}
               </Button>
             </div>
           ) : null}
@@ -261,7 +265,7 @@ export default function SetupWizardPage() {
           {step === 1 ? (
             <div className="flex flex-col gap-4">
               <div className="grid gap-2">
-                <Label>{t("setup:default_locale")}</Label>
+                <Label>{t("default_locale")}</Label>
                 <div className="flex gap-2">
                   {(["fa", "en"] as const).map((locale) => (
                     <Button
@@ -272,16 +276,16 @@ export default function SetupWizardPage() {
                       }
                       onClick={() => {
                         updateField("default_locale", locale)
-                        void i18n.changeLanguage(locale)
+                        changeLocale(locale)
                       }}
                     >
-                      {t(`setup:locale_${locale}`)}
+                      {t(`locale_${locale}`)}
                     </Button>
                   ))}
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="panel_name">{t("setup:panel_name")}</Label>
+                <Label htmlFor="panel_name">{t("panel_name")}</Label>
                 <Input
                   id="panel_name"
                   value={form.panel_name}
@@ -290,13 +294,13 @@ export default function SetupWizardPage() {
                 />
               </div>
               <div className="rounded-md border p-4">
-                <p className="mb-3 text-sm font-medium">{t("setup:smtp_optional_title")}</p>
+                <p className="mb-3 text-sm font-medium">{t("smtp_optional_title")}</p>
                 <p className="text-muted-foreground mb-4 text-xs">
-                  {t("setup:smtp_optional_hint")}
+                  {t("smtp_optional_hint")}
                 </p>
                 <div className="grid gap-3">
                   <div className="grid gap-2">
-                    <Label htmlFor="smtp_host">{t("setup:smtp_host")}</Label>
+                    <Label htmlFor="smtp_host">{t("smtp_host")}</Label>
                     <Input
                       id="smtp_host"
                       value={form.smtp_host}
@@ -307,7 +311,7 @@ export default function SetupWizardPage() {
                   </div>
                   <div className="grid gap-2 md:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="smtp_port">{t("setup:smtp_port")}</Label>
+                      <Label htmlFor="smtp_port">{t("smtp_port")}</Label>
                       <Input
                         id="smtp_port"
                         value={form.smtp_port}
@@ -317,7 +321,7 @@ export default function SetupWizardPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="smtp_encryption">{t("setup:smtp_encryption")}</Label>
+                      <Label htmlFor="smtp_encryption">{t("smtp_encryption")}</Label>
                       <select
                         id="smtp_encryption"
                         value={form.smtp_encryption}
@@ -332,7 +336,7 @@ export default function SetupWizardPage() {
                   </div>
                   <div className="grid gap-2 md:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="smtp_username">{t("setup:smtp_username")}</Label>
+                      <Label htmlFor="smtp_username">{t("smtp_username")}</Label>
                       <Input
                         id="smtp_username"
                         value={form.smtp_username}
@@ -342,7 +346,7 @@ export default function SetupWizardPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="smtp_password">{t("setup:smtp_password")}</Label>
+                      <Label htmlFor="smtp_password">{t("smtp_password")}</Label>
                       <Input
                         id="smtp_password"
                         type="password"
@@ -354,7 +358,7 @@ export default function SetupWizardPage() {
                   </div>
                   <div className="grid gap-2 md:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="smtp_from_address">{t("setup:smtp_from_address")}</Label>
+                      <Label htmlFor="smtp_from_address">{t("smtp_from_address")}</Label>
                       <Input
                         id="smtp_from_address"
                         type="email"
@@ -365,7 +369,7 @@ export default function SetupWizardPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="smtp_from_name">{t("setup:smtp_from_name")}</Label>
+                      <Label htmlFor="smtp_from_name">{t("smtp_from_name")}</Label>
                       <Input
                         id="smtp_from_name"
                         value={form.smtp_from_name}
@@ -381,10 +385,10 @@ export default function SetupWizardPage() {
                   variant="outline"
                   onClick={() => setStep(0)}
                 >
-                  {t("common:back")}
+                  {tCommon("back")}
                 </Button>
                 <Button type="button" onClick={goNext}>
-                  {t("setup:continue")}
+                  {t("continue")}
                 </Button>
               </div>
             </div>
@@ -393,33 +397,33 @@ export default function SetupWizardPage() {
           {step === 2 ? (
             <div className="flex flex-col gap-4">
               <p className="text-muted-foreground text-sm">
-                {t("setup:review_hint")}
+                {t("review_hint")}
               </p>
               <dl className="grid gap-2 text-sm">
                 <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("setup:admin_name")}</dt>
+                  <dt className="text-muted-foreground">{t("admin_name")}</dt>
                   <dd className="font-medium">{form.name}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("setup:username")}</dt>
+                  <dt className="text-muted-foreground">{t("username")}</dt>
                   <dd className="font-mono font-medium" dir="ltr">
                     {form.username}
                   </dd>
                 </div>
                 {form.email ? (
                   <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">{t("setup:email_optional")}</dt>
+                    <dt className="text-muted-foreground">{t("email_optional")}</dt>
                     <dd className="font-mono" dir="ltr">
                       {form.email}
                     </dd>
                   </div>
                 ) : null}
                 <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("setup:default_locale")}</dt>
-                  <dd>{t(`setup:locale_${form.default_locale}`)}</dd>
+                  <dt className="text-muted-foreground">{t("default_locale")}</dt>
+                  <dd>{t(`locale_${form.default_locale}`)}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("setup:panel_name")}</dt>
+                  <dt className="text-muted-foreground">{t("panel_name")}</dt>
                   <dd className="font-medium">{form.panel_name}</dd>
                 </div>
               </dl>
@@ -429,14 +433,14 @@ export default function SetupWizardPage() {
                   variant="outline"
                   onClick={() => setStep(1)}
                 >
-                  {t("common:back")}
+                  {tCommon("back")}
                 </Button>
                 <Button
                   type="button"
                   disabled={pending}
                   onClick={() => void submit()}
                 >
-                  {t("setup:finish")}
+                  {t("finish")}
                 </Button>
               </div>
             </div>

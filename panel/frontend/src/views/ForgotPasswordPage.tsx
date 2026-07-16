@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import Link from "next/link"
 import { useEffect, useState, type FormEvent } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 
 export default function ForgotPasswordPage() {
-  const { t } = useTranslation(["auth", "common"])
+  const t = useTranslations("auth")
+  const tCommon = useTranslations("common")
   const [username, setUsername] = useState("")
   const [mailConfigured, setMailConfigured] = useState<boolean | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -50,7 +51,7 @@ export default function ForgotPasswordPage() {
       })
       setMessage(res.message)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common:error_generic"))
+      setError(err instanceof Error ? err.message : tCommon("error_generic"))
     } finally {
       setPending(false)
     }
@@ -60,12 +61,12 @@ export default function ForgotPasswordPage() {
     <div className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-6 p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("auth:forgot_title")}</CardTitle>
-          <CardDescription>{t("auth:forgot_subtitle")}</CardDescription>
+          <CardTitle>{t("forgot_title")}</CardTitle>
+          <CardDescription>{t("forgot_subtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {mailConfigured === false ? (
-            <p className="text-muted-foreground text-sm">{t("auth:forgot_no_mail")}</p>
+            <p className="text-muted-foreground text-sm">{t("forgot_no_mail")}</p>
           ) : null}
           {error ? (
             <p className="text-destructive text-sm" role="alert">
@@ -79,7 +80,7 @@ export default function ForgotPasswordPage() {
           ) : null}
           <form className="flex flex-col gap-4" onSubmit={(e) => void onSubmit(e)}>
             <div className="grid gap-2">
-              <Label htmlFor="username">{t("auth:username")}</Label>
+              <Label htmlFor="username">{t("username")}</Label>
               <Input
                 id="username"
                 value={username}
@@ -91,12 +92,12 @@ export default function ForgotPasswordPage() {
               />
             </div>
             <Button type="submit" disabled={pending || mailConfigured === false}>
-              {t("auth:forgot_submit")}
+              {t("forgot_submit")}
             </Button>
           </form>
           <p className="text-center text-sm">
             <Link href="/login" className="underline-offset-4 hover:underline">
-              {t("auth:back_to_login")}
+              {t("back_to_login")}
             </Link>
           </p>
         </CardContent>

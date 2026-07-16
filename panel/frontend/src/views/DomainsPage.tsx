@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
@@ -20,7 +20,8 @@ type DomainRow = {
 }
 
 export default function DomainsPage() {
-  const { t } = useTranslation(["domains", "common"])
+  const t = useTranslations("domains")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["domains"],
@@ -33,7 +34,7 @@ export default function DomainsPage() {
     mutationFn: (body: { domain: string; slug?: string }) =>
       api("/api/v1/domains", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: () => {
-      toast.success(t("domains:add"))
+      toast.success(t("add"))
       qc.invalidateQueries({ queryKey: ["domains"] })
     },
     onError: toastMutationError,
@@ -42,7 +43,7 @@ export default function DomainsPage() {
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/domains/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("domains:delete"))
+      toast.success(t("delete"))
       qc.invalidateQueries({ queryKey: ["domains"] })
     },
     onError: toastMutationError,
@@ -51,19 +52,19 @@ export default function DomainsPage() {
   const columns: DataTableColumn<DomainRow>[] = [
     {
       id: "domain",
-      header: t("domains:field_domain"),
+      header: t("field_domain"),
       sortValue: (row) => row.domain,
       cell: (d) => <span dir="ltr">{d.domain}</span>,
     },
     {
       id: "status",
-      header: t("common:status", { defaultValue: "Status" }),
+      header: tCommon("status"),
       sortValue: (row) => row.status,
       cell: (d) => <span className="text-muted-foreground">{d.status}</span>,
     },
     {
       id: "actions",
-      header: t("common:actions", { defaultValue: "Actions" }),
+      header: tCommon("actions"),
       cell: (d) => (
         <RequireRouteWrite>
           <Button
@@ -71,12 +72,12 @@ export default function DomainsPage() {
             variant="outline"
             size="sm"
             onClick={() => {
-              if (window.confirm(t("domains:delete_confirm"))) {
+              if (window.confirm(t("delete_confirm"))) {
                 remove.mutate(d.id)
               }
             }}
           >
-            {t("domains:delete")}
+            {t("delete")}
           </Button>
         </RequireRouteWrite>
       ),
@@ -87,7 +88,7 @@ export default function DomainsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("domains:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -104,16 +105,16 @@ export default function DomainsPage() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="domain">{t("domains:field_domain")}</Label>
+                <Label htmlFor="domain">{t("field_domain")}</Label>
                 <Input id="domain" name="domain" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="slug">{t("domains:field_slug")}</Label>
+                <Label htmlFor="slug">{t("field_slug")}</Label>
                 <Input id="slug" name="slug" />
               </div>
               <div className="flex items-end">
                 <Button type="submit" disabled={create.isPending}>
-                  {t("domains:add")}
+                  {t("add")}
                 </Button>
               </div>
             </form>
@@ -123,11 +124,11 @@ export default function DomainsPage() {
             data={domains}
             rowKey={(row) => row.id}
             isLoading={isLoading}
-            searchPlaceholder={t("domains:search", { defaultValue: "Search domains…" })}
+            searchPlaceholder={t("search")}
             searchFilter={(row, q) =>
               row.domain.toLowerCase().includes(q) || row.status.toLowerCase().includes(q)
             }
-            emptyMessage={t("domains:empty", { defaultValue: "No domains yet." })}
+            emptyMessage={t("empty")}
           />
         </CardContent>
       </Card>

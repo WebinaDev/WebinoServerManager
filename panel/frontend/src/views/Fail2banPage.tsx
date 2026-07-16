@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,7 +28,8 @@ type FilterRow = {
 type Tab = "jails" | "filters" | "unban"
 
 export default function Fail2banPage() {
-  const { t } = useTranslation(["security", "common"])
+  const t = useTranslations("security")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [tab, setTab] = useState<Tab>("jails")
 
@@ -63,7 +64,7 @@ export default function Fail2banPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("security:fail2ban_title")}</CardTitle>
+          <CardTitle>{t("fail2ban_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -73,7 +74,7 @@ export default function Fail2banPage() {
               variant={tab === "jails" ? "default" : "outline"}
               onClick={() => setTab("jails")}
             >
-              {t("security:fail2ban_tab_jails")}
+              {t("fail2ban_tab_jails")}
             </Button>
             <Button
               type="button"
@@ -81,7 +82,7 @@ export default function Fail2banPage() {
               variant={tab === "filters" ? "default" : "outline"}
               onClick={() => setTab("filters")}
             >
-              {t("security:fail2ban_tab_filters")}
+              {t("fail2ban_tab_filters")}
             </Button>
             <Button
               type="button"
@@ -89,19 +90,19 @@ export default function Fail2banPage() {
               variant={tab === "unban" ? "default" : "outline"}
               onClick={() => setTab("unban")}
             >
-              {t("security:fail2ban_tab_unban")}
+              {t("fail2ban_tab_unban")}
             </Button>
           </div>
 
           {tab === "jails" && (
             <>
               {isLoading ? (
-                <p>{t("common:loading")}</p>
+                <p>{tCommon("loading")}</p>
               ) : (
                 <ul className="divide-y rounded-md border">
                   {jails.length === 0 ? (
                     <li className="text-muted-foreground px-4 py-3 text-sm">
-                      {t("security:fail2ban_no_jails")}
+                      {t("fail2ban_no_jails")}
                     </li>
                   ) : (
                     jails.map((jail) => (
@@ -126,12 +127,12 @@ export default function Fail2banPage() {
           {tab === "filters" && (
             <div className="space-y-4">
               {filters.isLoading ? (
-                <p>{t("common:loading")}</p>
+                <p>{tCommon("loading")}</p>
               ) : (
                 <ul className="divide-y rounded-md border">
                   {filterRows.length === 0 ? (
                     <li className="text-muted-foreground px-4 py-3 text-sm">
-                      {t("security:fail2ban_no_filters")}
+                      {t("fail2ban_no_filters")}
                     </li>
                   ) : (
                     filterRows.map((f) => (
@@ -164,11 +165,11 @@ export default function Fail2banPage() {
                 }}
               >
                 <div className="space-y-2">
-                  <Label htmlFor="filter-name">{t("security:fail2ban_filter_name")}</Label>
+                  <Label htmlFor="filter-name">{t("fail2ban_filter_name")}</Label>
                   <Input id="filter-name" name="name" required dir="ltr" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="filter-content">{t("security:fail2ban_filter_content")}</Label>
+                  <Label htmlFor="filter-content">{t("fail2ban_filter_content")}</Label>
                   <textarea
                     id="filter-content"
                     name="content"
@@ -178,7 +179,7 @@ export default function Fail2banPage() {
                   />
                 </div>
                 <Button type="submit" disabled={saveFilter.isPending}>
-                  {t("security:fail2ban_filter_save")}
+                  {t("fail2ban_filter_save")}
                 </Button>
               </form>
             </div>
@@ -198,7 +199,7 @@ export default function Fail2banPage() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="unban-jail">{t("security:fail2ban_jail")}</Label>
+                <Label htmlFor="unban-jail">{t("fail2ban_jail")}</Label>
                 <Input id="unban-jail" name="jail" required dir="ltr" list="jail-names" />
                 <datalist id="jail-names">
                   {jails.map((j) => (
@@ -207,12 +208,12 @@ export default function Fail2banPage() {
                 </datalist>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unban-ip">{t("security:fail2ban_ip")}</Label>
+                <Label htmlFor="unban-ip">{t("fail2ban_ip")}</Label>
                 <Input id="unban-ip" name="ip" required dir="ltr" placeholder="203.0.113.1" />
               </div>
               <div className="flex items-end">
                 <Button type="submit" disabled={unban.isPending}>
-                  {t("security:fail2ban_unban")}
+                  {t("fail2ban_unban")}
                 </Button>
               </div>
             </form>

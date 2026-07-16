@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useParams, useRouter } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 
 export default function VhostEditorPage() {
-  const { t } = useTranslation(["webserver", "common"])
+  const t = useTranslations("webserver")
+  const tCommon = useTranslations("common")
   const params = useParams()
   const router = useRouter()
   const qc = useQueryClient()
@@ -64,14 +65,14 @@ export default function VhostEditorPage() {
   })
 
   if (isLoading) {
-    return <p className="p-6">{t("common:loading")}</p>
+    return <p className="p-6">{tCommon("loading")}</p>
   }
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <div className="flex items-center gap-3">
         <Button type="button" variant="outline" onClick={() => router.push("/webserver/vhosts")}>
-          {t("webserver:back")}
+          {t("back")}
         </Button>
         <h1 className="font-mono text-lg" dir="ltr">
           {data?.vhost.fqdn}
@@ -80,7 +81,7 @@ export default function VhostEditorPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("webserver:raw_editor")}</CardTitle>
+          <CardTitle>{t("raw_editor")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <textarea
@@ -90,41 +91,41 @@ export default function VhostEditorPage() {
             onChange={(e) => setContent(e.target.value)}
           />
           <Button type="button" disabled={save.isPending} onClick={() => save.mutate()}>
-            {t("webserver:save_reload")}
+            {t("save_reload")}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("webserver:redirects")}</CardTitle>
+          <CardTitle>{t("redirects")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3">
           <div className="space-y-2">
-            <Label>{t("webserver:redirect_from")}</Label>
+            <Label>{t("redirect_from")}</Label>
             <Input value={redirectFrom} onChange={(e) => setRedirectFrom(e.target.value)} dir="ltr" />
           </div>
           <div className="space-y-2">
-            <Label>{t("webserver:redirect_to")}</Label>
+            <Label>{t("redirect_to")}</Label>
             <Input value={redirectTo} onChange={(e) => setRedirectTo(e.target.value)} dir="ltr" />
           </div>
           <Button type="button" disabled={addRedirect.isPending} onClick={() => addRedirect.mutate()}>
-            {t("webserver:add_redirect")}
+            {t("add_redirect")}
           </Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("webserver:reverse_proxy")}</CardTitle>
+          <CardTitle>{t("reverse_proxy")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3">
           <div className="grow space-y-2">
-            <Label>{t("webserver:proxy_target")}</Label>
+            <Label>{t("proxy_target")}</Label>
             <Input value={proxyTarget} onChange={(e) => setProxyTarget(e.target.value)} dir="ltr" />
           </div>
           <Button type="button" disabled={addProxy.isPending} onClick={() => addProxy.mutate()}>
-            {t("webserver:add_proxy")}
+            {t("add_proxy")}
           </Button>
         </CardContent>
       </Card>

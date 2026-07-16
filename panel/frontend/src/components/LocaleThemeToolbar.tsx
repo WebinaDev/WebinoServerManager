@@ -1,7 +1,8 @@
 "use client"
 
+import { useTranslations, useLocale } from "next-intl"
+import { useChangeLocale } from "@/i18n/changeLocale"
 import { Languages, Moon, Sun } from "lucide-react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -20,10 +21,12 @@ import type { Accent } from "@/providers/AppProviders"
 import { useThemeSettings } from "@/providers/AppProviders"
 
 export function LocaleThemeToolbar() {
-  const { i18n, t } = useTranslation()
+  const t = useTranslations("common")
+  const locale = useLocale()
+  const changeLocale = useChangeLocale()
   const { mode, setMode, accent, setAccent } = useThemeSettings()
 
-  const lng = normalizeUiLocale(i18n.language)
+  const lng = normalizeUiLocale(locale)
   const accents: Accent[] = ["zinc", "slate", "blue", "green", "rose", "orange"]
 
   return (
@@ -34,7 +37,7 @@ export function LocaleThemeToolbar() {
             variant="outline"
             size="sm"
             type="button"
-            aria-label={t("common:a11y_choose_locale")}
+            aria-label={t("a11y_choose_locale")}
           >
             <Languages className="size-4" />
             {t(localeLabelKey(lng))}
@@ -44,9 +47,9 @@ export function LocaleThemeToolbar() {
           {PUBLIC_UI_LOCALES.map((code) => (
             <DropdownMenuItem
               key={code}
-              onClick={() => void i18n.changeLanguage(code)}
+              onClick={() => changeLocale(code)}
             >
-              {t(`common:locale_${code}` as `common:locale_${PublicUiLocale}`)}
+              {t(`locale_${code}` as `locale_${PublicUiLocale}`)}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -58,15 +61,15 @@ export function LocaleThemeToolbar() {
             variant="outline"
             size="sm"
             type="button"
-            aria-label={t("common:a11y_choose_accent")}
+            aria-label={t("a11y_choose_accent")}
           >
-            {t(`common:accent_${accent}` as never)}
+            {t(`accent_${accent}` as never)}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {accents.map((a) => (
             <DropdownMenuItem key={a} onClick={() => setAccent(a)}>
-              {t(`common:accent_${a}` as never)}
+              {t(`accent_${a}` as never)}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -78,7 +81,7 @@ export function LocaleThemeToolbar() {
         size="icon"
         onClick={() => setMode(mode === "dark" ? "light" : "dark")}
         aria-label={
-          mode === "dark" ? t("common:theme_light") : t("common:theme_dark")
+          mode === "dark" ? t("theme_light") : t("theme_dark")
         }
       >
         {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}

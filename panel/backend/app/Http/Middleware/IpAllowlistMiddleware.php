@@ -32,7 +32,7 @@ class IpAllowlistMiddleware
             }
         }
 
-        return response()->json(['message' => 'Forbidden from this IP address.'], 403);
+        return response()->json(['message' => __('auth.forbidden_ip')], 403);
     }
 
     private function matches(?string $clientIp, string $allowed): bool

@@ -1,17 +1,17 @@
 "use client"
 
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
 type SkipLinkProps = {
   href: string
-  labelKey?: "common:a11y_skip_to_main" | "common:a11y_skip_to_login" | "common:a11y_skip_to_setup"
+  labelKey?: "a11y_skip_to_main" | "a11y_skip_to_login" | "a11y_skip_to_setup"
 }
 
 export function SkipLink({
   href,
-  labelKey = "common:a11y_skip_to_main",
+  labelKey = "a11y_skip_to_main",
 }: SkipLinkProps) {
-  const { t } = useTranslation(["common"])
+  const t = useTranslations("common")
 
   return (
     <a

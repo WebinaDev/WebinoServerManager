@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -38,7 +38,8 @@ type LoginHistoryRow = {
 type Tab = "audit" | "login"
 
 export default function AuditLogPage() {
-  const { t } = useTranslation(["security", "common"])
+  const t = useTranslations("security")
+  const tCommon = useTranslations("common")
   const { formatDateTime } = useLocale()
   const [tab, setTab] = useState<Tab>("audit")
 
@@ -60,7 +61,7 @@ export default function AuditLogPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("security:audit_title")}</CardTitle>
+          <CardTitle>{t("audit_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
@@ -70,7 +71,7 @@ export default function AuditLogPage() {
               variant={tab === "audit" ? "default" : "outline"}
               onClick={() => setTab("audit")}
             >
-              {t("security:audit_tab")}
+              {t("audit_tab")}
             </Button>
             <Button
               type="button"
@@ -78,17 +79,17 @@ export default function AuditLogPage() {
               variant={tab === "login" ? "default" : "outline"}
               onClick={() => setTab("login")}
             >
-              {t("security:login_tab")}
+              {t("login_tab")}
             </Button>
           </div>
 
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : tab === "audit" ? (
             <ul className="divide-y rounded-md border">
               {(audit.data?.logs ?? []).length === 0 ? (
                 <li className="text-muted-foreground px-4 py-3 text-sm">
-                  {t("security:audit_empty")}
+                  {t("audit_empty")}
                 </li>
               ) : (
                 audit.data!.logs.map((row) => (
@@ -115,7 +116,7 @@ export default function AuditLogPage() {
             <ul className="divide-y rounded-md border">
               {(login.data?.history ?? []).length === 0 ? (
                 <li className="text-muted-foreground px-4 py-3 text-sm">
-                  {t("security:login_empty")}
+                  {t("login_empty")}
                 </li>
               ) : (
                 login.data!.history.map((row) => (
@@ -129,7 +130,7 @@ export default function AuditLogPage() {
                           row.success ? "text-green-600 text-xs" : "text-destructive text-xs"
                         }
                       >
-                        {row.success ? t("security:login_success") : t("security:login_failed")}
+                        {row.success ? t("login_success") : t("login_failed")}
                       </span>
                     </div>
                     <p className="text-muted-foreground text-xs">

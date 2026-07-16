@@ -13,18 +13,18 @@ English reference for common errors during bootstrap, platform setup, site manag
 | `Docker Compose command check failed` | Broken `docker-compose` v1 shim on PATH, or plugin missing on pre-installed `docker.io` | Installer tries apt (`docker-compose-plugin`, `docker-compose-v2`), then GitHub plugin binary, then `get.docker.com`. Manual diagnose: `docker compose version`; `docker-compose version`; `ls /usr/local/lib/docker/cli-plugins/`. Binary fallback: `mkdir -p /usr/local/lib/docker/cli-plugins && curl -fSL https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose` |
 | `Preflight checks failed` | Missing deps after auto-install | Read `Fix:` lines printed below each issue |
 | `git is required` / git install failed | Minimal OS, no package manager | `apt install -y git` (Debian/Ubuntu) |
-| `Target path exists but is not a git repo` | `./WebinoServer` exists as file/folder | `rm -rf WebinoServer` or `WEBINO_INSTALL_DIR=/opt/webinoserver curl ... \| bash` |
+| `Target path exists but is not a git repo` | `./WebinoServerManager` exists as file/folder | `rm -rf WebinoServerManager` or `WEBINO_INSTALL_DIR=/opt/webinoserver curl ... \| bash` |
 | `Server preflight failed` | Missing python3 or envsubst | Installer should auto-install; manual: `apt install -y python3 gettext-base` |
 | Control panel did not open after curl pipe | No `/dev/tty` (CI, non-SSH) | Connect via SSH and run `webina` — first-run wizard opens automatically |
 | Control panel did not open after curl pipe | Running from cron/script | Use interactive SSH session for first site creation |
-| `Recv failure: Connection reset by peer` / `SSL connection timeout` | Package server unreachable during git fetch | Retry; or `WEBINO_SKIP_UPDATE=1`; or `cd WebinoServer && ./install.sh --server --yes` |
+| `Recv failure: Connection reset by peer` / `SSL connection timeout` | Package server unreachable during git fetch | Retry; or `WEBINO_SKIP_UPDATE=1`; or `cd WebinoServerManager && ./install.sh --server --yes` |
 | `Operation too slow. Less than 1000 bytes/sec` | Old bootstrap enforced git low-speed limit | Pull latest bootstrap; or manual clone from GitHub |
 | `cd: ./WebinoServerManager: No such file or directory` | Download failed but bootstrap continued | Pull latest bootstrap (validates before cd); manual clone below |
 | `Your local changes ... would be overwritten by merge` | Old bootstrap used `git pull` on a dirty clone | Latest bootstrap uses fetch + hard reset. Manual: `cd WebinoServerManager && git fetch origin main && git reset --hard origin/main` |
 | Slow bootstrap / repeated git retries | Old bootstrap retried failed git pull/fetch | Latest bootstrap: tarball from GitHub first |
-| `stderr_file: unbound variable` | Old bootstrap RETURN trap + `set -u` bug | Pull latest bootstrap.sh; or `cd WebinoServer && ./install.sh --server --yes` |
+| `stderr_file: unbound variable` | Old bootstrap RETURN trap + `set -u` bug | Pull latest bootstrap.sh; or `cd WebinoServerManager && ./install.sh --server --yes` |
 | Install takes 10–20+ minutes first time | Docker image build (backend + Next.js) | Normal on first install; re-runs skip build if images exist |
-| `webina` clears screen, no dialog | Platform libs not loaded or dialog failed | Pull latest code; run `cd WebinoServer && ./install.sh --tui`. Falls back to text menu automatically |
+| `webina` clears screen, no dialog | Platform libs not loaded or dialog failed | Pull latest code; run `cd WebinoServerManager && ./install.sh --tui`. Falls back to text menu automatically |
 | `platform_is_initialized: command not found` | Platform libraries not loaded | Pull latest `webina` / `load.sh` fix |
 | Dialog does not appear during bootstrap | Used `curl \| bash` without TTY re-attach (old bootstrap) | Use recommended: `bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)` or pull latest bootstrap |
 | Slow git clone on fresh VPS | Git protocol throttled from region | Latest bootstrap uses tarball from GitHub first; git is fallback |
@@ -68,13 +68,13 @@ echo "choice=$choice TERM=$TERM"
 Smoke test after install or recovery:
 
 ```bash
-cd /path/to/WebinoServer && ./scripts/verify-control-panel.sh
+cd /path/to/WebinoServerManager && ./scripts/verify-control-panel.sh
 ```
 
 Manual themed dialog test:
 
 ```bash
-export DIALOGRC=/path/to/WebinoServer/scripts/dialogrc
+export DIALOGRC=/path/to/WebinoServerManager/scripts/dialogrc
 choice=$(dialog --menu "test" 10 40 2 1 ok 2 cancel 2>&1 >/dev/tty)
 echo "choice=$choice"
 ```
@@ -89,32 +89,32 @@ The **WebinoServer panel** (`panel/`) is separate from the platform TUI (`webina
 | Setup wizard loops / 409 on setup | Setup already completed | `GET /api/v1/setup/status` — if `needs_setup: false`, go to `/login` |
 | phpMyAdmin / phpPgAdmin / Roundcube embed fails | `WEBINO_AGENT_TOKEN` mismatch between `panel/.env` and `panel/backend/.env` | Copy the same token to both files; recreate embed services. See [panel/docs/AGENT_SECURITY.md](../panel/docs/AGENT_SECURITY.md) |
 | `network webino_platform ... could not be found` | Panel-only install without platform network | `docker network create webino_platform` or run `./install.sh --server --yes` first |
-| `Package 'mysql-client' has no installation candidate` (panel-agent build) | Obsolete Debian package name in old agent Dockerfile | Pull latest WebinoServer and re-run `./install.sh --panel` |
+| `Package 'mysql-client' has no installation candidate` (panel-agent build) | Obsolete Debian package name in old agent Dockerfile | Pull latest WebinoServerManager and re-run `./install.sh --panel` |
 | `go mod tidy` failed / proxy.golang.org timeout (panel-agent) | Go module proxy blocked | Latest agent Dockerfile sets GOPROXY with goproxy.io fallback |
 | wp-cli download failed during panel-agent build | GitHub raw URL blocked | Latest Dockerfile retries wp-cli from GitHub releases |
-| `libxml-2.0 >= 2.9.0` not found (panel-api/worker build) | Missing `libxml2-dev` before `docker-php-ext-install dom xml` | Pull latest WebinoServer; Dockerfile now installs `libxml2-dev` |
-| `pdo_mysql` configure failed / libmysqlclient not found | Missing `default-libmysqlclient-dev` | Pull latest WebinoServer panel PHP Dockerfile |
-| `pecl install redis` failed (autoconf/gcc not found) | Missing `$PHPIZE_DEPS` in panel PHP Dockerfile | Pull latest WebinoServer |
-| `No releases available for package "pecl.php.net/redis"` | `pecl.php.net` blocked during Docker build (PECL channel, not APT) | Pull latest WebinoServer — Dockerfiles use `install-redis.sh` with GitHub phpredis fallback. Rebuild: `WEBINA_DOCKER_BUILD_NETWORK=host ./install.sh --panel` |
-| `Required package "laravel/octane" is not present in the lock file` | `composer.lock` out of sync with `composer.json` | Pull latest WebinoServer — panel Dockerfile falls back to `composer update` during build. Or locally: `cd panel/backend && composer update` and commit `composer.lock` |
-| `Your requirements could not be resolved` / `google2fa-laravel ... conflicts with ... ^13.7` | Satellite packages pinned to pre-Laravel 13 versions | Pull latest WebinoServer — `composer.json` uses L13 constraints (`octane ^2.17`, `laravel-modules ^13`, `laravel-permission ^7.2`, `scramble ^0.13`, base `pragmarx/google2fa ^8.0` instead of `google2fa-laravel`) |
-| `contains a Composer plugin which is blocked by your allow-plugins config` | `nwidart/laravel-modules` needs `wikimedia/composer-merge-plugin` | Pull latest WebinoServer — `composer.json` allows `wikimedia/composer-merge-plugin` in `config.allow-plugins` |
-| `Expression expected` in `usePermissions.ts` / `Unterminated regexp literal` | JSX in a `.ts` file (SWC does not parse JSX in `.ts`) | Pull latest WebinoServer — hook renamed to `usePermissions.tsx` |
-| `Module not found: Can't resolve '@/lib/createPage'` | Wrong import path on forbidden page | Pull latest WebinoServer — use `@/lib/create-page` (matches `src/lib/create-page.tsx`) |
-| `sqlite3 not found` / `pdo_sqlite` configure failed | Missing `libsqlite3-dev` (no longer bundled in PHP image) | Pull latest WebinoServer; Dockerfile now installs `libsqlite3-dev` |
+| `libxml-2.0 >= 2.9.0` not found (panel-api/worker build) | Missing `libxml2-dev` before `docker-php-ext-install dom xml` | Pull latest WebinoServerManager; Dockerfile now installs `libxml2-dev` |
+| `pdo_mysql` configure failed / libmysqlclient not found | Missing `default-libmysqlclient-dev` | Pull latest WebinoServerManager panel PHP Dockerfile |
+| `pecl install redis` failed (autoconf/gcc not found) | Missing `$PHPIZE_DEPS` in panel PHP Dockerfile | Pull latest WebinoServerManager |
+| `No releases available for package "pecl.php.net/redis"` | `pecl.php.net` blocked during Docker build (PECL channel, not APT) | Pull latest WebinoServerManager — Dockerfiles use `install-redis.sh` with GitHub phpredis fallback. Rebuild: `WEBINA_DOCKER_BUILD_NETWORK=host ./install.sh --panel` |
+| `Required package "laravel/octane" is not present in the lock file` | `composer.lock` out of sync with `composer.json` | Pull latest WebinoServerManager — panel Dockerfile falls back to `composer update` during build. Or locally: `cd panel/backend && composer update` and commit `composer.lock` |
+| `Your requirements could not be resolved` / `google2fa-laravel ... conflicts with ... ^13.7` | Satellite packages pinned to pre-Laravel 13 versions | Pull latest WebinoServerManager — `composer.json` uses L13 constraints (`octane ^2.17`, `laravel-modules ^13`, `laravel-permission ^7.2`, `scramble ^0.13`, base `pragmarx/google2fa ^8.0` instead of `google2fa-laravel`) |
+| `contains a Composer plugin which is blocked by your allow-plugins config` | `nwidart/laravel-modules` needs `wikimedia/composer-merge-plugin` | Pull latest WebinoServerManager — `composer.json` allows `wikimedia/composer-merge-plugin` in `config.allow-plugins` |
+| `Expression expected` in `usePermissions.ts` / `Unterminated regexp literal` | JSX in a `.ts` file (SWC does not parse JSX in `.ts`) | Pull latest WebinoServerManager — hook renamed to `usePermissions.tsx` |
+| `Module not found: Can't resolve '@/lib/createPage'` | Wrong import path on forbidden page | Pull latest WebinoServerManager — use `@/lib/create-page` (matches `src/lib/create-page.tsx`) |
+| `sqlite3 not found` / `pdo_sqlite` configure failed | Missing `libsqlite3-dev` (no longer bundled in PHP image) | Pull latest WebinoServerManager; Dockerfile now installs `libsqlite3-dev` |
 | VPS still shows old Dockerfile errors after local fix | `curl bootstrap` pulls **main** from GitHub — fixes must be pushed to main first | Push/commit WebinoServerManager to main, then re-run bootstrap |
 | Login works but API 401 | Cookie domain / `SANCTUM_STATEFUL_DOMAINS` wrong | Re-run panel install or set `APP_URL` / `FRONTEND_URL` to your panel URL in `panel/backend/.env` |
 
 Full stack install (platform + panel):
 
 ```bash
-cd WebinoServer && ./install.sh --server --panel --yes
+cd WebinoServerManager && ./install.sh --server --panel --yes
 ```
 
 Panel-only (no Caddy platform):
 
 ```bash
-cd WebinoServer && ./install.sh --panel
+cd WebinoServerManager && ./install.sh --panel
 ```
 
 ## End-to-end verification (VPS)
@@ -165,7 +165,7 @@ GET https://registry-1.docker.io/v2/library/mariadb/referrers/sha256:...: 403 Fo
 | `Could not reach Docker Hub` but Hub returns 403 | Old preflight curl bug (fixed in latest) | Pull latest installer — preflight now detects 403 correctly |
 | `go mod tidy` / `proxy.golang.org` timeout (panel-agent build) | Go module proxy blocked in region | Latest agent Dockerfile uses `GOPROXY=proxy.golang.org|goproxy.io|direct` |
 | wp-cli download failed in panel-agent | raw.githubusercontent.com blocked | Latest Dockerfile retries GitHub releases URL as fallback |
-| `Package 'mysql-client' has no installation candidate` | panel-agent Dockerfile on Debian bookworm | Pull latest WebinoServer; package is `mariadb-client` |
+| `Package 'mysql-client' has no installation candidate` | panel-agent Dockerfile on Debian bookworm | Pull latest WebinoServerManager; package is `mariadb-client` |
 | Platform stack stopped after bootstrap | Compose up failed during image pull | `webina platform repair` or re-run `./install.sh --server --yes` |
 | Manual mirror override | Corporate registry or alternate mirror | Set in `panel/.env`: `PANEL_MARIADB_IMAGE=mirror.gcr.io/library/mariadb:11` (see `panel/.env.example`) |
 
@@ -187,7 +187,7 @@ cat >/etc/docker/daemon.json <<'EOF'
 EOF
 systemctl restart docker
 docker pull mariadb:11 && docker pull redis:7-alpine
-cd ~/WebinoServer && ./install.sh --panel
+cd ~/WebinoServerManager && ./install.sh --panel
 webina platform repair
 ```
 
@@ -236,7 +236,7 @@ Environment variables:
 | Redis connection refused | Platform Redis down | Control panel → Platform Setup / Status, or `docker restart webino-redis` |
 | migrate failed / corrupt DB | Damaged sqlite | Control panel → Delete site and create again |
 | Image build OOM | Low RAM VPS | Add swap, then control panel → Rebuild Platform Images |
-| `webina: command not found` | CLI not linked | Use `/path/to/WebinoServer/bin/webina` |
+| `webina: command not found` | CLI not linked | Use `/path/to/WebinoServerManager/bin/webina` (runtime install may still live under `/opt/WebinoServer`) |
 
 ## First-run wizard
 
@@ -300,7 +300,7 @@ Bootstrap checks the package server with a fast `ls-remote` call (git installs) 
 - **Package server unreachable** — continues with existing install immediately (no retries)
 - **Update available** — tarball re-download or single fetch + hard reset
 
-Local edits inside `./WebinoServer` are discarded on sync by design. Set `WEBINO_SKIP_UPDATE=1` to keep the existing checkout unchanged.
+Local edits inside `./WebinoServerManager` are discarded on sync by design. Set `WEBINO_SKIP_UPDATE=1` to keep the existing checkout unchanged.
 
 ## Install timing
 
@@ -316,8 +316,8 @@ Server bootstrap prints step timings (e.g. `System dependencies ready (4s)`).
 Immediate recovery:
 
 ```bash
-# If ./WebinoServer already exists:
-cd WebinoServer && ./install.sh --server --yes
+# If ./WebinoServerManager already exists:
+cd WebinoServerManager && ./install.sh --server --yes
 
 # Or skip update on re-run:
 WEBINO_SKIP_UPDATE=1 bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManager/main/bootstrap.sh)

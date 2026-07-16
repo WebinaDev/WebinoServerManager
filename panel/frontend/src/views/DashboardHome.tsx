@@ -1,9 +1,10 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
+import { AccentBarChart, AccentGaugeChart } from "@/components/charts/AccentCharts"
 import { LocaleDatePickerDate } from "@/components/LocaleDatePicker"
 import { useLocale } from "@/hooks/useLocale"
 import { api } from "@/lib/api"
@@ -18,27 +19,16 @@ type Summary = {
   disk_percent?: number
 }
 
-function MiniBar({ label, percent }: { label: string; percent?: number }) {
-  const pct = Math.min(100, Math.max(0, percent ?? 0))
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{label}</span>
-        <span className="font-mono" dir="ltr">
-          {percent != null ? `${pct.toFixed(0)}%` : "—"}
-        </span>
-      </div>
-      <div className="bg-muted h-1.5 rounded-full overflow-hidden">
-        <div className="bg-primary h-full" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  )
+type Props = {
+  initialSummary?: Summary | null
 }
 
-export default function DashboardHome() {
-  const { t } = useTranslation(["dashboard", "metrics", "common"])
+export default function DashboardHome({ initialSummary = null }: Props) {
+  const t = useTranslations("dashboard")
+  const tMetrics = useTranslations("metrics")
+  const tCommon = useTranslations("common")
   const { formatNumber, formatNowDate, formatLocalizedDate } = useLocale()
-  const [summary, setSummary] = useState<Summary | null>(null)
+  const [summary, setSummary] = useState<Summary | null>(initialSummary)
   const [picked, setPicked] = useState<Date | null>(() => new Date())
 
   const { data: authUser } = useQuery({
@@ -49,11 +39,14 @@ export default function DashboardHome() {
   const timeZone = authUser?.timezone ?? "UTC"
 
   useEffect(() => {
+    if (initialSummary) {
+      return
+    }
     let cancelled = false
-    api<{ data: Summary }>("/api/v1/dashboard/summary")
-      .then((r) => {
+    api<Summary>("/api/v1/dashboard/summary")
+      .then((data) => {
         if (!cancelled) {
-          setSummary(r.data)
+          setSummary(data)
         }
       })
       .catch(() => {
@@ -64,75 +57,86 @@ export default function DashboardHome() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [initialSummary])
 
   const statusLabel =
     summary?.system_status === "alert"
-      ? t("dashboard:status_alert")
+      ? t("status_alert")
       : summary?.system_status === "warning"
-        ? t("dashboard:status_warning")
+        ? t("status_warning")
         : summary?.system_status === "unknown"
-          ? t("dashboard:status_unknown")
-          : t("dashboard:status_ok")
+          ? t("status_unknown")
+          : t("status_ok")
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">{t("dashboard:title")}</h1>
+        <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <p className="text-muted-foreground text-sm">
-          {t("dashboard:sample_date_label")}: {formatNowDate(timeZone)}
+          {t("sample_date_label")}: {formatNowDate(timeZone)}
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <span className="text-muted-foreground text-sm">
-            {t("dashboard:pick_date_label")}
+            {t("pick_date_label")}
           </span>
           <LocaleDatePickerDate
             value={picked}
             onChange={setPicked}
-            aria-label={t("dashboard:pick_date_label")}
+            aria-label={t("pick_date_label")}
           />
           <span className="text-muted-foreground text-sm">
-            {t("dashboard:selected_date_label")}:{" "}
+            {t("selected_date_label")}:{" "}
             {picked
               ? formatLocalizedDate(picked, timeZone)
-              : t("common:em_dash")}
+              : tCommon("em_dash")}
           </span>
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">{t("dashboard:kpi_domains")}</div>
+          <div className="text-muted-foreground text-sm">{t("kpi_domains")}</div>
           <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.domains) : t("common:em_dash")}
+            {summary ? formatNumber(summary.domains) : tCommon("em_dash")}
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">{t("dashboard:kpi_databases")}</div>
+          <div className="text-muted-foreground text-sm">{t("kpi_databases")}</div>
           <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.databases) : t("common:em_dash")}
+            {summary ? formatNumber(summary.databases) : tCommon("em_dash")}
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">{t("dashboard:kpi_sites")}</div>
+          <div className="text-muted-foreground text-sm">{t("kpi_sites")}</div>
           <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.sites) : t("common:em_dash")}
+            {summary ? formatNumber(summary.sites) : tCommon("em_dash")}
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">{t("dashboard:kpi_system")}</div>
+          <div className="text-muted-foreground text-sm">{t("kpi_system")}</div>
           <div className="text-2xl font-semibold">{statusLabel}</div>
         </div>
       </div>
+      {summary ? (
+        <div className="rounded-xl border bg-card p-4 shadow">
+          <AccentBarChart
+            data={[
+              { label: t("kpi_domains"), value: summary.domains },
+              { label: t("kpi_databases"), value: summary.databases },
+              { label: t("kpi_sites"), value: summary.sites },
+            ]}
+          />
+        </div>
+      ) : null}
       {summary?.cpu_percent != null ? (
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-xl border bg-card p-4 shadow">
-            <MiniBar label={t("metrics:cpu")} percent={summary.cpu_percent} />
+            <AccentGaugeChart label={tMetrics("cpu")} percent={summary.cpu_percent} />
           </div>
           <div className="rounded-xl border bg-card p-4 shadow">
-            <MiniBar label={t("metrics:mem")} percent={summary.mem_percent} />
+            <AccentGaugeChart label={tMetrics("mem")} percent={summary.mem_percent} />
           </div>
           <div className="rounded-xl border bg-card p-4 shadow">
-            <MiniBar label={t("metrics:disk")} percent={summary.disk_percent} />
+            <AccentGaugeChart label={tMetrics("disk")} percent={summary.disk_percent} />
           </div>
         </div>
       ) : null}

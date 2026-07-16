@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import Link from "next/link"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,7 +23,8 @@ type VhostRow = {
 }
 
 export default function VhostsPage() {
-  const { t } = useTranslation(["webserver", "common"])
+  const t = useTranslations("webserver")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -59,7 +60,7 @@ export default function VhostsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("webserver:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <form
@@ -76,26 +77,26 @@ export default function VhostsPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="fqdn">{t("webserver:field_fqdn")}</Label>
+              <Label htmlFor="fqdn">{t("field_fqdn")}</Label>
               <Input id="fqdn" name="fqdn" required dir="ltr" className="font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="document_root">{t("webserver:field_docroot")}</Label>
+              <Label htmlFor="document_root">{t("field_docroot")}</Label>
               <Input id="document_root" name="document_root" dir="ltr" className="font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="php_pool">{t("webserver:field_php_pool")}</Label>
+              <Label htmlFor="php_pool">{t("field_php_pool")}</Label>
               <Input id="php_pool" name="php_pool" dir="ltr" className="font-mono" />
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={create.isPending}>
-                {t("webserver:add")}
+                {t("add")}
               </Button>
             </div>
           </form>
 
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.vhosts ?? []).map((v) => (
@@ -127,7 +128,7 @@ export default function VhostsPage() {
                         disabled={enableSsl.isPending}
                         onClick={() => enableSsl.mutate(v.id)}
                       >
-                        {t("webserver:enable_ssl")}
+                        {t("enable_ssl")}
                       </Button>
                     )}
                     {!v.hsts ? (
@@ -138,7 +139,7 @@ export default function VhostsPage() {
                         disabled={enableHsts.isPending}
                         onClick={() => enableHsts.mutate(v.id)}
                       >
-                        {t("webserver:enable_hsts")}
+                        {t("enable_hsts")}
                       </Button>
                     ) : null}
                     <Button
@@ -148,7 +149,7 @@ export default function VhostsPage() {
                       disabled={remove.isPending}
                       onClick={() => remove.mutate(v.id)}
                     >
-                      {t("webserver:delete")}
+                      {t("delete")}
                     </Button>
                   </div>
                 </li>

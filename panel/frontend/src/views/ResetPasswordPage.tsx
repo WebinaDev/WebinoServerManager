@@ -1,9 +1,9 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useState, type FormEvent } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -18,7 +18,8 @@ import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 
 export default function ResetPasswordPage() {
-  const { t } = useTranslation(["auth", "common"])
+  const t = useTranslations("auth")
+  const tCommon = useTranslations("common")
   const params = useSearchParams()
   const token = params?.get("token") ?? ""
   const email = params?.get("email") ?? ""
@@ -45,7 +46,7 @@ export default function ResetPasswordPage() {
       })
       setMessage(res.message)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common:error_generic"))
+      setError(err instanceof Error ? err.message : tCommon("error_generic"))
     } finally {
       setPending(false)
     }
@@ -56,12 +57,12 @@ export default function ResetPasswordPage() {
       <div className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-6 p-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t("auth:reset_title")}</CardTitle>
-            <CardDescription>{t("auth:reset_invalid_link")}</CardDescription>
+            <CardTitle>{t("reset_title")}</CardTitle>
+            <CardDescription>{t("reset_invalid_link")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/forgot-password" className="text-sm underline-offset-4 hover:underline">
-              {t("auth:forgot_title")}
+              {t("forgot_title")}
             </Link>
           </CardContent>
         </Card>
@@ -73,8 +74,8 @@ export default function ResetPasswordPage() {
     <div className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-6 p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("auth:reset_title")}</CardTitle>
-          <CardDescription>{t("auth:reset_subtitle")}</CardDescription>
+          <CardTitle>{t("reset_title")}</CardTitle>
+          <CardDescription>{t("reset_subtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {error ? (
@@ -88,17 +89,17 @@ export default function ResetPasswordPage() {
                 {message}
               </p>
               <Link href="/login" className="underline-offset-4 hover:underline">
-                {t("auth:back_to_login")}
+                {t("back_to_login")}
               </Link>
             </div>
           ) : (
             <form className="flex flex-col gap-4" onSubmit={(e) => void onSubmit(e)}>
               <div className="grid gap-2">
-                <Label htmlFor="email">{t("auth:email")}</Label>
+                <Label htmlFor="email">{t("email")}</Label>
                 <Input id="email" type="email" value={email} readOnly dir="ltr" />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">{t("auth:password")}</Label>
+                <Label htmlFor="password">{t("password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -110,7 +111,7 @@ export default function ResetPasswordPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password_confirmation">{t("auth:reset_confirm")}</Label>
+                <Label htmlFor="password_confirmation">{t("reset_confirm")}</Label>
                 <Input
                   id="password_confirmation"
                   type="password"
@@ -122,7 +123,7 @@ export default function ResetPasswordPage() {
                 />
               </div>
               <Button type="submit" disabled={pending}>
-                {t("auth:reset_submit")}
+                {t("reset_submit")}
               </Button>
             </form>
           )}

@@ -1,9 +1,9 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ChevronRight, Download, FileText, FolderPlus, Pencil, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
@@ -60,7 +60,8 @@ function formatSize(bytes: number): string {
 }
 
 export default function FilesPage() {
-  const { t } = useTranslation(["files", "common"])
+  const t = useTranslations("files")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [path, setPath] = useState("/")
   const [editorPath, setEditorPath] = useState<string | null>(null)
@@ -88,7 +89,7 @@ export default function FilesPage() {
     mutationFn: (folderPath: string) =>
       api("/api/v1/files/mkdir", { method: "POST", json: { path: folderPath } }),
     onSuccess: () => {
-      toast.success(t("files:created"))
+      toast.success(t("created"))
       invalidate()
     },
     onError: toastMutationError,
@@ -98,7 +99,7 @@ export default function FilesPage() {
     mutationFn: (target: string) =>
       api("/api/v1/files", { method: "DELETE", json: { path: target } }),
     onSuccess: () => {
-      toast.success(t("files:deleted"))
+      toast.success(t("deleted"))
       invalidate()
     },
     onError: toastMutationError,
@@ -123,7 +124,7 @@ export default function FilesPage() {
         json: { path: filePath, content },
       }),
     onSuccess: () => {
-      toast.success(t("files:saved"))
+      toast.success(t("saved"))
       setEditorPath(null)
       invalidate()
     },
@@ -134,7 +135,7 @@ export default function FilesPage() {
     mutationFn: ({ from, to }: { from: string; to: string }) =>
       api("/api/v1/files/rename", { method: "POST", json: { path: from, dest: to } }),
     onSuccess: () => {
-      toast.success(t("files:renamed", { defaultValue: "Renamed" }))
+      toast.success(t("renamed"))
       setRenameTarget(null)
       invalidate()
     },
@@ -145,7 +146,7 @@ export default function FilesPage() {
     mutationFn: ({ filePath, mode }: { filePath: string; mode: string }) =>
       api("/api/v1/files/chmod", { method: "POST", json: { path: filePath, mode } }),
     onSuccess: () => {
-      toast.success(t("files:chmod_ok", { defaultValue: "Permissions updated" }))
+      toast.success(t("chmod_ok"))
       setChmodTarget(null)
       invalidate()
     },
@@ -155,7 +156,7 @@ export default function FilesPage() {
   const columns: DataTableColumn<FileEntry>[] = [
     {
       id: "name",
-      header: t("files:name", { defaultValue: "Name" }),
+      header: t("name"),
       sortValue: (row) => row.name,
       cell: (entry) => (
         <button
@@ -170,14 +171,14 @@ export default function FilesPage() {
         >
           <span>{entry.name}</span>
           <span className="text-muted-foreground text-xs">
-            {entry.is_dir ? t("files:type_dir") : t("files:type_file")}
+            {entry.is_dir ? t("type_dir") : t("type_file")}
           </span>
         </button>
       ),
     },
     {
       id: "size",
-      header: t("files:size", { defaultValue: "Size" }),
+      header: t("size"),
       sortValue: (row) => row.size,
       cell: (entry) => (
         <span className="text-muted-foreground" dir="ltr">
@@ -187,7 +188,7 @@ export default function FilesPage() {
     },
     {
       id: "mode",
-      header: t("files:mode", { defaultValue: "Mode" }),
+      header: t("mode"),
       cell: (entry) => (
         <span className="text-muted-foreground font-mono text-xs" dir="ltr">
           {entry.mode ?? "—"}
@@ -196,7 +197,7 @@ export default function FilesPage() {
     },
     {
       id: "actions",
-      header: t("common:actions", { defaultValue: "Actions" }),
+      header: tCommon("actions"),
       cell: (entry) => {
         const full = joinPath(path, entry.name)
         return (
@@ -249,7 +250,7 @@ export default function FilesPage() {
                 setRenameValue(entry.name)
               }}
             >
-              {t("files:rename", { defaultValue: "Rename" })}
+              {t("rename")}
             </Button>
             <Button
               type="button"
@@ -267,7 +268,7 @@ export default function FilesPage() {
               size="sm"
               variant="outline"
               onClick={() => {
-                if (window.confirm(t("files:delete_confirm", { defaultValue: "Delete?" }))) {
+                if (window.confirm(t("delete_confirm"))) {
                   remove.mutate(full)
                 }
               }}
@@ -284,7 +285,7 @@ export default function FilesPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("files:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <nav className="text-muted-foreground flex flex-wrap items-center gap-1 text-sm" dir="ltr">
@@ -304,7 +305,7 @@ export default function FilesPage() {
 
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
-              <Label htmlFor="path">{t("files:path")}</Label>
+              <Label htmlFor="path">{t("path")}</Label>
               <Input
                 id="path"
                 value={path}
@@ -314,7 +315,7 @@ export default function FilesPage() {
               />
             </div>
             <Button type="button" variant="outline" onClick={() => setPath(parentPath(path))}>
-              {t("files:up")}
+              {t("up")}
             </Button>
           </div>
 
@@ -330,12 +331,12 @@ export default function FilesPage() {
             }}
           >
             <div className="space-y-1">
-              <Label htmlFor="folder">{t("files:folder_name")}</Label>
+              <Label htmlFor="folder">{t("folder_name")}</Label>
               <Input id="folder" name="folder" dir="ltr" />
             </div>
             <Button type="submit" disabled={mkdir.isPending}>
               <FolderPlus className="me-1 size-4" />
-              {t("files:mkdir")}
+              {t("mkdir")}
             </Button>
           </form>
 
@@ -350,7 +351,7 @@ export default function FilesPage() {
             }}
           >
             <div className="space-y-1">
-              <Label htmlFor="new-file">{t("files:new_file", { defaultValue: "New file" })}</Label>
+              <Label htmlFor="new-file">{t("new_file")}</Label>
               <Input
                 id="new-file"
                 value={newFileName}
@@ -360,12 +361,12 @@ export default function FilesPage() {
             </div>
             <Button type="submit" disabled={writeFile.isPending || !newFileName.trim()}>
               <FileText className="me-1 size-4" />
-              {t("files:create_file", { defaultValue: "Create file" })}
+              {t("create_file")}
             </Button>
           </form>
 
           <div className="space-y-2">
-            <Label htmlFor="upload">{t("files:upload", { defaultValue: "Upload text file" })}</Label>
+            <Label htmlFor="upload">{t("upload")}</Label>
             <Input
               id="upload"
               type="file"
@@ -379,7 +380,7 @@ export default function FilesPage() {
                     method: "POST",
                     json: { path: joinPath(path, file.name), content: text },
                   })
-                  toast.success(t("files:uploaded", { defaultValue: "Uploaded" }))
+                  toast.success(t("uploaded"))
                   invalidate()
                 } catch (err) {
                   toastMutationError(err)
@@ -395,9 +396,9 @@ export default function FilesPage() {
             data={entries}
             rowKey={(row) => row.name}
             isLoading={isLoading}
-            searchPlaceholder={t("files:search", { defaultValue: "Search files…" })}
+            searchPlaceholder={t("search")}
             searchFilter={(row, q) => row.name.toLowerCase().includes(q)}
-            emptyMessage={t("files:empty", { defaultValue: "Directory is empty." })}
+            emptyMessage={t("empty")}
           />
         </CardContent>
       </Card>
@@ -415,7 +416,7 @@ export default function FilesPage() {
           />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setEditorPath(null)}>
-              {t("common:cancel", { defaultValue: "Cancel" })}
+              {tCommon("cancel")}
             </Button>
             <Button
               type="button"
@@ -425,7 +426,7 @@ export default function FilesPage() {
                 writeFile.mutate({ filePath: editorPath, content: editorContent })
               }}
             >
-              {t("files:save", { defaultValue: "Save" })}
+              {t("save")}
             </Button>
           </div>
         </DialogContent>
@@ -434,7 +435,7 @@ export default function FilesPage() {
       <Dialog open={renameTarget !== null} onOpenChange={(open) => !open && setRenameTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("files:rename", { defaultValue: "Rename" })}</DialogTitle>
+            <DialogTitle>{t("rename")}</DialogTitle>
           </DialogHeader>
           <Input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} dir="ltr" />
           <Button
@@ -448,7 +449,7 @@ export default function FilesPage() {
               })
             }}
           >
-            {t("common:save", { defaultValue: "Save" })}
+            {tCommon("save")}
           </Button>
         </DialogContent>
       </Dialog>
@@ -470,7 +471,7 @@ export default function FilesPage() {
               })
             }}
           >
-            {t("common:save", { defaultValue: "Save" })}
+            {tCommon("save")}
           </Button>
         </DialogContent>
       </Dialog>

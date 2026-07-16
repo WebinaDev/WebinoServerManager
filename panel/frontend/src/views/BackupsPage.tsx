@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -79,7 +79,8 @@ function targetToForm(target: TargetRow): TargetForm {
 }
 
 export default function BackupsPage() {
-  const { t } = useTranslation(["backups", "common"])
+  const t = useTranslations("backups")
+  const tCommon = useTranslations("common")
   const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [restoreTarget, setRestoreTarget] = useState<Record<number, string>>({})
@@ -116,97 +117,97 @@ export default function BackupsPage() {
     mutationFn: (body: { type: string; target: string; target_id?: number }) =>
       api("/api/v1/backups", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("backups:created", { defaultValue: "Backup created" }))
+      toast.success(t("created"))
       invalidate()
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const createSchedule = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       api("/api/v1/backups/schedules", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("backups:schedule_created", { defaultValue: "Schedule created" }))
+      toast.success(t("schedule_created"))
       invalidate()
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const createTarget = useMutation({
     mutationFn: (body: { name: string; driver: string; config: Record<string, string> }) =>
       api("/api/v1/backups/targets", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("backups:target_created", { defaultValue: "Target created" }))
+      toast.success(t("target_created"))
       invalidate()
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const updateTarget = useMutation({
     mutationFn: ({ id, body }: { id: number; body: TargetForm }) =>
       api(`/api/v1/backups/targets/${id}`, { method: "PATCH", json: body }),
     onSuccess: () => {
-      toast.success(t("backups:target_updated", { defaultValue: "Target updated" }))
+      toast.success(t("target_updated"))
       invalidate()
       setEditingTarget(null)
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const toggleSchedule = useMutation({
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/api/v1/backups/schedules/${id}`, { method: "PATCH", json: { enabled } }),
     onSuccess: () => {
-      toast.success(t("backups:schedule_updated", { defaultValue: "Schedule updated" }))
+      toast.success(t("schedule_updated"))
       invalidate()
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const removeSchedule = useMutation({
     mutationFn: (id: number) => api(`/api/v1/backups/schedules/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("backups:schedule_deleted", { defaultValue: "Schedule deleted" }))
+      toast.success(t("schedule_deleted"))
       invalidate()
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const removeTarget = useMutation({
     mutationFn: (id: number) => api(`/api/v1/backups/targets/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("backups:target_deleted", { defaultValue: "Target deleted" }))
+      toast.success(t("target_deleted"))
       invalidate()
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const restore = useMutation({
     mutationFn: ({ id, restore_target }: { id: number; restore_target: string }) =>
       api(`/api/v1/backups/${id}/restore`, { method: "POST", json: { restore_target } }),
     onSuccess: () => {
-      toast.success(t("backups:restore_started", { defaultValue: "Restore started" }))
+      toast.success(t("restore_started"))
       invalidate()
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const verify = useMutation({
     mutationFn: (id: number) => api(`/api/v1/backups/${id}/verify`, { method: "POST" }),
     onSuccess: () => {
-      toast.success(t("backups:verified_ok", { defaultValue: "Backup verified" }))
+      toast.success(t("verified_ok"))
       invalidate()
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/backups/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("backups:deleted", { defaultValue: "Backup deleted" }))
+      toast.success(t("deleted"))
       invalidate()
     },
-    onError: toastMutationError,
+    onError: (err) => toastMutationError(err),
   })
 
   const targets = targetsData?.targets ?? []
@@ -215,7 +216,7 @@ export default function BackupsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("backups:targets_title")}</CardTitle>
+          <CardTitle>{t("targets_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -240,11 +241,11 @@ export default function BackupsPage() {
               }}
             >
             <div className="space-y-2">
-              <Label htmlFor="target_name">{t("backups:target_name")}</Label>
+              <Label htmlFor="target_name">{t("target_name")}</Label>
               <Input id="target_name" name="target_name" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="driver">{t("backups:target_driver")}</Label>
+              <Label htmlFor="driver">{t("target_driver")}</Label>
               <select id="driver" name="driver" className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm">
                 <option value="s3">S3</option>
                 <option value="sftp">SFTP</option>
@@ -253,16 +254,16 @@ export default function BackupsPage() {
               </select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="repo">{t("backups:target_repo")}</Label>
+              <Label htmlFor="repo">{t("target_repo")}</Label>
               <Input id="repo" name="repo" dir="ltr" className="font-mono" placeholder="s3:..." />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">{t("backups:target_password")}</Label>
+              <Label htmlFor="password">{t("target_password")}</Label>
               <Input id="password" name="password" type="password" dir="ltr" />
             </div>
             <div className="flex items-end md:col-span-3">
               <Button type="submit" disabled={createTarget.isPending}>
-                {t("backups:add_target")}
+                {t("add_target")}
               </Button>
             </div>
             </form>
@@ -272,7 +273,7 @@ export default function BackupsPage() {
               <li key={tgt.id} className="flex items-center justify-between px-4 py-3 text-sm">
                 <span>
                   {tgt.name} · {tgt.driver}
-                  {!tgt.enabled ? ` · ${t("backups:disabled")}` : ""}
+                  {!tgt.enabled ? ` · ${t("disabled")}` : ""}
                 </span>
                 <RequireRouteWrite>
                   <div className="flex gap-2">
@@ -284,10 +285,10 @@ export default function BackupsPage() {
                         setEditTargetForm(targetToForm(tgt))
                       }}
                     >
-                      {t("common:edit", { defaultValue: "Edit" })}
+                      {tCommon("edit")}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => removeTarget.mutate(tgt.id)}>
-                      {t("backups:delete")}
+                      {t("delete")}
                     </Button>
                   </div>
                 </RequireRouteWrite>
@@ -299,7 +300,7 @@ export default function BackupsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("backups:schedules_title")}</CardTitle>
+          <CardTitle>{t("schedules_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -321,25 +322,25 @@ export default function BackupsPage() {
               }}
             >
             <div className="space-y-2">
-              <Label htmlFor="sched-name">{t("backups:schedule_name")}</Label>
+              <Label htmlFor="sched-name">{t("schedule_name")}</Label>
               <Input id="sched-name" name="name" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sched-type">{t("backups:field_type")}</Label>
+              <Label htmlFor="sched-type">{t("field_type")}</Label>
               <select id="sched-type" name="type" className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm" defaultValue="files">
-                <option value="files">{t("backups:type_files")}</option>
-                <option value="db">{t("backups:type_db")}</option>
-                <option value="full">{t("backups:type_full")}</option>
+                <option value="files">{t("type_files")}</option>
+                <option value="db">{t("type_db")}</option>
+                <option value="full">{t("type_full")}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sched-target">{t("backups:field_target")}</Label>
+              <Label htmlFor="sched-target">{t("field_target")}</Label>
               <Input id="sched-target" name="target" required dir="ltr" className="font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="target_id">{t("backups:offsite_target")}</Label>
+              <Label htmlFor="target_id">{t("offsite_target")}</Label>
               <select id="target_id" name="target_id" className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm">
-                <option value="">{t("backups:no_target")}</option>
+                <option value="">{t("no_target")}</option>
                 {targets.map((tgt) => (
                   <option key={tgt.id} value={tgt.id}>
                     {tgt.name}
@@ -348,14 +349,14 @@ export default function BackupsPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="mode">{t("backups:mode")}</Label>
+              <Label htmlFor="mode">{t("mode")}</Label>
               <select id="mode" name="mode" className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm" defaultValue="full">
-                <option value="full">{t("backups:mode_full")}</option>
-                <option value="incremental">{t("backups:mode_incremental")}</option>
+                <option value="full">{t("mode_full")}</option>
+                <option value="incremental">{t("mode_incremental")}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="frequency">{t("backups:frequency")}</Label>
+              <Label htmlFor="frequency">{t("frequency")}</Label>
               <select id="frequency" name="frequency" className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm" defaultValue="daily">
                 <option value="hourly">hourly</option>
                 <option value="daily">daily</option>
@@ -363,12 +364,12 @@ export default function BackupsPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="retention_days">{t("backups:retention_days")}</Label>
+              <Label htmlFor="retention_days">{t("retention_days")}</Label>
               <Input id="retention_days" name="retention_days" type="number" defaultValue={7} min={1} />
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={createSchedule.isPending}>
-                {t("backups:create_schedule")}
+                {t("create_schedule")}
               </Button>
             </div>
             </form>
@@ -380,16 +381,16 @@ export default function BackupsPage() {
                   <p className="font-medium">{s.name}</p>
                   <p className="text-muted-foreground text-xs">
                     {s.frequency} · {s.type} · {s.mode ?? "full"} · {s.target}
-                    {s.last_run_at ? ` · ${t("backups:last_run")}: ${formatDateTime(s.last_run_at)}` : ""}
+                    {s.last_run_at ? ` · ${t("last_run")}: ${formatDateTime(s.last_run_at)}` : ""}
                   </p>
                 </div>
                 <RequireRouteWrite>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => toggleSchedule.mutate({ id: s.id, enabled: !s.enabled })}>
-                      {s.enabled ? t("backups:enabled") : t("backups:disabled")}
+                      {s.enabled ? t("enabled") : t("disabled")}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => removeSchedule.mutate(s.id)}>
-                      {t("backups:delete")}
+                      {t("delete")}
                     </Button>
                   </div>
                 </RequireRouteWrite>
@@ -401,7 +402,7 @@ export default function BackupsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("backups:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -419,21 +420,21 @@ export default function BackupsPage() {
               }}
             >
             <div className="space-y-2">
-              <Label htmlFor="type">{t("backups:field_type")}</Label>
+              <Label htmlFor="type">{t("field_type")}</Label>
               <select id="type" name="type" className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm" defaultValue="files">
-                <option value="files">{t("backups:type_files")}</option>
-                <option value="db">{t("backups:type_db")}</option>
-                <option value="full">{t("backups:type_full")}</option>
+                <option value="files">{t("type_files")}</option>
+                <option value="db">{t("type_db")}</option>
+                <option value="full">{t("type_full")}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="target">{t("backups:field_target")}</Label>
+              <Label htmlFor="target">{t("field_target")}</Label>
               <Input id="target" name="target" required dir="ltr" className="font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="backup_target_id">{t("backups:offsite_target")}</Label>
+              <Label htmlFor="backup_target_id">{t("offsite_target")}</Label>
               <select id="backup_target_id" name="backup_target_id" className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm">
-                <option value="">{t("backups:no_target")}</option>
+                <option value="">{t("no_target")}</option>
                 {targets.map((tgt) => (
                   <option key={tgt.id} value={tgt.id}>
                     {tgt.name}
@@ -443,13 +444,13 @@ export default function BackupsPage() {
             </div>
             <div className="md:col-span-3">
               <Button type="submit" disabled={create.isPending}>
-                {t("backups:create")}
+                {t("create")}
               </Button>
             </div>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.backups ?? []).map((b) => (
@@ -467,7 +468,7 @@ export default function BackupsPage() {
                         <p className="text-muted-foreground text-xs font-mono" dir="ltr">
                           sha256: {b.checksum.slice(0, 16)}…
                           {b.verified_at
-                            ? ` · ${t("backups:verified")} ${formatDateTime(b.verified_at)}`
+                            ? ` · ${t("verified")} ${formatDateTime(b.verified_at)}`
                             : ""}
                         </p>
                       ) : null}
@@ -482,7 +483,7 @@ export default function BackupsPage() {
                       <Input
                         className="h-8 max-w-xs font-mono text-xs"
                         dir="ltr"
-                        placeholder={t("backups:restore_target")}
+                        placeholder={t("restore_target")}
                         value={restoreTarget[b.id] ?? ""}
                         onChange={(e) =>
                           setRestoreTarget((prev) => ({ ...prev, [b.id]: e.target.value }))
@@ -496,17 +497,17 @@ export default function BackupsPage() {
                           restore.mutate({ id: b.id, restore_target: restoreTarget[b.id] ?? "" })
                         }
                       >
-                        {t("backups:restore")}
+                        {t("restore")}
                       </Button>
                       <Button size="sm" variant="outline" disabled={verify.isPending} onClick={() => verify.mutate(b.id)}>
-                        {t("backups:verify")}
+                        {t("verify")}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => remove.mutate(b.id)}>
-                        {t("backups:delete")}
+                        {t("delete")}
                       </Button>
                     </RequireRouteWrite>
                     <Button variant="outline" size="sm" asChild>
-                      <a href={`/api/v1/backups/${b.id}/download`}>{t("backups:download")}</a>
+                      <a href={`/api/v1/backups/${b.id}/download`}>{t("download")}</a>
                     </Button>
                   </div>
                 </li>
@@ -519,18 +520,18 @@ export default function BackupsPage() {
       <Dialog open={editingTarget !== null} onOpenChange={(open) => !open && setEditingTarget(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{t("backups:edit_target", { defaultValue: "Edit backup target" })}</DialogTitle>
+            <DialogTitle>{t("edit_target")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label>{t("backups:target_name")}</Label>
+              <Label>{t("target_name")}</Label>
               <Input
                 value={editTargetForm.name}
                 onChange={(e) => setEditTargetForm({ ...editTargetForm, name: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label>{t("backups:target_driver")}</Label>
+              <Label>{t("target_driver")}</Label>
               <select
                 className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
                 value={editTargetForm.driver}
@@ -544,7 +545,7 @@ export default function BackupsPage() {
             </div>
             {TARGET_CONFIG_KEYS.map((key) => (
               <div key={key} className="space-y-2">
-                <Label>{t(`backups:target_${key}`, { defaultValue: key })}</Label>
+                <Label>{t(`target_${key}` as never)}</Label>
                 <Input
                   type={key === "password" ? "password" : "text"}
                   value={editTargetForm.config[key] ?? ""}
@@ -565,7 +566,7 @@ export default function BackupsPage() {
                 checked={editTargetForm.enabled}
                 onChange={(e) => setEditTargetForm({ ...editTargetForm, enabled: e.target.checked })}
               />
-              {t("backups:enabled")}
+              {t("enabled")}
             </label>
             <div className="flex gap-2">
               <Button
@@ -574,10 +575,10 @@ export default function BackupsPage() {
                 }
                 disabled={updateTarget.isPending || !editTargetForm.name}
               >
-                {t("common:save", { defaultValue: "Save" })}
+                {tCommon("save")}
               </Button>
               <Button type="button" variant="outline" onClick={() => setEditingTarget(null)}>
-                {t("common:cancel", { defaultValue: "Cancel" })}
+                {tCommon("cancel")}
               </Button>
             </div>
           </div>

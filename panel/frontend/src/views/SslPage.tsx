@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,7 +31,8 @@ function daysUntil(date: string | null): number | null {
 }
 
 export default function SslPage() {
-  const { t } = useTranslation(["ssl", "common"])
+  const t = useTranslations("ssl")
+  const tCommon = useTranslations("common")
   const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [validation, setValidation] = useState<{ valid?: string; error?: string } | null>(null)
@@ -98,7 +99,7 @@ export default function SslPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("ssl:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -112,11 +113,11 @@ export default function SslPage() {
               }}
             >
               <div className="grow space-y-2">
-                <Label htmlFor="domain">{t("ssl:field_domain")}</Label>
+                <Label htmlFor="domain">{t("field_domain")}</Label>
                 <Input id="domain" name="domain" required dir="ltr" />
               </div>
               <Button type="submit" disabled={issue.isPending}>
-                {t("ssl:issue")}
+                {t("issue")}
               </Button>
             </form>
 
@@ -130,17 +131,17 @@ export default function SslPage() {
               }}
             >
               <div className="grow space-y-2">
-                <Label htmlFor="wildcard_domain">{t("ssl:wildcard_domain")}</Label>
+                <Label htmlFor="wildcard_domain">{t("wildcard_domain")}</Label>
                 <Input id="wildcard_domain" name="wildcard_domain" required dir="ltr" placeholder="example.com" />
               </div>
               <Button type="submit" variant="outline" disabled={issueWildcard.isPending}>
-                {t("ssl:issue_wildcard")}
+                {t("issue_wildcard")}
               </Button>
             </form>
           </RequireRouteWrite>
 
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.certificates ?? []).map((c) => {
@@ -155,30 +156,30 @@ export default function SslPage() {
                       <span className="text-muted-foreground">
                         {c.status}
                         {days !== null ? ` · ${days}d` : ""}
-                        {c.expires_at ? ` · ${t("ssl:expires")}: ${formatDateTime(c.expires_at)}` : ""}
+                        {c.expires_at ? ` · ${t("expires")}: ${formatDateTime(c.expires_at)}` : ""}
                       </span>
                     </div>
                     <RequireRouteWrite>
                       <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="outline" disabled={renew.isPending} onClick={() => renew.mutate(c.id)}>
-                          {t("ssl:renew")}
+                          {t("renew")}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => bindService.mutate({ id: c.id, service: "panel" })}
                         >
-                          {t("ssl:bind_panel")}
+                          {t("bind_panel")}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => bindService.mutate({ id: c.id, service: "mail" })}
                         >
-                          {t("ssl:bind_mail")}
+                          {t("bind_mail")}
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => remove.mutate(c.id)}>
-                          {t("ssl:delete")}
+                          {t("delete")}
                         </Button>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-xs">
@@ -190,10 +191,10 @@ export default function SslPage() {
                               updateCert.mutate({ id: c.id, auto_renew: e.target.checked })
                             }
                           />
-                          {t("ssl:auto_renew")}
+                          {t("auto_renew")}
                         </label>
                         <label className="flex items-center gap-2">
-                          {t("ssl:alert_days")}
+                          {t("alert_days")}
                           <Input
                             type="number"
                             className="h-7 w-16"
@@ -204,7 +205,7 @@ export default function SslPage() {
                           />
                         </label>
                         {c.service_binding ? (
-                          <span>{t("ssl:bound_to")}: {c.service_binding}</span>
+                          <span>{t("bound_to")}: {c.service_binding}</span>
                         ) : null}
                       </div>
                     </RequireRouteWrite>
@@ -218,7 +219,7 @@ export default function SslPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("ssl:upload_title")}</CardTitle>
+          <CardTitle>{t("upload_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <RequireRouteWrite>
@@ -236,19 +237,19 @@ export default function SslPage() {
               }}
             >
             <div className="space-y-2">
-              <Label htmlFor="upload_domain">{t("ssl:field_domain")}</Label>
+              <Label htmlFor="upload_domain">{t("field_domain")}</Label>
               <Input id="upload_domain" name="upload_domain" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cert_pem">{t("ssl:cert_pem")}</Label>
+              <Label htmlFor="cert_pem">{t("cert_pem")}</Label>
               <textarea id="cert_pem" name="cert_pem" required className="border-input min-h-24 w-full rounded-md border p-2 font-mono text-xs" dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="key_pem">{t("ssl:key_pem")}</Label>
+              <Label htmlFor="key_pem">{t("key_pem")}</Label>
               <textarea id="key_pem" name="key_pem" required className="border-input min-h-24 w-full rounded-md border p-2 font-mono text-xs" dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="chain_pem">{t("ssl:chain_pem")}</Label>
+              <Label htmlFor="chain_pem">{t("chain_pem")}</Label>
               <textarea id="chain_pem" name="chain_pem" className="border-input min-h-16 w-full rounded-md border p-2 font-mono text-xs" dir="ltr" />
             </div>
             <div className="flex gap-2">
@@ -266,15 +267,15 @@ export default function SslPage() {
                   })
                 }}
               >
-                {t("ssl:validate_chain")}
+                {t("validate_chain")}
               </Button>
               <Button type="submit" disabled={upload.isPending}>
-                {t("ssl:upload")}
+                {t("upload")}
               </Button>
             </div>
             {validation ? (
               <p className={validation.valid === "true" ? "text-green-600 text-sm" : "text-destructive text-sm"}>
-                {validation.valid === "true" ? t("ssl:chain_valid") : validation.error ?? t("ssl:chain_invalid")}
+                {validation.valid === "true" ? t("chain_valid") : validation.error ?? t("chain_invalid")}
               </p>
             ) : null}
             </form>

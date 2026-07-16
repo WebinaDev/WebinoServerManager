@@ -165,15 +165,15 @@ if [[ -f "${PANEL_DIR}/backend/.env" ]]; then
 fi
 
 if have docker && [[ -f "$PANEL_COMPOSE" ]]; then
-  if webina_compose -f "$PANEL_COMPOSE" --env-file "$PANEL_ENV" ps --status running 2>/dev/null | grep -q panel-api; then
-    ok "panel-api container running"
-    if webina_compose -f "$PANEL_COMPOSE" --env-file "$PANEL_ENV" exec -T panel-api test -f vendor/autoload.php 2>/dev/null; then
-      ok "panel-api vendor/autoload.php present"
+  if webina_compose -f "$PANEL_COMPOSE" --env-file "$PANEL_ENV" ps --status running 2>/dev/null | grep -q backend; then
+    ok "backend container running"
+    if webina_compose -f "$PANEL_COMPOSE" --env-file "$PANEL_ENV" exec -T backend test -f vendor/autoload.php 2>/dev/null; then
+      ok "backend vendor/autoload.php present"
     else
-      bad "panel-api vendor missing — check entrypoint composer install"
+      bad "backend vendor missing — check entrypoint composer install"
     fi
   else
-    bad "panel-api not running — run ./install.sh --panel"
+    bad "backend not running — run ./install.sh --panel"
   fi
 
   if curl -sf --max-time 5 "http://127.0.0.1:${PANEL_HTTP_PORT}/api/v1/setup/status" >/dev/null 2>&1; then

@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -78,7 +78,8 @@ function buildPoolSettings(form: PoolEditForm): Record<string, string | number> 
 }
 
 export default function PhpPage() {
-  const { t } = useTranslation(["php", "common"])
+  const t = useTranslations("php")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [tab, setTab] = useState<Tab>("pools")
   const [phpVersion, setPhpVersion] = useState("8.3")
@@ -114,7 +115,7 @@ export default function PhpPage() {
       settings?: Record<string, string | number>
     }) => api("/api/v1/php/pools", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("php:pool_created", { defaultValue: "Pool created" }))
+      toast.success(t("pool_created"))
       invalidatePools()
     },
     onError: toastMutationError,
@@ -133,7 +134,7 @@ export default function PhpPage() {
       }
     }) => api(`/api/v1/php/pools/${id}`, { method: "PATCH", json: body }),
     onSuccess: () => {
-      toast.success(t("php:pool_updated", { defaultValue: "Pool updated" }))
+      toast.success(t("pool_updated"))
       invalidatePools()
       setEditingPool(null)
     },
@@ -143,7 +144,7 @@ export default function PhpPage() {
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/php/pools/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("php:deleted", { defaultValue: "Pool deleted" }))
+      toast.success(t("deleted"))
       invalidatePools()
     },
     onError: toastMutationError,
@@ -153,7 +154,7 @@ export default function PhpPage() {
     mutationFn: (body: { version: string; content: string }) =>
       api("/api/v1/php/ini", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("php:ini_saved", { defaultValue: "php.ini saved" }))
+      toast.success(t("ini_saved"))
       qc.invalidateQueries({ queryKey: ["php-ini", phpVersion] })
     },
     onError: toastMutationError,
@@ -165,8 +166,8 @@ export default function PhpPage() {
     onSuccess: (_data, variables) => {
       toast.success(
         variables.action === "enable"
-          ? t("php:extension_enabled", { defaultValue: "Extension enabled" })
-          : t("php:extension_disabled", { defaultValue: "Extension disabled" }),
+          ? t("extension_enabled")
+          : t("extension_disabled"),
       )
     },
     onError: toastMutationError,
@@ -176,7 +177,7 @@ export default function PhpPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("php:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -186,7 +187,7 @@ export default function PhpPage() {
               variant={tab === "pools" ? "default" : "outline"}
               onClick={() => setTab("pools")}
             >
-              {t("php:tab_pools")}
+              {t("tab_pools")}
             </Button>
             <Button
               type="button"
@@ -194,7 +195,7 @@ export default function PhpPage() {
               variant={tab === "ini" ? "default" : "outline"}
               onClick={() => setTab("ini")}
             >
-              {t("php:tab_ini")}
+              {t("tab_ini")}
             </Button>
             <Button
               type="button"
@@ -202,7 +203,7 @@ export default function PhpPage() {
               variant={tab === "extensions" ? "default" : "outline"}
               onClick={() => setTab("extensions")}
             >
-              {t("php:tab_extensions")}
+              {t("tab_extensions")}
             </Button>
           </div>
 
@@ -234,42 +235,42 @@ export default function PhpPage() {
                   }}
                 >
                   <div className="space-y-2">
-                    <Label htmlFor="name">{t("php:field_name")}</Label>
+                    <Label htmlFor="name">{t("field_name")}</Label>
                     <Input id="name" name="name" required dir="ltr" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="domain">{t("php:field_domain")}</Label>
+                    <Label htmlFor="domain">{t("field_domain")}</Label>
                     <Input id="domain" name="domain" dir="ltr" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="php_version">{t("php:field_version")}</Label>
+                    <Label htmlFor="php_version">{t("field_version")}</Label>
                     <Input id="php_version" name="php_version" defaultValue="8.3" dir="ltr" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pm_max_children">{t("php:settings_max_children")}</Label>
+                    <Label htmlFor="pm_max_children">{t("settings_max_children")}</Label>
                     <Input id="pm_max_children" name="pm_max_children" type="number" min={1} dir="ltr" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pm_start_servers">{t("php:settings_start_servers")}</Label>
+                    <Label htmlFor="pm_start_servers">{t("settings_start_servers")}</Label>
                     <Input id="pm_start_servers" name="pm_start_servers" type="number" min={1} dir="ltr" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="memory_limit">{t("php:settings_memory_limit")}</Label>
+                    <Label htmlFor="memory_limit">{t("settings_memory_limit")}</Label>
                     <Input id="memory_limit" name="memory_limit" placeholder="256M" dir="ltr" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="upload_max_filesize">{t("php:settings_upload_max")}</Label>
+                    <Label htmlFor="upload_max_filesize">{t("settings_upload_max")}</Label>
                     <Input id="upload_max_filesize" name="upload_max_filesize" placeholder="64M" dir="ltr" />
                   </div>
                   <div className="md:col-span-3">
                     <Button type="submit" disabled={create.isPending}>
-                      {t("php:add")}
+                      {t("add")}
                     </Button>
                   </div>
                 </form>
               </RequireRouteWrite>
               {isLoading ? (
-                <p>{t("common:loading")}</p>
+                <p>{tCommon("loading")}</p>
               ) : (
                 <ul className="divide-y rounded-md border">
                   {(data?.pools ?? []).map((p) => (
@@ -293,7 +294,7 @@ export default function PhpPage() {
                               setEditForm(poolToEditForm(p))
                             }}
                           >
-                            {t("common:edit", { defaultValue: "Edit" })}
+                            {tCommon("edit")}
                           </Button>
                           <Button
                             type="button"
@@ -301,7 +302,7 @@ export default function PhpPage() {
                             size="sm"
                             onClick={() => remove.mutate(p.id)}
                           >
-                            {t("php:delete")}
+                            {t("delete")}
                           </Button>
                         </div>
                       </RequireRouteWrite>
@@ -315,7 +316,7 @@ export default function PhpPage() {
           {tab === "ini" && (
             <div className="space-y-3">
               <div className="space-y-2 max-w-xs">
-                <Label htmlFor="ini-version">{t("php:field_version")}</Label>
+                <Label htmlFor="ini-version">{t("field_version")}</Label>
                 <Input
                   id="ini-version"
                   value={phpVersion}
@@ -324,7 +325,7 @@ export default function PhpPage() {
                 />
               </div>
               {ini.isLoading ? (
-                <p>{t("common:loading")}</p>
+                <p>{tCommon("loading")}</p>
               ) : (
                 <RequireRouteWrite>
                   <form
@@ -346,7 +347,7 @@ export default function PhpPage() {
                       className="border-input bg-background min-h-80 w-full rounded-md border px-3 py-2 font-mono text-sm"
                     />
                     <Button type="submit" disabled={saveIni.isPending}>
-                      {t("php:ini_save")}
+                      {t("ini_save")}
                     </Button>
                   </form>
                 </RequireRouteWrite>
@@ -357,7 +358,7 @@ export default function PhpPage() {
           {tab === "extensions" && (
             <div className="space-y-3">
               <div className="space-y-2 max-w-xs">
-                <Label htmlFor="ext-version">{t("php:field_version")}</Label>
+                <Label htmlFor="ext-version">{t("field_version")}</Label>
                 <Input
                   id="ext-version"
                   value={phpVersion}
@@ -388,7 +389,7 @@ export default function PhpPage() {
                             })
                           }
                         >
-                          {t("php:extension_enable")}
+                          {t("extension_enable")}
                         </Button>
                         <Button
                           type="button"
@@ -403,7 +404,7 @@ export default function PhpPage() {
                             })
                           }
                         >
-                          {t("php:extension_disable")}
+                          {t("extension_disable")}
                         </Button>
                       </div>
                     </RequireRouteWrite>
@@ -419,13 +420,13 @@ export default function PhpPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {t("php:edit_pool", { defaultValue: "Edit pool" })}
+              {t("edit_pool")}
               {editingPool ? ` · ${editingPool.name}` : ""}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="space-y-2">
-              <Label>{t("php:field_domain")}</Label>
+              <Label>{t("field_domain")}</Label>
               <Input
                 value={editForm.domain}
                 onChange={(e) => setEditForm({ ...editForm, domain: e.target.value })}
@@ -433,7 +434,7 @@ export default function PhpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t("php:field_version")}</Label>
+              <Label>{t("field_version")}</Label>
               <Input
                 value={editForm.php_version}
                 onChange={(e) => setEditForm({ ...editForm, php_version: e.target.value })}
@@ -441,7 +442,7 @@ export default function PhpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t("php:settings_max_children")}</Label>
+              <Label>{t("settings_max_children")}</Label>
               <Input
                 type="number"
                 min={1}
@@ -451,7 +452,7 @@ export default function PhpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t("php:settings_start_servers")}</Label>
+              <Label>{t("settings_start_servers")}</Label>
               <Input
                 type="number"
                 min={1}
@@ -461,7 +462,7 @@ export default function PhpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t("php:settings_memory_limit")}</Label>
+              <Label>{t("settings_memory_limit")}</Label>
               <Input
                 value={editForm.memory_limit}
                 onChange={(e) => setEditForm({ ...editForm, memory_limit: e.target.value })}
@@ -470,7 +471,7 @@ export default function PhpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t("php:settings_upload_max")}</Label>
+              <Label>{t("settings_upload_max")}</Label>
               <Input
                 value={editForm.upload_max_filesize}
                 onChange={(e) => setEditForm({ ...editForm, upload_max_filesize: e.target.value })}
@@ -493,10 +494,10 @@ export default function PhpPage() {
                 }
                 disabled={updatePool.isPending}
               >
-                {t("common:save", { defaultValue: "Save" })}
+                {tCommon("save")}
               </Button>
               <Button type="button" variant="outline" onClick={() => setEditingPool(null)}>
-                {t("common:cancel", { defaultValue: "Cancel" })}
+                {tCommon("cancel")}
               </Button>
             </div>
           </div>

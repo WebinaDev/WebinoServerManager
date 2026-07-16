@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,8 @@ type ScanResult = {
 }
 
 export default function ClamAvScanPage() {
-  const { t } = useTranslation(["security", "common"])
+  const t = useTranslations("security")
+  const tCommon = useTranslations("common")
   const [result, setResult] = useState<ScanResult | null>(null)
 
   const scan = useMutation({
@@ -34,7 +35,7 @@ export default function ClamAvScanPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("security:clamav_title")}</CardTitle>
+          <CardTitle>{t("clamav_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <form
@@ -46,11 +47,11 @@ export default function ClamAvScanPage() {
             }}
           >
             <div className="grow space-y-2">
-              <Label htmlFor="scan-path">{t("security:clamav_path")}</Label>
+              <Label htmlFor="scan-path">{t("clamav_path")}</Label>
               <Input id="scan-path" name="path" defaultValue="/" dir="ltr" />
             </div>
             <Button type="submit" disabled={scan.isPending}>
-              {scan.isPending ? t("security:clamav_scanning") : t("security:clamav_scan")}
+              {scan.isPending ? t("clamav_scanning") : t("clamav_scan")}
             </Button>
           </form>
 
@@ -58,8 +59,8 @@ export default function ClamAvScanPage() {
             <div className="space-y-3 rounded-md border p-4">
               <p className="text-sm">
                 {result.ok
-                  ? t("security:clamav_clean")
-                  : t("security:clamav_infected", { count: result.count ?? 0 })}
+                  ? t("clamav_clean")
+                  : t("clamav_infected", { count: result.count ?? 0 })}
               </p>
               {(result.infected ?? []).length > 0 && (
                 <ul className="list-inside list-disc text-sm" dir="ltr">

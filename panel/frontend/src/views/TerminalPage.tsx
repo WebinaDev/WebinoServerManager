@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { useTranslation } from "react-i18next"
 import { Terminal } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
 import "@xterm/xterm/css/xterm.css"
@@ -18,7 +18,8 @@ type TicketResponse = {
 }
 
 export default function TerminalPage() {
-  const { t } = useTranslation(["terminal", "common"])
+  const t = useTranslations("terminal")
+  const tCommon = useTranslations("common")
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -105,16 +106,16 @@ export default function TerminalPage() {
     <div className="flex flex-col gap-4 p-4 md:p-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle>{t("terminal:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-sm">
-              {status === "connecting" && t("terminal:connecting")}
-              {status === "connected" && t("terminal:connected")}
-              {status === "error" && t("terminal:error")}
-              {status === "idle" && t("terminal:disconnected")}
+              {status === "connecting" && t("connecting")}
+              {status === "connected" && t("connected")}
+              {status === "error" && t("error")}
+              {status === "idle" && t("disconnected")}
             </span>
             <Button type="button" variant="outline" size="sm" onClick={() => void connect()}>
-              {t("terminal:reconnect")}
+              {t("reconnect")}
             </Button>
           </div>
         </CardHeader>

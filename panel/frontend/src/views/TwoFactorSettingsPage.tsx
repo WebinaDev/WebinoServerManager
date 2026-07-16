@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,7 +27,8 @@ type ConfirmResponse = {
 }
 
 export default function TwoFactorSettingsPage() {
-  const { t } = useTranslation(["security", "common"])
+  const t = useTranslations("security")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [otpauthUrl, setOtpauthUrl] = useState<string | null>(null)
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null)
@@ -75,31 +76,31 @@ export default function TwoFactorSettingsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("security:2fa_title")}</CardTitle>
+          <CardTitle>{t("2fa_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <>
               <p className="text-muted-foreground text-sm">
                 {enabled
-                  ? t("security:2fa_enabled_desc")
-                  : t("security:2fa_disabled_desc")}
+                  ? t("2fa_enabled_desc")
+                  : t("2fa_disabled_desc")}
               </p>
 
               {!enabled && !otpauthUrl && (
                 <Button type="button" onClick={() => enable.mutate()} disabled={enable.isPending}>
-                  {t("security:2fa_enable")}
+                  {t("2fa_enable")}
                 </Button>
               )}
 
               {otpauthUrl && (
                 <div className="space-y-4 rounded-md border p-4">
-                  <p className="text-sm">{t("security:2fa_scan_qr")}</p>
+                  <p className="text-sm">{t("2fa_scan_qr")}</p>
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}`}
-                    alt={t("security:2fa_qr_alt")}
+                    alt={t("2fa_qr_alt")}
                     width={200}
                     height={200}
                     className="rounded border"
@@ -113,7 +114,7 @@ export default function TwoFactorSettingsPage() {
                     }}
                   >
                     <div className="space-y-2">
-                      <Label htmlFor="confirm-otp">{t("security:2fa_otp")}</Label>
+                      <Label htmlFor="confirm-otp">{t("2fa_otp")}</Label>
                       <Input
                         id="confirm-otp"
                         name="otp"
@@ -126,7 +127,7 @@ export default function TwoFactorSettingsPage() {
                       />
                     </div>
                     <Button type="submit" disabled={confirm.isPending}>
-                      {t("security:2fa_confirm")}
+                      {t("2fa_confirm")}
                     </Button>
                   </form>
                 </div>
@@ -134,8 +135,8 @@ export default function TwoFactorSettingsPage() {
 
               {recoveryCodes && recoveryCodes.length > 0 && (
                 <div className="space-y-3 rounded-md border border-amber-500/50 bg-amber-500/5 p-4">
-                  <p className="text-sm font-medium">{t("security:2fa_recovery_codes")}</p>
-                  <p className="text-muted-foreground text-xs">{t("security:2fa_recovery_hint")}</p>
+                  <p className="text-sm font-medium">{t("2fa_recovery_codes")}</p>
+                  <p className="text-muted-foreground text-xs">{t("2fa_recovery_hint")}</p>
                   <ul className="grid gap-1 font-mono text-sm md:grid-cols-2" dir="ltr">
                     {recoveryCodes.map((code) => (
                       <li key={code}>{code}</li>
@@ -157,13 +158,13 @@ export default function TwoFactorSettingsPage() {
                     e.currentTarget.reset()
                   }}
                 >
-                  <p className="text-sm font-medium">{t("security:2fa_disable")}</p>
+                  <p className="text-sm font-medium">{t("2fa_disable")}</p>
                   <div className="space-y-2">
-                    <Label htmlFor="disable-password">{t("security:2fa_password")}</Label>
+                    <Label htmlFor="disable-password">{t("2fa_password")}</Label>
                     <Input id="disable-password" name="password" type="password" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="disable-otp">{t("security:2fa_otp")}</Label>
+                    <Label htmlFor="disable-otp">{t("2fa_otp")}</Label>
                     <Input
                       id="disable-otp"
                       name="otp"
@@ -175,7 +176,7 @@ export default function TwoFactorSettingsPage() {
                     />
                   </div>
                   <Button type="submit" variant="outline" disabled={disable.isPending}>
-                    {t("security:2fa_disable")}
+                    {t("2fa_disable")}
                   </Button>
                 </form>
               )}

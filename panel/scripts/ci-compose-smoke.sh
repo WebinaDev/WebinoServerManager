@@ -18,8 +18,8 @@ curl -sf "http://127.0.0.1:${PORT}/api/v1/setup/status" | grep -q '"data"'
 echo "[smoke] GET /api/v1/auth/gate"
 curl -sf "http://127.0.0.1:${PORT}/api/v1/auth/gate" | grep -q '"authenticated"'
 
-echo "[smoke] route:list inside panel-api"
+echo "[smoke] route:list inside backend"
 webina_compose --env-file "${ROOT}/panel/.env" -f "${ROOT}/panel/docker-compose.panel.yml" \
-  exec -T panel-api php artisan route:list --path=api/v1 | head -n 5
+  exec -T backend php artisan route:list --path=api/v1 | head -n 5
 
 echo "[smoke] All checks passed"

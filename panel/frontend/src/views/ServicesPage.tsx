@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,7 +24,8 @@ function badgeClass(state: string, kind: "active" | "enabled") {
 }
 
 export default function ServicesPage() {
-  const { t } = useTranslation(["monitoring", "common"])
+  const t = useTranslations("monitoring")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -42,7 +43,7 @@ export default function ServicesPage() {
   const services = data?.services ?? []
 
   const runAction = (service: string, act: "start" | "stop" | "restart") => {
-    if (!window.confirm(t("monitoring:service_confirm", { service, action: act }))) return
+    if (!window.confirm(t("service_confirm", { service, action: act }))) return
     action.mutate({ service, action: act })
   }
 
@@ -50,11 +51,11 @@ export default function ServicesPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("monitoring:services_title")}</CardTitle>
+          <CardTitle>{t("services_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {services.map((svc) => (
@@ -85,7 +86,7 @@ export default function ServicesPage() {
                       disabled={action.isPending}
                       onClick={() => runAction(svc.name, "start")}
                     >
-                      {t("monitoring:start")}
+                      {t("start")}
                     </Button>
                     <Button
                       type="button"
@@ -94,7 +95,7 @@ export default function ServicesPage() {
                       disabled={action.isPending}
                       onClick={() => runAction(svc.name, "stop")}
                     >
-                      {t("monitoring:stop")}
+                      {t("stop")}
                     </Button>
                     <Button
                       type="button"
@@ -103,7 +104,7 @@ export default function ServicesPage() {
                       disabled={action.isPending}
                       onClick={() => runAction(svc.name, "restart")}
                     >
-                      {t("monitoring:restart")}
+                      {t("restart")}
                     </Button>
                   </div>
                 </li>

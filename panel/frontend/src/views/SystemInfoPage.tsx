@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { api } from "@/lib/api"
@@ -64,7 +64,9 @@ function Sparkline({ values }: { values: number[] }) {
 }
 
 export default function SystemInfoPage() {
-  const { t } = useTranslation(["system", "metrics", "common"])
+  const t = useTranslations("system")
+  const tMetrics = useTranslations("metrics")
+  const tCommon = useTranslations("common")
   const { data, isLoading } = useQuery({
     queryKey: ["system-info"],
     queryFn: () => api<{ info: SystemInfo }>("/api/v1/system/info"),
@@ -82,32 +84,32 @@ export default function SystemInfoPage() {
   const cpuHistory = (history?.samples ?? []).map((s) => s.cpu_percent)
 
   const rows: { label: string; value: string | number | undefined }[] = [
-    { label: t("system:hostname"), value: info.hostname },
-    { label: t("system:kernel"), value: info.kernel },
-    { label: t("system:os"), value: info.os },
-    { label: t("system:uptime"), value: info.uptime_seconds },
-    { label: t("system:load"), value: info.load_average },
-    { label: t("system:collected_at"), value: info.collected_at },
+    { label: t("hostname"), value: info.hostname },
+    { label: t("kernel"), value: info.kernel },
+    { label: t("os"), value: info.os },
+    { label: t("uptime"), value: info.uptime_seconds },
+    { label: t("load"), value: info.load_average },
+    { label: t("collected_at"), value: info.collected_at },
   ]
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("system:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <>
               <div className="grid gap-4 md:grid-cols-3">
-                <UsageBar label={t("metrics:cpu")} percent={info.cpu_percent} />
-                <UsageBar label={t("metrics:mem")} percent={info.mem_percent} />
-                <UsageBar label={t("metrics:disk")} percent={info.disk_percent} />
+                <UsageBar label={tMetrics("cpu")} percent={info.cpu_percent} />
+                <UsageBar label={tMetrics("mem")} percent={info.mem_percent} />
+                <UsageBar label={tMetrics("disk")} percent={info.disk_percent} />
               </div>
               <div>
-                <p className="text-muted-foreground mb-2 text-sm">{t("metrics:cpu")} (1h)</p>
+                <p className="text-muted-foreground mb-2 text-sm">{tMetrics("cpu")} (1h)</p>
                 <Sparkline values={cpuHistory} />
               </div>
               <dl className="grid gap-3 md:grid-cols-2">
@@ -115,7 +117,7 @@ export default function SystemInfoPage() {
                   <div key={row.label} className="rounded-md border p-3 text-sm">
                     <dt className="text-muted-foreground">{row.label}</dt>
                     <dd className="mt-1 font-mono text-xs break-all" dir="ltr">
-                      {row.value ?? t("common:em_dash")}
+                      {row.value ?? tCommon("em_dash")}
                     </dd>
                   </div>
                 ))}
@@ -123,18 +125,18 @@ export default function SystemInfoPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-md border p-3">
                   <h3 className="text-muted-foreground mb-2 text-sm font-medium">
-                    {t("system:memory")}
+                    {t("memory")}
                   </h3>
                   <pre className="overflow-auto text-xs" dir="ltr">
-                    {info.memory ?? t("common:em_dash")}
+                    {info.memory ?? tCommon("em_dash")}
                   </pre>
                 </div>
                 <div className="rounded-md border p-3">
                   <h3 className="text-muted-foreground mb-2 text-sm font-medium">
-                    {t("system:disk")}
+                    {t("disk")}
                   </h3>
                   <pre className="overflow-auto text-xs" dir="ltr">
-                    {info.disk ?? t("common:em_dash")}
+                    {info.disk ?? tCommon("em_dash")}
                   </pre>
                 </div>
               </div>

@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
@@ -47,7 +47,8 @@ function formatQuotaUsage(usage?: QuotaUsage): string | null {
 }
 
 export default function EmailAccountsPage() {
-  const { t } = useTranslation(["email", "common"])
+  const t = useTranslations("email")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [passwordTarget, setPasswordTarget] = useState<MailAccount | null>(null)
   const [passwordValue, setPasswordValue] = useState("")
@@ -68,7 +69,7 @@ export default function EmailAccountsPage() {
       quota_mb?: number
     }) => api("/api/v1/email/accounts", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("email:add_account"))
+      toast.success(t("add_account"))
       qc.invalidateQueries({ queryKey: ["email-accounts"] })
     },
     onError: toastMutationError,
@@ -78,7 +79,7 @@ export default function EmailAccountsPage() {
     mutationFn: (id: number) =>
       api(`/api/v1/email/accounts/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("email:delete"))
+      toast.success(t("delete"))
       qc.invalidateQueries({ queryKey: ["email-accounts"] })
     },
     onError: toastMutationError,
@@ -91,7 +92,7 @@ export default function EmailAccountsPage() {
         json: { password },
       }),
     onSuccess: () => {
-      toast.success(t("email:change_password"))
+      toast.success(t("change_password"))
       setPasswordTarget(null)
       setPasswordValue("")
     },
@@ -105,7 +106,7 @@ export default function EmailAccountsPage() {
         json: { quota_mb },
       }),
     onSuccess: () => {
-      toast.success(t("email:quota_updated", { defaultValue: "Quota updated" }))
+      toast.success(t("quota_updated"))
       setQuotaTarget(null)
       qc.invalidateQueries({ queryKey: ["email-accounts"] })
     },
@@ -115,13 +116,13 @@ export default function EmailAccountsPage() {
   const columns: DataTableColumn<MailAccount>[] = [
     {
       id: "address",
-      header: t("email:field_address"),
+      header: t("field_address"),
       sortValue: (row) => row.address,
       cell: (a) => <span dir="ltr">{a.address}</span>,
     },
     {
       id: "quota",
-      header: t("email:field_quota"),
+      header: t("field_quota"),
       sortValue: (row) => row.quota_mb,
       cell: (a) => {
         const usage = formatQuotaUsage(a.quota_usage)
@@ -131,7 +132,7 @@ export default function EmailAccountsPage() {
             {usage ? (
               <>
                 {" "}
-                · {t("email:quota_usage")}: <span dir="ltr">{usage}</span>
+                · {t("quota_usage")}: <span dir="ltr">{usage}</span>
               </>
             ) : null}
           </span>
@@ -140,13 +141,13 @@ export default function EmailAccountsPage() {
     },
     {
       id: "status",
-      header: t("email:status"),
+      header: t("status"),
       sortValue: (row) => row.status,
       cell: (a) => <span className="text-muted-foreground">{a.status}</span>,
     },
     {
       id: "actions",
-      header: t("common:actions", { defaultValue: "Actions" }),
+      header: tCommon("actions"),
       cell: (a) => (
         <RequireRouteWrite>
           <div className="flex flex-wrap gap-1">
@@ -159,7 +160,7 @@ export default function EmailAccountsPage() {
                 setPasswordValue("")
               }}
             >
-              {t("email:change_password")}
+              {t("change_password")}
             </Button>
             <Button
               type="button"
@@ -170,7 +171,7 @@ export default function EmailAccountsPage() {
                 setQuotaValue(String(a.quota_mb))
               }}
             >
-              {t("email:edit_quota", { defaultValue: "Edit quota" })}
+              {t("edit_quota")}
             </Button>
             <Button
               type="button"
@@ -178,7 +179,7 @@ export default function EmailAccountsPage() {
               size="sm"
               onClick={() => remove.mutate(a.id)}
             >
-              {t("email:delete")}
+              {t("delete")}
             </Button>
           </div>
         </RequireRouteWrite>
@@ -190,7 +191,7 @@ export default function EmailAccountsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("email:accounts_title")}</CardTitle>
+          <CardTitle>{t("accounts_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -208,15 +209,15 @@ export default function EmailAccountsPage() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="address">{t("email:field_address")}</Label>
+                <Label htmlFor="address">{t("field_address")}</Label>
                 <Input id="address" name="address" type="email" required dir="ltr" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">{t("email:field_password")}</Label>
+                <Label htmlFor="password">{t("field_password")}</Label>
                 <Input id="password" name="password" type="password" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="quota_mb">{t("email:field_quota")}</Label>
+                <Label htmlFor="quota_mb">{t("field_quota")}</Label>
                 <Input
                   id="quota_mb"
                   name="quota_mb"
@@ -227,7 +228,7 @@ export default function EmailAccountsPage() {
               </div>
               <div className="md:col-span-3">
                 <Button type="submit" disabled={create.isPending}>
-                  {t("email:add_account")}
+                  {t("add_account")}
                 </Button>
               </div>
             </form>
@@ -237,11 +238,11 @@ export default function EmailAccountsPage() {
             data={accounts}
             rowKey={(row) => row.id}
             isLoading={isLoading}
-            searchPlaceholder={t("email:search_accounts", { defaultValue: "Search accounts…" })}
+            searchPlaceholder={t("search_accounts")}
             searchFilter={(row, q) =>
               row.address.toLowerCase().includes(q) || row.status.toLowerCase().includes(q)
             }
-            emptyMessage={t("email:empty_accounts", { defaultValue: "No email accounts yet." })}
+            emptyMessage={t("empty_accounts")}
           />
         </CardContent>
       </Card>
@@ -249,10 +250,10 @@ export default function EmailAccountsPage() {
       <Dialog open={passwordTarget !== null} onOpenChange={(open) => !open && setPasswordTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("email:change_password")}</DialogTitle>
+            <DialogTitle>{t("change_password")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="new-password">{t("email:field_password")}</Label>
+            <Label htmlFor="new-password">{t("field_password")}</Label>
             <Input
               id="new-password"
               type="password"
@@ -269,7 +270,7 @@ export default function EmailAccountsPage() {
               changePassword.mutate({ id: passwordTarget.id, password: passwordValue })
             }}
           >
-            {t("common:save", { defaultValue: "Save" })}
+            {tCommon("save")}
           </Button>
         </DialogContent>
       </Dialog>
@@ -277,10 +278,10 @@ export default function EmailAccountsPage() {
       <Dialog open={quotaTarget !== null} onOpenChange={(open) => !open && setQuotaTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("email:edit_quota", { defaultValue: "Edit quota" })}</DialogTitle>
+            <DialogTitle>{t("edit_quota")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label htmlFor="quota-edit">{t("email:field_quota")}</Label>
+            <Label htmlFor="quota-edit">{t("field_quota")}</Label>
             <Input
               id="quota-edit"
               type="number"
@@ -301,7 +302,7 @@ export default function EmailAccountsPage() {
               })
             }}
           >
-            {t("common:save", { defaultValue: "Save" })}
+            {tCommon("save")}
           </Button>
         </DialogContent>
       </Dialog>

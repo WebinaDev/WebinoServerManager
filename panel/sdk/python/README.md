@@ -5,7 +5,7 @@ Python client for the WebinoServer panel API.
 ## Install
 
 ```bash
-cd WebinoServer/panel/sdk/python
+cd WebinoServerManager/panel/sdk/python
 pip install -e .
 ```
 
@@ -18,4 +18,9 @@ client = PanelClient("https://panel.example.com", token="...")
 print(client.list_domains())
 ```
 
-Regenerate from OpenAPI after backend changes: run `composer openapi` in `panel/backend`.
+Regenerate from OpenAPI after backend changes:
+
+```bash
+cd WebinoServerManager/panel/backend && composer openapi
+# optional suite-wide: ./scripts/sdk-generate-all.sh
+```

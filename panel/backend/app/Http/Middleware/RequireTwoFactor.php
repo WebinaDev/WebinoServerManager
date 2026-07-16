@@ -33,6 +33,7 @@ class RequireTwoFactor
                 'v1/auth/logout',
                 'v1/auth/check',
                 'v1/auth/user',
+                'v1/auth/refresh',
                 'api/v1/auth/2fa/status',
                 'api/v1/auth/2fa/enable',
                 'api/v1/auth/2fa/confirm',
@@ -40,6 +41,7 @@ class RequireTwoFactor
                 'api/v1/auth/logout',
                 'api/v1/auth/check',
                 'api/v1/auth/user',
+                'api/v1/auth/refresh',
             ];
             if (! in_array($request->path(), $allowed, true)) {
                 return response()->json([

@@ -1,11 +1,11 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import {
   ChevronsUpDown,
   LogOut,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useTranslation } from "react-i18next"
 
 import {
   Avatar,
@@ -45,7 +45,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { t } = useTranslation(["common"])
+  const t = useTranslations("common")
   const { setToken } = useAuth()
   const router = useRouter()
 
@@ -107,7 +107,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => void logout()}>
               <LogOut />
-              {t("common:logout")}
+              {t("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -1,8 +1,9 @@
 "use client"
 
+import { useTranslations, useLocale as useIntlLocale } from "next-intl"
+import { useChangeLocale } from "@/i18n/changeLocale"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useRef } from "react"
-import { useTranslation } from "react-i18next"
 import type { ReactNode } from "react"
 
 import { AppSidebar } from "@/components/sidebar-07/app-sidebar"
@@ -26,7 +27,7 @@ import {
 import { api } from "@/lib/api"
 import { normalizeUiLocale } from "@/i18n/locales"
 import { useDashboardNav } from "@/hooks/useDashboardNav"
-import { useLocale } from "@/hooks/useLocale"
+import { useLocale as useAppLocale } from "@/hooks/useLocale"
 import { useLocaleSync } from "@/hooks/useLocaleSync"
 import { RequirePermission } from "@/hooks/usePermissions"
 
@@ -44,8 +45,13 @@ export default function DashboardLayoutPage({
 }: {
   children: ReactNode
 }) {
-  const { t, i18n } = useTranslation(["nav", "dashboard", "sidebar", "common"])
-  const { dir } = useLocale()
+  const t = useTranslations("nav")
+  const tDashboard = useTranslations("dashboard")
+  const tSidebar = useTranslations("sidebar")
+  const tCommon = useTranslations("common")
+  const locale = useIntlLocale()
+  const changeLocale = useChangeLocale()
+  const { dir } = useAppLocale()
   const { navSections } = useDashboardNav()
   const syncedUserLocale = useRef(false)
 
@@ -61,12 +67,12 @@ export default function DashboardLayoutPage({
       return
     }
     const preferred = normalizeUiLocale(user.locale)
-    const current = normalizeUiLocale(i18n.resolvedLanguage ?? i18n.language)
+    const current = normalizeUiLocale(locale)
     if (preferred !== current) {
-      void i18n.changeLanguage(preferred)
+      changeLocale(preferred)
     }
     syncedUserLocale.current = true
-  }, [user?.locale, i18n])
+  }, [user?.locale, locale, changeLocale])
 
   const tenantLabel = user?.name ?? "…"
   const sidebarSide = dir === "rtl" ? "right" : "left"
@@ -80,33 +86,33 @@ export default function DashboardLayoutPage({
           side={sidebarSide}
           navSections={navSections}
           projects={[]}
-          projectsGroupLabel={t("nav:projects")}
+          projectsGroupLabel={t("projects")}
           user={{
             name: user?.name ?? "…",
             email: user?.email ?? "…",
           }}
           tenantLabel={tenantLabel}
-          tenantPlanLabel={t("sidebar:plan_tenant")}
+          tenantPlanLabel={tSidebar("plan_tenant")}
         />
         <SidebarInset dir={dir}>
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <div className="flex flex-1 items-center gap-2 px-4">
               <SidebarTrigger
                 className="-ms-1"
-                aria-label={t("sidebar:a11y_toggle")}
+                aria-label={tSidebar("a11y_toggle")}
               />
               <Separator orientation="vertical" className="me-2 h-4" />
-              <Breadcrumb aria-label={t("common:a11y_breadcrumb")}>
+              <Breadcrumb aria-label={tCommon("a11y_breadcrumb")}>
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
                     <BreadcrumbLink href="/">
-                      {t("dashboard:breadcrumb_building")}
+                      {tDashboard("breadcrumb_building")}
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem>
                     <BreadcrumbPage>
-                      {t("dashboard:breadcrumb_current")}
+                      {tDashboard("breadcrumb_current")}
                     </BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>

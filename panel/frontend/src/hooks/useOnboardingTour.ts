@@ -14,31 +14,31 @@ export type OnboardingStep = {
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: "welcome",
-    titleKey: "onboarding:welcome_title",
-    bodyKey: "onboarding:welcome_body",
+    titleKey: "welcome_title",
+    bodyKey: "welcome_body",
   },
   {
     id: "nav",
-    titleKey: "onboarding:nav_title",
-    bodyKey: "onboarding:nav_body",
+    titleKey: "nav_title",
+    bodyKey: "nav_body",
     target: "sidebar-nav",
   },
   {
     id: "locale",
-    titleKey: "onboarding:locale_title",
-    bodyKey: "onboarding:locale_body",
+    titleKey: "locale_title",
+    bodyKey: "locale_body",
     target: "locale-toolbar",
   },
   {
     id: "profile",
-    titleKey: "onboarding:profile_title",
-    bodyKey: "onboarding:profile_body",
+    titleKey: "profile_title",
+    bodyKey: "profile_body",
     target: "nav-user",
   },
   {
     id: "done",
-    titleKey: "onboarding:done_title",
-    bodyKey: "onboarding:done_body",
+    titleKey: "done_title",
+    bodyKey: "done_body",
   },
 ]
 

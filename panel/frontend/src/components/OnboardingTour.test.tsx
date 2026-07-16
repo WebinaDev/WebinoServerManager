@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest"
+import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react"
 
 import {
   ONBOARDING_STORAGE_KEY,
@@ -9,6 +9,7 @@ import {
 const storage = new Map<string, string>()
 
 beforeEach(() => {
+  vi.resetModules()
   storage.clear()
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => storage.get(key) ?? null,
@@ -32,10 +33,13 @@ beforeEach(() => {
   )
 })
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-  }),
+afterEach(() => {
+  cleanup()
+})
+
+vi.mock("next-intl", () => ({
+  useTranslations: (ns: string) => (key: string) => `${ns}:${key}`,
+  useLocale: () => "en",
 }))
 
 describe("OnboardingTour", () => {
@@ -46,7 +50,7 @@ describe("OnboardingTour", () => {
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeInTheDocument()
     })
-    expect(screen.getByText(ONBOARDING_STEPS[0].titleKey)).toBeInTheDocument()
+    expect(screen.getByText(`onboarding:${ONBOARDING_STEPS[0].titleKey}`)).toBeInTheDocument()
   })
 
   it("dismisses tour and persists to localStorage", async () => {

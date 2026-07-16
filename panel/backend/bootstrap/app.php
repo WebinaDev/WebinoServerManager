@@ -36,6 +36,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // which caused the login <-> dashboard redirect loop.
         $middleware->prepend(\App\Http\Middleware\AuthenticateFromCookie::class);
         $middleware->api(prepend: [
+            \App\Http\Middleware\ForceJsonResponse::class,
+            \App\Http\Middleware\ApiResponseFormatter::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \App\Http\Middleware\IpAllowlistMiddleware::class,
         ]);

@@ -5,11 +5,9 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    i18n: { language: "en" },
-  }),
+vi.mock("next-intl", () => ({
+  useTranslations: (ns: string) => (key: string) => `${ns}:${key}`,
+  useLocale: () => "en",
 }))
 
 vi.mock("@tanstack/react-query", () => ({

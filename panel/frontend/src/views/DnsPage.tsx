@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
@@ -47,7 +47,8 @@ function ptrZoneFromIp(ip: string): string {
 }
 
 export default function DnsPage() {
-  const { t } = useTranslation(["dns", "common"])
+  const t = useTranslations("dns")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null)
   const [recordType, setRecordType] = useState<string>("A")
@@ -68,7 +69,7 @@ export default function DnsPage() {
     mutationFn: (domain: string) =>
       api("/api/v1/dns/zones", { method: "POST", json: { domain } }),
     onSuccess: () => {
-      toast.success(t("dns:add_zone"))
+      toast.success(t("add_zone"))
       qc.invalidateQueries({ queryKey: ["dns-zones"] })
     },
     onError: toastMutationError,
@@ -78,7 +79,7 @@ export default function DnsPage() {
     mutationFn: (body: { domain: string; master_ns: string }) =>
       api("/api/v1/dns/zones/slave", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("dns:add_slave_zone"))
+      toast.success(t("add_slave_zone"))
       qc.invalidateQueries({ queryKey: ["dns-zones"] })
     },
     onError: toastMutationError,
@@ -88,7 +89,7 @@ export default function DnsPage() {
     mutationFn: (id: number) =>
       api(`/api/v1/dns/zones/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("dns:delete"))
+      toast.success(t("delete"))
       qc.invalidateQueries({ queryKey: ["dns-zones"] })
     },
     onError: toastMutationError,
@@ -104,7 +105,7 @@ export default function DnsPage() {
       priority?: number
     }) => api("/api/v1/dns/records", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("dns:add_record"))
+      toast.success(t("add_record"))
       qc.invalidateQueries({ queryKey: ["dns-zones"] })
     },
     onError: toastMutationError,
@@ -139,7 +140,7 @@ export default function DnsPage() {
     mutationFn: (id: number) =>
       api(`/api/v1/dns/records/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("dns:delete"))
+      toast.success(t("delete"))
       qc.invalidateQueries({ queryKey: ["dns-zones"] })
     },
     onError: toastMutationError,
@@ -191,7 +192,7 @@ export default function DnsPage() {
   const recordColumns: DataTableColumn<DnsRecord>[] = [
     {
       id: "type",
-      header: t("dns:field_type"),
+      header: t("field_type"),
       sortValue: (row) => row.type,
       cell: (r) => (
         <span dir="ltr" className="font-mono">
@@ -201,7 +202,7 @@ export default function DnsPage() {
     },
     {
       id: "name",
-      header: t("dns:field_name"),
+      header: t("field_name"),
       sortValue: (row) => row.name,
       cell: (r) => (
         <span dir="ltr" className="font-mono">
@@ -211,7 +212,7 @@ export default function DnsPage() {
     },
     {
       id: "content",
-      header: t("dns:field_content"),
+      header: t("field_content"),
       sortValue: (row) => row.content,
       cell: (r) => (
         <span dir="ltr" className="font-mono">
@@ -222,7 +223,7 @@ export default function DnsPage() {
     },
     {
       id: "ttl",
-      header: t("dns:field_ttl"),
+      header: t("field_ttl"),
       sortValue: (row) => row.ttl,
       cell: (r) => (
         <span dir="ltr" className="text-muted-foreground">
@@ -232,13 +233,13 @@ export default function DnsPage() {
     },
     {
       id: "status",
-      header: t("dns:status"),
+      header: t("status"),
       sortValue: (row) => row.status,
       cell: (r) => <span className="text-muted-foreground">{r.status}</span>,
     },
     {
       id: "actions",
-      header: t("common:actions", { defaultValue: "Actions" }),
+      header: tCommon("actions"),
       cell: (r) => (
         <div className="flex gap-2">
           <RequireRouteWrite>
@@ -248,7 +249,7 @@ export default function DnsPage() {
               size="sm"
               onClick={() => setEditingRecord(r)}
             >
-              {t("dns:edit")}
+              {t("edit")}
             </Button>
             <Button
               type="button"
@@ -256,7 +257,7 @@ export default function DnsPage() {
               size="sm"
               onClick={() => deleteRecord.mutate(r.id)}
             >
-              {t("dns:delete")}
+              {t("delete")}
             </Button>
           </RequireRouteWrite>
         </div>
@@ -268,7 +269,7 @@ export default function DnsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("dns:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -282,11 +283,11 @@ export default function DnsPage() {
               }}
             >
               <div className="grow space-y-2">
-                <Label htmlFor="domain">{t("dns:field_domain")}</Label>
+                <Label htmlFor="domain">{t("field_domain")}</Label>
                 <Input id="domain" name="domain" required dir="ltr" />
               </div>
               <Button type="submit" disabled={createZone.isPending}>
-                {t("dns:add_zone")}
+                {t("add_zone")}
               </Button>
             </form>
 
@@ -303,21 +304,21 @@ export default function DnsPage() {
               }}
             >
               <div className="grow space-y-2">
-                <Label htmlFor="slave_domain">{t("dns:slave_domain")}</Label>
+                <Label htmlFor="slave_domain">{t("slave_domain")}</Label>
                 <Input id="slave_domain" name="slave_domain" required dir="ltr" />
               </div>
               <div className="grow space-y-2">
-                <Label htmlFor="master_ns">{t("dns:master_ns")}</Label>
+                <Label htmlFor="master_ns">{t("master_ns")}</Label>
                 <Input id="master_ns" name="master_ns" required dir="ltr" />
               </div>
               <Button type="submit" variant="outline" disabled={createSlaveZone.isPending}>
-                {t("dns:add_slave_zone")}
+                {t("add_slave_zone")}
               </Button>
             </form>
           </RequireRouteWrite>
 
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {zones.map((z) => (
@@ -332,11 +333,11 @@ export default function DnsPage() {
                   >
                     {z.domain}
                     {z.zone_kind === "slave" ? (
-                      <span className="text-muted-foreground ms-2">({t("dns:slave")})</span>
+                      <span className="text-muted-foreground ms-2">({t("slave")})</span>
                     ) : null}
                   </button>
                   <span className="text-muted-foreground">
-                    {z.dnssec_enabled ? t("dns:dnssec_on") : z.status}
+                    {z.dnssec_enabled ? t("dnssec_on") : z.status}
                   </span>
                   <RequireRouteWrite>
                     <Button
@@ -345,7 +346,7 @@ export default function DnsPage() {
                       size="sm"
                       onClick={() => deleteZone.mutate(z.id)}
                     >
-                      {t("dns:delete")}
+                      {t("delete")}
                     </Button>
                   </RequireRouteWrite>
                 </li>
@@ -359,7 +360,7 @@ export default function DnsPage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>{t("dns:zone_tools")}</CardTitle>
+              <CardTitle>{t("zone_tools")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-3">
               <RequireRouteWrite>
@@ -374,7 +375,7 @@ export default function DnsPage() {
                     })
                   }
                 >
-                  {selectedZone.dnssec_enabled ? t("dns:dnssec_disable") : t("dns:dnssec_enable")}
+                  {selectedZone.dnssec_enabled ? t("dnssec_disable") : t("dnssec_enable")}
                 </Button>
                 <select
                   className="border-input bg-background h-9 rounded-md border px-3 text-sm"
@@ -386,7 +387,7 @@ export default function DnsPage() {
                     }
                   }}
                 >
-                  <option value="">{t("dns:apply_template")}</option>
+                  <option value="">{t("apply_template")}</option>
                   {(templates?.templates ?? []).map((tpl) => (
                     <option key={tpl.name} value={tpl.name}>
                       {tpl.description ?? tpl.name}
@@ -394,7 +395,7 @@ export default function DnsPage() {
                   ))}
                 </select>
                 <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
-                  <span>{t("dns:import_zone")}</span>
+                  <span>{t("import_zone")}</span>
                   <input
                     type="file"
                     accept=".bind,.zone,.txt"
@@ -415,18 +416,18 @@ export default function DnsPage() {
                 variant="outline"
                 onClick={() => exportZone(selectedZone.id, selectedZone.domain)}
               >
-                {t("dns:export_zone")}
+                {t("export_zone")}
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("dns:ptr_helper")}</CardTitle>
+              <CardTitle>{t("ptr_helper")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap items-end gap-3">
               <div className="space-y-2">
-                <Label htmlFor="ptr_ip">{t("dns:ptr_ip")}</Label>
+                <Label htmlFor="ptr_ip">{t("ptr_ip")}</Label>
                 <Input
                   id="ptr_ip"
                   value={ptrIp}
@@ -437,7 +438,7 @@ export default function DnsPage() {
               </div>
               {ptrZone ? (
                 <p className="text-muted-foreground font-mono text-sm" dir="ltr">
-                  {t("dns:ptr_zone")}: {ptrZone}
+                  {t("ptr_zone")}: {ptrZone}
                 </p>
               ) : null}
             </CardContent>
@@ -446,7 +447,7 @@ export default function DnsPage() {
           <Card>
             <CardHeader>
               <CardTitle>
-                {t("dns:records_for", { domain: selectedZone.domain })}
+                {t("records_for", { domain: selectedZone.domain })}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -469,7 +470,7 @@ export default function DnsPage() {
                   }}
                 >
                 <div className="space-y-2">
-                  <Label htmlFor="type">{t("dns:field_type")}</Label>
+                  <Label htmlFor="type">{t("field_type")}</Label>
                   <select
                     id="type"
                     value={recordType}
@@ -484,26 +485,26 @@ export default function DnsPage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">{t("dns:field_name")}</Label>
+                  <Label htmlFor="name">{t("field_name")}</Label>
                   <Input id="name" name="name" required dir="ltr" placeholder="@" />
                 </div>
                 {needsPriority ? (
                   <div className="space-y-2">
-                    <Label htmlFor="priority">{t("dns:field_priority")}</Label>
+                    <Label htmlFor="priority">{t("field_priority")}</Label>
                     <Input id="priority" name="priority" type="number" defaultValue={10} dir="ltr" />
                   </div>
                 ) : null}
                 <div className={`space-y-2 ${needsPriority ? "" : "md:col-span-2"}`}>
-                  <Label htmlFor="content">{t("dns:field_content")}</Label>
+                  <Label htmlFor="content">{t("field_content")}</Label>
                   <Input id="content" name="content" required dir="ltr" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ttl">{t("dns:field_ttl")}</Label>
+                  <Label htmlFor="ttl">{t("field_ttl")}</Label>
                   <Input id="ttl" name="ttl" type="number" defaultValue={3600} dir="ltr" />
                 </div>
                 <div className="flex items-end">
                   <Button type="submit" disabled={createRecord.isPending}>
-                    {t("dns:add_record")}
+                    {t("add_record")}
                   </Button>
                 </div>
                 </form>
@@ -513,13 +514,13 @@ export default function DnsPage() {
                 columns={recordColumns}
                 data={records}
                 rowKey={(row) => row.id}
-                searchPlaceholder={t("dns:search_records", { defaultValue: "Search records…" })}
+                searchPlaceholder={t("search_records")}
                 searchFilter={(row, q) =>
                   row.type.toLowerCase().includes(q) ||
                   row.name.toLowerCase().includes(q) ||
                   row.content.toLowerCase().includes(q)
                 }
-                emptyMessage={t("dns:empty_records", { defaultValue: "No DNS records in this zone." })}
+                emptyMessage={t("empty_records")}
               />
             </CardContent>
           </Card>
@@ -529,7 +530,7 @@ export default function DnsPage() {
       {editingRecord ? (
         <Card>
           <CardHeader>
-            <CardTitle>{t("dns:edit_record")}</CardTitle>
+            <CardTitle>{t("edit_record")}</CardTitle>
           </CardHeader>
           <CardContent>
             <RequireRouteWrite>
@@ -550,24 +551,24 @@ export default function DnsPage() {
                 }}
               >
               <div className="space-y-2">
-                <Label>{t("dns:field_type")}</Label>
+                <Label>{t("field_type")}</Label>
                 <Input name="type" defaultValue={editingRecord.type} dir="ltr" />
               </div>
               <div className="space-y-2">
-                <Label>{t("dns:field_name")}</Label>
+                <Label>{t("field_name")}</Label>
                 <Input name="name" defaultValue={editingRecord.name} required dir="ltr" />
               </div>
               <div className="space-y-2">
-                <Label>{t("dns:field_content")}</Label>
+                <Label>{t("field_content")}</Label>
                 <Input name="content" defaultValue={editingRecord.content} required dir="ltr" />
               </div>
               <div className="space-y-2">
-                <Label>{t("dns:field_ttl")}</Label>
+                <Label>{t("field_ttl")}</Label>
                 <Input name="ttl" type="number" defaultValue={editingRecord.ttl} dir="ltr" />
               </div>
               {(editingRecord.type === "MX" || editingRecord.type === "SRV") && (
                 <div className="space-y-2">
-                  <Label>{t("dns:field_priority")}</Label>
+                  <Label>{t("field_priority")}</Label>
                   <Input
                     name="priority"
                     type="number"
@@ -578,10 +579,10 @@ export default function DnsPage() {
               )}
               <div className="flex gap-2 md:col-span-5">
                 <Button type="submit" disabled={updateRecord.isPending}>
-                  {t("dns:save")}
+                  {t("save")}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setEditingRecord(null)}>
-                  {t("common:cancel")}
+                  {tCommon("cancel")}
                 </Button>
               </div>
               </form>

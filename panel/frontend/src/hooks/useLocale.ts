@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslations, useLocale as useIntlLocale } from "next-intl"
 
 import {
   formatDate,
@@ -17,15 +17,15 @@ import {
 } from "@/lib/locale"
 
 export function useLocale() {
-  const { t, i18n } = useTranslation()
-  const lang: AppLocale = toAppLocale(i18n.resolvedLanguage ?? i18n.language)
+  const t = useTranslations("common")
+  const intlLocale = useIntlLocale()
+  const lang: AppLocale = toAppLocale(intlLocale)
   const isRtl = isRtlLocale(lang)
   const dir = isRtl ? "rtl" : "ltr"
 
   return useMemo(
     () => ({
       t,
-      i18n,
       lang,
       isRtl,
       dir,
@@ -40,6 +40,6 @@ export function useLocale() {
       formatNowDate: (timeZone?: string) => formatNowDate(lang, timeZone),
       getCalendarConfig: () => getCalendarConfig(lang),
     }),
-    [t, i18n, lang, isRtl, dir],
+    [t, lang, isRtl, dir],
   )
 }

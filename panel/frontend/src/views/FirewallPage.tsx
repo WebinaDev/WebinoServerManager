@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,7 +30,8 @@ type FirewallMutation = {
 }
 
 export default function FirewallPage() {
-  const { t } = useTranslation(["security", "common"])
+  const t = useTranslations("security")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["firewall"],
@@ -61,17 +62,17 @@ export default function FirewallPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("security:firewall_title")}</CardTitle>
+          <CardTitle>{t("firewall_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-muted-foreground text-sm">
-                  {t("security:firewall_status")}:{" "}
-                  {data?.enabled ? t("security:enabled") : t("security:disabled")}
+                  {t("firewall_status")}:{" "}
+                  {data?.enabled ? t("enabled") : t("disabled")}
                 </span>
                 <Button
                   type="button"
@@ -80,7 +81,7 @@ export default function FirewallPage() {
                   disabled={mutate.isPending || data?.enabled}
                   onClick={() => mutate.mutate({ action: "enable" })}
                 >
-                  {t("security:firewall_enable")}
+                  {t("firewall_enable")}
                 </Button>
                 <Button
                   type="button"
@@ -89,7 +90,7 @@ export default function FirewallPage() {
                   disabled={mutate.isPending || !data?.enabled}
                   onClick={() => mutate.mutate({ action: "disable" })}
                 >
-                  {t("security:firewall_disable")}
+                  {t("firewall_disable")}
                 </Button>
                 <Button
                   type="button"
@@ -98,7 +99,7 @@ export default function FirewallPage() {
                   disabled={mutate.isPending}
                   onClick={() => mutate.mutate({ action: "preset", preset: "web" })}
                 >
-                  {t("security:firewall_preset_web")}
+                  {t("firewall_preset_web")}
                 </Button>
                 <Button
                   type="button"
@@ -107,7 +108,7 @@ export default function FirewallPage() {
                   disabled={mutate.isPending}
                   onClick={() => mutate.mutate({ action: "preset", preset: "ssh" })}
                 >
-                  {t("security:firewall_preset_ssh")}
+                  {t("firewall_preset_ssh")}
                 </Button>
               </div>
 
@@ -127,19 +128,19 @@ export default function FirewallPage() {
                 }}
               >
                 <div className="space-y-2">
-                  <Label htmlFor="fw-action">{t("security:firewall_action")}</Label>
+                  <Label htmlFor="fw-action">{t("firewall_action")}</Label>
                   <select
                     id="fw-action"
                     name="action"
                     className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
                     defaultValue="allow"
                   >
-                    <option value="allow">{t("security:firewall_allow")}</option>
-                    <option value="deny">{t("security:firewall_deny")}</option>
+                    <option value="allow">{t("firewall_allow")}</option>
+                    <option value="deny">{t("firewall_deny")}</option>
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fw-from-ip">{t("security:firewall_from_ip")}</Label>
+                  <Label htmlFor="fw-from-ip">{t("firewall_from_ip")}</Label>
                   <Input
                     id="fw-from-ip"
                     name="from_ip"
@@ -148,16 +149,16 @@ export default function FirewallPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fw-port">{t("security:firewall_port")}</Label>
+                  <Label htmlFor="fw-port">{t("firewall_port")}</Label>
                   <Input id="fw-port" name="port" required dir="ltr" placeholder="80" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fw-proto">{t("security:firewall_proto")}</Label>
+                  <Label htmlFor="fw-proto">{t("firewall_proto")}</Label>
                   <Input id="fw-proto" name="proto" defaultValue="tcp" dir="ltr" />
                 </div>
                 <div className="flex items-end">
                   <Button type="submit" disabled={mutate.isPending}>
-                    {t("security:firewall_apply")}
+                    {t("firewall_apply")}
                   </Button>
                 </div>
               </form>
@@ -165,7 +166,7 @@ export default function FirewallPage() {
               <ul className="divide-y rounded-md border">
                 {rules.length === 0 ? (
                   <li className="text-muted-foreground px-4 py-3 text-sm">
-                    {t("security:firewall_no_rules")}
+                    {t("firewall_no_rules")}
                   </li>
                 ) : (
                   rules.map((r) => (
@@ -188,7 +189,7 @@ export default function FirewallPage() {
                           })
                         }
                       >
-                        {t("security:delete")}
+                        {t("delete")}
                       </Button>
                     </li>
                   ))
@@ -201,10 +202,10 @@ export default function FirewallPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("security:allowlist_title")}</CardTitle>
+          <CardTitle>{t("allowlist_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-muted-foreground text-sm">{t("security:allowlist_hint")}</p>
+          <p className="text-muted-foreground text-sm">{t("allowlist_hint")}</p>
           <form
             className="flex flex-col gap-3 md:flex-row"
             onSubmit={(e) => {
@@ -226,7 +227,7 @@ export default function FirewallPage() {
               className="flex-1"
             />
             <Button type="submit" disabled={saveAllowlist.isPending}>
-              {t("security:allowlist_save")}
+              {t("allowlist_save")}
             </Button>
           </form>
         </CardContent>

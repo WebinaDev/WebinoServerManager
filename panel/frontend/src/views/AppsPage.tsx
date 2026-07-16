@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -63,7 +63,8 @@ function statusBadge(status?: string | null) {
 }
 
 export default function AppsPage() {
-  const { t } = useTranslation(["apps", "common"])
+  const t = useTranslations("apps")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [logsApp, setLogsApp] = useState<AppRow | null>(null)
 
@@ -134,7 +135,7 @@ export default function AppsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("apps:create_title")}</CardTitle>
+          <CardTitle>{t("create_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <RequireRouteWrite>
@@ -159,15 +160,15 @@ export default function AppsPage() {
               }}
             >
             <div className="space-y-2">
-              <Label htmlFor="app-name">{t("apps:field_name")}</Label>
+              <Label htmlFor="app-name">{t("field_name")}</Label>
               <Input id="app-name" name="name" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="app-image">{t("apps:field_image")}</Label>
+              <Label htmlFor="app-image">{t("field_image")}</Label>
               <Input id="app-image" name="image" required dir="ltr" placeholder="nginx:alpine" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="app-ports">{t("apps:field_ports")}</Label>
+              <Label htmlFor="app-ports">{t("field_ports")}</Label>
               <Textarea
                 id="app-ports"
                 name="ports"
@@ -177,11 +178,11 @@ export default function AppsPage() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="app-env">{t("apps:field_env")}</Label>
+              <Label htmlFor="app-env">{t("field_env")}</Label>
               <Textarea id="app-env" name="env" dir="ltr" placeholder="KEY=value" rows={3} />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="app-volumes">{t("apps:field_volumes")}</Label>
+              <Label htmlFor="app-volumes">{t("field_volumes")}</Label>
               <Textarea
                 id="app-volumes"
                 name="volumes"
@@ -191,20 +192,20 @@ export default function AppsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="proxy-domain">{t("apps:field_proxy_domain")}</Label>
+              <Label htmlFor="proxy-domain">{t("field_proxy_domain")}</Label>
               <Input id="proxy-domain" name="proxy_domain" dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="proxy-port">{t("apps:field_proxy_port")}</Label>
+              <Label htmlFor="proxy-port">{t("field_proxy_port")}</Label>
               <Input id="proxy-port" name="proxy_port" type="number" dir="ltr" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="app-command">{t("apps:field_command")}</Label>
+              <Label htmlFor="app-command">{t("field_command")}</Label>
               <Input id="app-command" name="command" dir="ltr" />
             </div>
             <div className="md:col-span-2">
               <Button type="submit" disabled={create.isPending}>
-                {t("apps:create")}
+                {t("create")}
               </Button>
             </div>
             </form>
@@ -214,15 +215,15 @@ export default function AppsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("apps:list_title")}</CardTitle>
+          <CardTitle>{t("list_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {apps.length === 0 ? (
-                <li className="text-muted-foreground px-4 py-3 text-sm">{t("apps:empty")}</li>
+                <li className="text-muted-foreground px-4 py-3 text-sm">{t("empty")}</li>
               ) : (
                 apps.map((app) => {
                   const displayStatus = app.live_status ?? app.status
@@ -257,7 +258,7 @@ export default function AppsPage() {
                           size="sm"
                           onClick={() => setLogsApp(app)}
                         >
-                          {t("apps:logs")}
+                          {t("logs")}
                         </Button>
                         <RequireRouteWrite>
                           <Button
@@ -267,7 +268,7 @@ export default function AppsPage() {
                             disabled={start.isPending}
                             onClick={() => start.mutate(app.id)}
                           >
-                            {t("apps:start")}
+                            {t("start")}
                           </Button>
                           <Button
                             type="button"
@@ -276,7 +277,7 @@ export default function AppsPage() {
                             disabled={stop.isPending}
                             onClick={() => stop.mutate(app.id)}
                           >
-                            {t("apps:stop")}
+                            {t("stop")}
                           </Button>
                           <Button
                             type="button"
@@ -285,7 +286,7 @@ export default function AppsPage() {
                             disabled={restart.isPending}
                             onClick={() => restart.mutate(app.id)}
                           >
-                            {t("apps:restart")}
+                            {t("restart")}
                           </Button>
                           <Button
                             type="button"
@@ -293,12 +294,12 @@ export default function AppsPage() {
                             size="sm"
                             disabled={remove.isPending}
                             onClick={() => {
-                              if (window.confirm(t("apps:delete_confirm"))) {
+                              if (window.confirm(t("delete_confirm"))) {
                                 remove.mutate(app.id)
                               }
                             }}
                           >
-                            {t("apps:delete")}
+                            {t("delete")}
                           </Button>
                         </RequireRouteWrite>
                       </div>
@@ -313,7 +314,7 @@ export default function AppsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("apps:images_title")}</CardTitle>
+          <CardTitle>{t("images_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -334,13 +335,13 @@ export default function AppsPage() {
                 required
               />
               <Button type="submit" disabled={pullImage.isPending}>
-                {t("apps:pull_image")}
+                {t("pull_image")}
               </Button>
             </form>
           </RequireRouteWrite>
           <ul className="divide-y rounded-md border">
             {images.length === 0 ? (
-              <li className="text-muted-foreground px-4 py-3 text-sm">{t("apps:images_empty")}</li>
+              <li className="text-muted-foreground px-4 py-3 text-sm">{t("images_empty")}</li>
             ) : (
               images.map((img, i) => {
                 const ref = [img.repository, img.tag].filter(Boolean).join(":")
@@ -362,12 +363,12 @@ export default function AppsPage() {
                             size="sm"
                             disabled={removeImage.isPending}
                             onClick={() => {
-                              if (window.confirm(t("apps:delete_image_confirm"))) {
+                              if (window.confirm(t("delete_image_confirm"))) {
                                 removeImage.mutate(ref)
                               }
                             }}
                           >
-                            {t("apps:delete")}
+                            {t("delete")}
                           </Button>
                         </RequireRouteWrite>
                       ) : null}
@@ -384,17 +385,17 @@ export default function AppsPage() {
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>
-              {t("apps:logs_title")} — {logsApp?.name}
+              {t("logs_title")} — {logsApp?.name}
             </SheetTitle>
           </SheetHeader>
           {logsLoading ? (
-            <p className="mt-4">{t("common:loading")}</p>
+            <p className="mt-4">{tCommon("loading")}</p>
           ) : (
             <pre
               className="bg-muted mt-4 max-h-[70vh] overflow-auto rounded p-3 text-xs whitespace-pre-wrap"
               dir="ltr"
             >
-              {logsData?.logs?.logs ?? t("apps:logs_empty")}
+              {logsData?.logs?.logs ?? t("logs_empty")}
             </pre>
           )}
         </SheetContent>

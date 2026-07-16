@@ -1,3 +1,5 @@
+import { unwrapApiData } from "@webina/ui"
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ""
 
 export type ApiOptions = RequestInit & {
@@ -76,5 +78,5 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     throw err
   }
 
-  return data as T
+  return unwrapApiData<T>(data)
 }

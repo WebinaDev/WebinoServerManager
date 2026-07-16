@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,7 +21,8 @@ type WpRow = {
 }
 
 export default function WordpressPage() {
-  const { t } = useTranslation(["wordpress", "common"])
+  const t = useTranslations("wordpress")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["wordpress"],
@@ -44,7 +45,7 @@ export default function WordpressPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("wordpress:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -65,23 +66,23 @@ export default function WordpressPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="domain">{t("wordpress:field_domain")}</Label>
+              <Label htmlFor="domain">{t("field_domain")}</Label>
               <Input id="domain" name="domain" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="path">{t("wordpress:field_path")}</Label>
+              <Label htmlFor="path">{t("field_path")}</Label>
               <Input id="path" name="path" required dir="ltr" className="font-mono" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="title">{t("wordpress:field_title")}</Label>
+              <Label htmlFor="title">{t("field_title")}</Label>
               <Input id="title" name="title" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="admin_user">{t("wordpress:field_admin_user")}</Label>
+              <Label htmlFor="admin_user">{t("field_admin_user")}</Label>
               <Input id="admin_user" name="admin_user" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="admin_password">{t("wordpress:field_admin_password")}</Label>
+              <Label htmlFor="admin_password">{t("field_admin_password")}</Label>
               <Input
                 id="admin_password"
                 name="admin_password"
@@ -92,18 +93,18 @@ export default function WordpressPage() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="admin_email">{t("wordpress:field_admin_email")}</Label>
+              <Label htmlFor="admin_email">{t("field_admin_email")}</Label>
               <Input id="admin_email" name="admin_email" type="email" dir="ltr" />
             </div>
             <div className="md:col-span-2">
               <Button type="submit" disabled={create.isPending}>
-                {t("wordpress:install")}
+                {t("install")}
               </Button>
             </div>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.sites ?? []).map((s) => (
@@ -129,7 +130,7 @@ export default function WordpressPage() {
                         disabled={remove.isPending}
                         onClick={() => remove.mutate(s.id)}
                       >
-                        {t("wordpress:delete")}
+                        {t("delete")}
                       </Button>
                     </RequireRouteWrite>
                   </div>

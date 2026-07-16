@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,8 @@ type MailForwarder = {
 }
 
 export default function EmailForwardersPage() {
-  const { t } = useTranslation(["email", "common"])
+  const t = useTranslations("email")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["email-forwarders"],
@@ -42,7 +43,7 @@ export default function EmailForwardersPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("email:forwarders_title")}</CardTitle>
+          <CardTitle>{t("forwarders_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -59,11 +60,11 @@ export default function EmailForwardersPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="source">{t("email:field_source")}</Label>
+              <Label htmlFor="source">{t("field_source")}</Label>
               <Input id="source" name="source" type="email" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="destination">{t("email:field_destination")}</Label>
+              <Label htmlFor="destination">{t("field_destination")}</Label>
               <Input
                 id="destination"
                 name="destination"
@@ -74,13 +75,13 @@ export default function EmailForwardersPage() {
             </div>
             <div className="md:col-span-2">
               <Button type="submit" disabled={create.isPending}>
-                {t("email:add_forwarder")}
+                {t("add_forwarder")}
               </Button>
             </div>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.forwarders ?? []).map((f) => (
@@ -99,7 +100,7 @@ export default function EmailForwardersPage() {
                       size="sm"
                       onClick={() => remove.mutate(f.id)}
                     >
-                      {t("email:delete")}
+                      {t("delete")}
                     </Button>
                   </RequireRouteWrite>
                 </li>

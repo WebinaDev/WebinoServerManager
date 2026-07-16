@@ -5,7 +5,7 @@ Public command-line client for the WebinoServer hosting panel REST API.
 ## Install
 
 ```bash
-cd WebinoServer/panel/cli
+cd WebinoServerManager/panel/cli
 go build -o wpanel .
 ```
 

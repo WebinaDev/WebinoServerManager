@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,7 +15,8 @@ type AntispamData = {
 }
 
 export default function AntispamPage() {
-  const { t } = useTranslation(["email", "common"])
+  const t = useTranslations("email")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["email-antispam"],
@@ -32,17 +33,17 @@ export default function AntispamPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("email:antispam_title")}</CardTitle>
+          <CardTitle>{t("antispam_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <>
               <RequireRouteWrite>
                 <div className="flex items-center justify-between gap-4 rounded-md border px-4 py-3">
                   <Label htmlFor="greylisting" className="cursor-pointer">
-                    {t("email:antispam_greylisting")}
+                    {t("antispam_greylisting")}
                   </Label>
                   <input
                     id="greylisting"
@@ -55,7 +56,7 @@ export default function AntispamPage() {
                 </div>
                 <div className="flex items-center justify-between gap-4 rounded-md border px-4 py-3">
                   <Label htmlFor="antispam" className="cursor-pointer">
-                    {t("email:antispam_clamav")}
+                    {t("antispam_clamav")}
                   </Label>
                   <input
                     id="antispam"
@@ -72,7 +73,7 @@ export default function AntispamPage() {
                   disabled={update.isPending}
                   onClick={() => qc.invalidateQueries({ queryKey: ["email-antispam"] })}
                 >
-                  {t("common:save")}
+                  {tCommon("save")}
                 </Button>
               </RequireRouteWrite>
             </>

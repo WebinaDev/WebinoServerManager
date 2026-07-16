@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -78,7 +78,9 @@ function UptimeSparkline({ checkId }: { checkId: number }) {
 }
 
 export default function UptimePage() {
-  const { t } = useTranslation(["monitoring", "common", "dns"])
+  const t = useTranslations("monitoring")
+  const tCommon = useTranslations("common")
+  const tDns = useTranslations("dns")
   const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [editingCheck, setEditingCheck] = useState<CheckRow | null>(null)
@@ -95,7 +97,7 @@ export default function UptimePage() {
     mutationFn: (body: Record<string, unknown>) =>
       api("/api/v1/monitoring/uptime", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("monitoring:check_created", { defaultValue: "Uptime check created" }))
+      toast.success(t("check_created"))
       invalidate()
     },
     onError: toastMutationError,
@@ -105,7 +107,7 @@ export default function UptimePage() {
     mutationFn: ({ id, body }: { id: number; body: Record<string, unknown> }) =>
       api(`/api/v1/monitoring/uptime/${id}`, { method: "PATCH", json: body }),
     onSuccess: () => {
-      toast.success(t("monitoring:check_updated", { defaultValue: "Uptime check updated" }))
+      toast.success(t("check_updated"))
       setEditingCheck(null)
       invalidate()
     },
@@ -116,7 +118,7 @@ export default function UptimePage() {
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/api/v1/monitoring/uptime/${id}`, { method: "PATCH", json: { enabled } }),
     onSuccess: () => {
-      toast.success(t("monitoring:check_updated", { defaultValue: "Uptime check updated" }))
+      toast.success(t("check_updated"))
       invalidate()
     },
     onError: toastMutationError,
@@ -125,7 +127,7 @@ export default function UptimePage() {
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/monitoring/uptime/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("monitoring:check_deleted", { defaultValue: "Uptime check deleted" }))
+      toast.success(t("check_deleted"))
       invalidate()
     },
     onError: toastMutationError,
@@ -137,7 +139,7 @@ export default function UptimePage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("monitoring:uptime_title")}</CardTitle>
+          <CardTitle>{t("uptime_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <form
@@ -155,15 +157,15 @@ export default function UptimePage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="check-name">{t("monitoring:check_name")}</Label>
+              <Label htmlFor="check-name">{t("check_name")}</Label>
               <Input id="check-name" name="name" required />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="check-target">{t("monitoring:check_target")}</Label>
+              <Label htmlFor="check-target">{t("check_target")}</Label>
               <Input id="check-target" name="target" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="check-type">{t("monitoring:check_type")}</Label>
+              <Label htmlFor="check-type">{t("check_type")}</Label>
               <select
                 id="check-type"
                 name="type"
@@ -175,7 +177,7 @@ export default function UptimePage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="check-interval">{t("monitoring:check_interval")}</Label>
+              <Label htmlFor="check-interval">{t("check_interval")}</Label>
               <Input
                 id="check-interval"
                 name="interval_minutes"
@@ -187,18 +189,18 @@ export default function UptimePage() {
             </div>
             <div className="md:col-span-5">
               <Button type="submit" disabled={create.isPending}>
-                {t("monitoring:add_check")}
+                {t("add_check")}
               </Button>
             </div>
           </form>
 
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {checks.length === 0 ? (
                 <li className="text-muted-foreground px-4 py-3 text-sm">
-                  {t("monitoring:uptime_empty")}
+                  {t("uptime_empty")}
                 </li>
               ) : (
                 checks.map((check) => (
@@ -213,7 +215,7 @@ export default function UptimePage() {
                       </p>
                       {check.last_checked_at ? (
                         <p className="text-muted-foreground text-xs">
-                          {t("monitoring:last_checked")}: {formatDateTime(check.last_checked_at)}
+                          {t("last_checked")}: {formatDateTime(check.last_checked_at)}
                           {check.last_latency_ms != null
                             ? ` · ${check.last_latency_ms}ms`
                             : ""}
@@ -224,7 +226,7 @@ export default function UptimePage() {
                       <span
                         className={`rounded px-2 py-0.5 text-xs font-medium ${statusClass(check.last_status)}`}
                       >
-                        {check.last_status ?? t("monitoring:unknown")}
+                        {check.last_status ?? t("unknown")}
                       </span>
                       <UptimeSparkline checkId={check.id} />
                       <Button
@@ -233,7 +235,7 @@ export default function UptimePage() {
                         size="sm"
                         onClick={() => setEditingCheck(check)}
                       >
-                        {t("dns:edit", { defaultValue: "Edit" })}
+                        {tDns("edit")}
                       </Button>
                       <Button
                         type="button"
@@ -243,19 +245,19 @@ export default function UptimePage() {
                           toggle.mutate({ id: check.id, enabled: !check.enabled })
                         }
                       >
-                        {check.enabled ? t("monitoring:enabled") : t("monitoring:disabled")}
+                        {check.enabled ? t("enabled") : t("disabled")}
                       </Button>
                       <Button
                         type="button"
                         variant="destructive"
                         size="sm"
                         onClick={() => {
-                          if (window.confirm(t("monitoring:delete_check_confirm"))) {
+                          if (window.confirm(t("delete_check_confirm"))) {
                             remove.mutate(check.id)
                           }
                         }}
                       >
-                        {t("monitoring:delete")}
+                        {t("delete")}
                       </Button>
                     </div>
                   </li>
@@ -270,7 +272,7 @@ export default function UptimePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {t("monitoring:edit_check", { defaultValue: "Edit uptime check" })}
+              {t("edit_check")}
             </DialogTitle>
           </DialogHeader>
           {editingCheck ? (
@@ -293,7 +295,7 @@ export default function UptimePage() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="edit-check-name">{t("monitoring:check_name")}</Label>
+                <Label htmlFor="edit-check-name">{t("check_name")}</Label>
                 <Input
                   id="edit-check-name"
                   name="name"
@@ -302,7 +304,7 @@ export default function UptimePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-check-target">{t("monitoring:check_target")}</Label>
+                <Label htmlFor="edit-check-target">{t("check_target")}</Label>
                 <Input
                   id="edit-check-target"
                   name="target"
@@ -312,7 +314,7 @@ export default function UptimePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-check-type">{t("monitoring:check_type")}</Label>
+                <Label htmlFor="edit-check-type">{t("check_type")}</Label>
                 <select
                   id="edit-check-type"
                   name="type"
@@ -324,7 +326,7 @@ export default function UptimePage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-check-interval">{t("monitoring:check_interval")}</Label>
+                <Label htmlFor="edit-check-interval">{t("check_interval")}</Label>
                 <Input
                   id="edit-check-interval"
                   name="interval_minutes"
@@ -341,14 +343,14 @@ export default function UptimePage() {
                   className="rounded"
                   defaultChecked={editingCheck.enabled}
                 />
-                {t("monitoring:enabled")}
+                {t("enabled")}
               </label>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setEditingCheck(null)}>
-                  {t("common:cancel")}
+                  {tCommon("cancel")}
                 </Button>
                 <Button type="submit" disabled={update.isPending}>
-                  {t("common:save")}
+                  {tCommon("save")}
                 </Button>
               </div>
             </form>

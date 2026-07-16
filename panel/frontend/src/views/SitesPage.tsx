@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,7 +17,8 @@ type SiteRow = {
 }
 
 export default function SitesPage() {
-  const { t } = useTranslation(["sites", "common"])
+  const t = useTranslations("sites")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["sites"],
@@ -42,7 +43,7 @@ export default function SitesPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("sites:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -60,26 +61,26 @@ export default function SitesPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="slug">{t("sites:field_slug")}</Label>
+              <Label htmlFor="slug">{t("field_slug")}</Label>
               <Input id="slug" name="slug" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="domain">{t("sites:field_domain")}</Label>
+              <Label htmlFor="domain">{t("field_domain")}</Label>
               <Input id="domain" name="domain" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="product">{t("sites:field_product")}</Label>
+              <Label htmlFor="product">{t("field_product")}</Label>
               <Input id="product" name="product" dir="ltr" />
             </div>
             <div className="md:col-span-3">
               <Button type="submit" disabled={create.isPending}>
-                {t("sites:create")}
+                {t("create")}
               </Button>
             </div>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {sites.map((s, i) => (
@@ -98,12 +99,12 @@ export default function SitesPage() {
                         size="sm"
                         disabled={remove.isPending}
                         onClick={() => {
-                          if (window.confirm(t("sites:delete_confirm"))) {
+                          if (window.confirm(t("delete_confirm"))) {
                             remove.mutate(s.slug!)
                           }
                         }}
                       >
-                        {t("sites:delete")}
+                        {t("delete")}
                       </Button>
                     </RequireRouteWrite>
                   ) : null}

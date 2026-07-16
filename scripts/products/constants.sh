@@ -80,8 +80,6 @@ product_env_example_path() {
   local src="$1"
   if [[ -f "${src}/backend/.env.example" ]]; then
     printf '%s/backend/.env.example' "$src"
-  elif [[ -f "${src}/backend-temp/.env.example" ]]; then
-    printf '%s/backend-temp/.env.example' "$src"
   else
     return 1
   fi

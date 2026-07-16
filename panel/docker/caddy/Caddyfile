@@ -1,0 +1,23 @@
+# Edge reverse proxy for WebinoServerManager panel (Architecture §13: only `web` publishes).
+{
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+:80 {
+	encode zstd gzip
+
+	@api path /api/*
+	handle /api* {
+		reverse_proxy backend:8080
+	}
+
+	handle /embed/* {
+		reverse_proxy frontend:3000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

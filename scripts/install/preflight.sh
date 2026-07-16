@@ -97,7 +97,7 @@ preflight_check_panel_port() {
   local port="${PANEL_HTTP_PORT:-2090}"
   if have ss; then
     if ss -tlnp 2>/dev/null | grep -qE ":${port}\s"; then
-      if have docker && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'webinoserver-panel-web'; then
+      if have docker && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'webinoserver-frontend'; then
         return 0
       fi
       preflight_add_issue \

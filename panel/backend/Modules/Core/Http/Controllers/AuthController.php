@@ -110,8 +110,6 @@ class AuthController extends Controller
         $token = $accessToken->plainTextToken;
 
         return $this->attachAuthCookie(response()->json([
-            'token' => $token,
-            'token_type' => 'Bearer',
             'user' => $this->userPayload($user),
         ]), $token);
     }
@@ -119,6 +117,24 @@ class AuthController extends Controller
     public function session(Request $request): JsonResponse
     {
         return $this->login($request);
+    }
+
+    public function refresh(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => __('auth.failed')], 401);
+        }
+
+        $request->user()?->currentAccessToken()?->delete();
+
+        $accessToken = $user->createToken('panel', ['*']);
+        $token = $accessToken->plainTextToken;
+
+        return $this->attachAuthCookie(response()->json([
+            'user' => $this->userPayload($user),
+            'refreshed' => true,
+        ]), $token);
     }
 
     public function check(Request $request): JsonResponse

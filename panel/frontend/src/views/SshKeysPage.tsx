@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,7 +15,8 @@ type SshKeysData = {
 }
 
 export default function SshKeysPage() {
-  const { t } = useTranslation(["security", "common"])
+  const t = useTranslations("security")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["sshkeys"],
@@ -46,7 +47,7 @@ export default function SshKeysPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("security:sshkeys_title")}</CardTitle>
+          <CardTitle>{t("sshkeys_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {data?.path && (
@@ -67,24 +68,24 @@ export default function SshKeysPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="ssh-key">{t("security:sshkeys_key")}</Label>
+              <Label htmlFor="ssh-key">{t("sshkeys_key")}</Label>
               <Input id="ssh-key" name="key" required dir="ltr" placeholder="ssh-ed25519 AAAA..." />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ssh-label">{t("security:sshkeys_label")}</Label>
+              <Label htmlFor="ssh-label">{t("sshkeys_label")}</Label>
               <Input id="ssh-label" name="label" dir="ltr" placeholder="laptop" />
             </div>
             <Button type="submit" disabled={addKey.isPending}>
-              {t("security:sshkeys_add")}
+              {t("sshkeys_add")}
             </Button>
           </form>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {keys.length === 0 ? (
                 <li className="text-muted-foreground px-4 py-3 text-sm">
-                  {t("security:sshkeys_empty")}
+                  {t("sshkeys_empty")}
                 </li>
               ) : (
                 keys.map((key) => (
@@ -102,12 +103,12 @@ export default function SshKeysPage() {
                       disabled={removeKey.isPending}
                       onClick={() => {
                         const prefix = key.split(/\s+/)[0] ?? key
-                        if (window.confirm(t("security:sshkeys_delete_confirm"))) {
+                        if (window.confirm(t("sshkeys_delete_confirm"))) {
                           removeKey.mutate(prefix)
                         }
                       }}
                     >
-                      {t("security:delete")}
+                      {t("delete")}
                     </Button>
                   </li>
                 ))

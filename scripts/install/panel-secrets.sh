@@ -26,7 +26,7 @@ panel_validate_token_sync() {
 
 Copy the same token to both files, then recreate services:
   docker compose --env-file panel/.env -f panel/docker-compose.panel.yml up -d --force-recreate \\
-    panel-api panel-agent panel-phpmyadmin panel-phppgadmin panel-roundcube
+    backend agent phpmyadmin phppgadmin roundcube
 
 See panel/docs/AGENT_SECURITY.md"
   fi
@@ -93,7 +93,7 @@ generate_panel_secrets() {
   fi
 
   roundcube_key=$(read_env "${panel_env}" "ROUNDCUBE_DES_KEY" "")
-  if [[ -z "$roundcube_key" || "$roundcube_key" == "panel-roundcube-des-key" ]]; then
+  if [[ -z "$roundcube_key" || "$roundcube_key" == "roundcube-des-key" ]]; then
     roundcube_key=$(panel_rand_hex 24)
     log "Generated ROUNDCUBE_DES_KEY"
   fi
@@ -127,7 +127,7 @@ wait_for_panel_api() {
 
   panel_api_direct_ready() {
     [[ -n "$compose_file" && -n "$panel_env" ]] && have docker || return 1
-    webina_compose -f "$compose_file" --env-file "$panel_env" exec -T panel-api \
+    webina_compose -f "$compose_file" --env-file "$panel_env" exec -T backend \
       curl -sf --max-time 5 http://127.0.0.1:8080/up >/dev/null 2>&1
   }
 
@@ -136,7 +136,7 @@ wait_for_panel_api() {
       return 0
     fi
     [[ -n "$compose_file" && -n "$panel_env" ]] && have docker || return 1
-    webina_compose -f "$compose_file" --env-file "$panel_env" exec -T panel-api \
+    webina_compose -f "$compose_file" --env-file "$panel_env" exec -T backend \
       curl -sf --max-time 5 http://127.0.0.1:8080/v1/setup/status >/dev/null 2>&1
   }
 
@@ -153,7 +153,7 @@ wait_for_panel_api() {
       warn "Panel API not reachable after ${max} attempts"
       if [[ -n "$compose_file" && -n "$panel_env" ]] && have docker; then
         webina_compose -f "$compose_file" --env-file "$panel_env" ps 2>/dev/null || true
-        webina_compose -f "$compose_file" --env-file "$panel_env" logs panel-api panel-web --tail=80 2>/dev/null || true
+        webina_compose -f "$compose_file" --env-file "$panel_env" logs backend frontend --tail=80 2>/dev/null || true
       fi
       return 1
     fi

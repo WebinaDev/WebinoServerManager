@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,8 @@ type RoleRow = {
 }
 
 export default function UsersPage() {
-  const { t } = useTranslation(["users", "common"])
+  const t = useTranslations("users")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
 
   const { data: usersData, isLoading } = useQuery({
@@ -50,7 +51,7 @@ export default function UsersPage() {
       role: string
     }) => api("/api/v1/users", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("users:create"))
+      toast.success(t("create"))
       qc.invalidateQueries({ queryKey: ["users"] })
     },
     onError: toastMutationError,
@@ -66,7 +67,7 @@ export default function UsersPage() {
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/users/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("users:delete"))
+      toast.success(t("delete"))
       qc.invalidateQueries({ queryKey: ["users"] })
     },
     onError: toastMutationError,
@@ -75,7 +76,7 @@ export default function UsersPage() {
   const columns: DataTableColumn<UserRow>[] = [
     {
       id: "name",
-      header: t("users:name"),
+      header: t("name"),
       sortValue: (row) => row.name,
       cell: (u) => (
         <div>
@@ -89,7 +90,7 @@ export default function UsersPage() {
     },
     {
       id: "role",
-      header: t("users:role"),
+      header: t("role"),
       sortValue: (row) => row.roles[0]?.name ?? "",
       cell: (u) => (
         <select
@@ -107,7 +108,7 @@ export default function UsersPage() {
     },
     {
       id: "actions",
-      header: t("common:actions", { defaultValue: "Actions" }),
+      header: tCommon("actions"),
       cell: (u) => (
         <Button
           type="button"
@@ -115,7 +116,7 @@ export default function UsersPage() {
           size="sm"
           onClick={() => remove.mutate(u.id)}
         >
-          {t("users:delete")}
+          {t("delete")}
         </Button>
       ),
     },
@@ -125,7 +126,7 @@ export default function UsersPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("users:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <form
@@ -146,23 +147,23 @@ export default function UsersPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="name">{t("users:name")}</Label>
+              <Label htmlFor="name">{t("name")}</Label>
               <Input id="name" name="name" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="username">{t("users:username")}</Label>
+              <Label htmlFor="username">{t("username")}</Label>
               <Input id="username" name="username" required dir="ltr" className="font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">{t("users:email")}</Label>
+              <Label htmlFor="email">{t("email")}</Label>
               <Input id="email" name="email" type="email" dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">{t("users:password")}</Label>
+              <Label htmlFor="password">{t("password")}</Label>
               <Input id="password" name="password" type="password" minLength={8} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="role">{t("users:role")}</Label>
+              <Label htmlFor="role">{t("role")}</Label>
               <select
                 id="role"
                 name="role"
@@ -178,7 +179,7 @@ export default function UsersPage() {
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={create.isPending}>
-                {t("users:create")}
+                {t("create")}
               </Button>
             </div>
           </form>
@@ -188,13 +189,13 @@ export default function UsersPage() {
             data={users}
             rowKey={(row) => row.id}
             isLoading={isLoading}
-            searchPlaceholder={t("users:search", { defaultValue: "Search users…" })}
+            searchPlaceholder={t("search")}
             searchFilter={(row, q) =>
               row.name.toLowerCase().includes(q) ||
               row.username.toLowerCase().includes(q) ||
               (row.email ?? "").toLowerCase().includes(q)
             }
-            emptyMessage={t("users:empty", { defaultValue: "No users yet." })}
+            emptyMessage={t("empty")}
           />
         </CardContent>
       </Card>

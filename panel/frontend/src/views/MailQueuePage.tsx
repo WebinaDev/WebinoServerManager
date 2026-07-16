@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo } from "react"
-import { useTranslation } from "react-i18next"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,8 @@ type QueueData = {
 }
 
 export default function MailQueuePage() {
-  const { t } = useTranslation(["email", "common"])
+  const t = useTranslations("email")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["email-queue"],
@@ -36,7 +37,7 @@ export default function MailQueuePage() {
   const flush = useMutation({
     mutationFn: () => api("/api/v1/email/queue/flush", { method: "POST" }),
     onSuccess: () => {
-      toast.success(t("email:queue_flushed", { defaultValue: "Mail queue flushed" }))
+      toast.success(t("queue_flushed"))
       invalidate()
     },
     onError: toastMutationError,
@@ -46,7 +47,7 @@ export default function MailQueuePage() {
     mutationFn: (id: string) =>
       api("/api/v1/email/queue", { method: "DELETE", json: { id } }),
     onSuccess: () => {
-      toast.success(t("email:queue_entry_deleted", { defaultValue: "Queue entry removed" }))
+      toast.success(t("queue_entry_deleted"))
       invalidate()
     },
     onError: toastMutationError,
@@ -68,7 +69,7 @@ export default function MailQueuePage() {
       },
       {
         id: "sender",
-        header: t("email:queue_sender", { defaultValue: "Sender" }),
+        header: t("queue_sender"),
         sortValue: (row) => row.sender,
         cell: (row) => (
           <span className="text-xs" dir="ltr">
@@ -78,7 +79,7 @@ export default function MailQueuePage() {
       },
       {
         id: "recipients",
-        header: t("email:queue_recipients", { defaultValue: "Recipients" }),
+        header: t("queue_recipients"),
         sortValue: (row) => row.recipients,
         cell: (row) => (
           <span className="text-muted-foreground text-xs" dir="ltr">
@@ -88,7 +89,7 @@ export default function MailQueuePage() {
       },
       {
         id: "size",
-        header: t("email:queue_size", { defaultValue: "Size" }),
+        header: t("queue_size"),
         sortValue: (row) => row.size,
         cell: (row) => (
           <span className="text-muted-foreground text-xs" dir="ltr">
@@ -98,7 +99,7 @@ export default function MailQueuePage() {
       },
       {
         id: "arrival",
-        header: t("email:queue_arrival", { defaultValue: "Arrival" }),
+        header: t("queue_arrival"),
         sortValue: (row) => row.arrival,
         cell: (row) => (
           <span className="text-muted-foreground text-xs" dir="ltr">
@@ -108,7 +109,7 @@ export default function MailQueuePage() {
       },
       {
         id: "actions",
-        header: t("common:actions", { defaultValue: "Actions" }),
+        header: tCommon("actions"),
         cell: (row) => (
           <Button
             type="button"
@@ -118,16 +119,14 @@ export default function MailQueuePage() {
             onClick={() => {
               if (
                 window.confirm(
-                  t("email:queue_delete_confirm", {
-                    defaultValue: "Remove this message from the queue?",
-                  }),
+                  t("queue_delete_confirm"),
                 )
               ) {
                 remove.mutate(row.id)
               }
             }}
           >
-            {t("email:delete")}
+            {t("delete")}
           </Button>
         ),
       },
@@ -139,19 +138,19 @@ export default function MailQueuePage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle>{t("email:queue_title")}</CardTitle>
+          <CardTitle>{t("queue_title")}</CardTitle>
           <Button
             type="button"
             variant="outline"
             size="sm"
             disabled={flush.isPending}
             onClick={() => {
-              if (window.confirm(t("email:queue_flush_confirm"))) {
+              if (window.confirm(t("queue_flush_confirm"))) {
                 flush.mutate()
               }
             }}
           >
-            {t("email:queue_flush")}
+            {t("queue_flush")}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -160,13 +159,13 @@ export default function MailQueuePage() {
             data={entries}
             rowKey={(row) => row.id}
             isLoading={isLoading}
-            searchPlaceholder={t("email:queue_search", { defaultValue: "Search queue…" })}
+            searchPlaceholder={t("queue_search")}
             searchFilter={(row, q) =>
               row.id.toLowerCase().includes(q) ||
               row.sender.toLowerCase().includes(q) ||
               row.recipients.toLowerCase().includes(q)
             }
-            emptyMessage={t("email:queue_empty")}
+            emptyMessage={t("queue_empty")}
           />
           {data?.raw ? (
             <pre

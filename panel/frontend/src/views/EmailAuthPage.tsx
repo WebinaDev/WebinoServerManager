@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,7 +29,8 @@ type GenerateResult = {
 }
 
 export default function EmailAuthPage() {
-  const { t } = useTranslation(["email", "common"])
+  const t = useTranslations("email")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [checks, setChecks] = useState<Record<number, DnsChecks>>({})
   const [generated, setGenerated] = useState<Record<number, GenerateResult>>({})
@@ -64,16 +65,16 @@ export default function EmailAuthPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("email:auth_title")}</CardTitle>
+          <CardTitle>{t("auth_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.domains ?? []).length === 0 ? (
                 <li className="text-muted-foreground px-4 py-3 text-sm">
-                  {t("email:auth_no_domains")}
+                  {t("auth_no_domains")}
                 </li>
               ) : (
                 data!.domains.map((d) => (
@@ -91,7 +92,7 @@ export default function EmailAuthPage() {
                           disabled={generate.isPending}
                           onClick={() => generate.mutate(d.id)}
                         >
-                          {t("email:auth_generate")}
+                          {t("auth_generate")}
                         </Button>
                         <Button
                           type="button"
@@ -100,7 +101,7 @@ export default function EmailAuthPage() {
                           disabled={validate.isPending}
                           onClick={() => validate.mutate(d.id)}
                         >
-                          {t("email:auth_validate")}
+                          {t("auth_validate")}
                         </Button>
                       </RequireRouteWrite>
                       </div>
@@ -108,7 +109,7 @@ export default function EmailAuthPage() {
 
                     {generated[d.id] && (
                       <div className="bg-muted/50 space-y-2 rounded-md p-3">
-                        <p className="text-xs font-medium">{t("email:auth_records_created")}</p>
+                        <p className="text-xs font-medium">{t("auth_records_created")}</p>
                         <ul className="space-y-1 text-xs" dir="ltr">
                           {generated[d.id].records.map((r, i) => (
                             <li key={i}>

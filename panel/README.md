@@ -13,14 +13,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManage
 **Panel only** (hosting UI without platform TUI):
 
 ```bash
-cd WebinoServer
+cd WebinoServerManager
 ./install.sh --panel
 ```
 
 **Full stack** (platform + panel, from existing clone):
 
 ```bash
-cd WebinoServer
+cd WebinoServerManager
 ./install.sh --server --panel --yes
 ```
 

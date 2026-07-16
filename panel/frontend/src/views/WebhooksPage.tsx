@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -45,7 +45,9 @@ type DeliveryRow = {
 }
 
 export default function WebhooksPage() {
-  const { t } = useTranslation(["webhooks", "common", "dns"])
+  const t = useTranslations("webhooks")
+  const tCommon = useTranslations("common")
+  const tDns = useTranslations("dns")
   const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [editingEndpoint, setEditingEndpoint] = useState<EndpointRow | null>(null)
@@ -67,7 +69,7 @@ export default function WebhooksPage() {
     mutationFn: (body: Record<string, unknown>) =>
       api("/api/v1/webhooks", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("webhooks:created", { defaultValue: "Webhook created" }))
+      toast.success(t("created"))
       invalidate()
     },
     onError: toastMutationError,
@@ -77,7 +79,7 @@ export default function WebhooksPage() {
     mutationFn: ({ id, body }: { id: number; body: Record<string, unknown> }) =>
       api(`/api/v1/webhooks/${id}`, { method: "PATCH", json: body }),
     onSuccess: () => {
-      toast.success(t("webhooks:updated", { defaultValue: "Webhook updated" }))
+      toast.success(t("updated"))
       setEditingEndpoint(null)
       invalidate()
     },
@@ -88,7 +90,7 @@ export default function WebhooksPage() {
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/api/v1/webhooks/${id}`, { method: "PATCH", json: { enabled } }),
     onSuccess: () => {
-      toast.success(t("webhooks:updated", { defaultValue: "Webhook updated" }))
+      toast.success(t("updated"))
       invalidate()
     },
     onError: toastMutationError,
@@ -97,7 +99,7 @@ export default function WebhooksPage() {
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/webhooks/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("webhooks:deleted", { defaultValue: "Webhook deleted" }))
+      toast.success(t("deleted"))
       invalidate()
     },
     onError: toastMutationError,
@@ -106,7 +108,7 @@ export default function WebhooksPage() {
   const test = useMutation({
     mutationFn: (id: number) => api(`/api/v1/webhooks/${id}/test`, { method: "POST" }),
     onSuccess: () => {
-      toast.success(t("webhooks:test_sent", { defaultValue: "Test delivery sent" }))
+      toast.success(t("test_sent"))
       qc.invalidateQueries({ queryKey: ["webhook-deliveries"] })
     },
     onError: toastMutationError,
@@ -119,7 +121,7 @@ export default function WebhooksPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("webhooks:create_title")}</CardTitle>
+          <CardTitle>{t("create_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form
@@ -137,19 +139,19 @@ export default function WebhooksPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="wh-name">{t("webhooks:field_name")}</Label>
+              <Label htmlFor="wh-name">{t("field_name")}</Label>
               <Input id="wh-name" name="name" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="wh-url">{t("webhooks:field_url")}</Label>
+              <Label htmlFor="wh-url">{t("field_url")}</Label>
               <Input id="wh-url" name="url" type="url" required dir="ltr" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="wh-secret">{t("webhooks:field_secret")}</Label>
-              <Input id="wh-secret" name="secret" dir="ltr" placeholder={t("webhooks:secret_auto")} />
+              <Label htmlFor="wh-secret">{t("field_secret")}</Label>
+              <Input id="wh-secret" name="secret" dir="ltr" placeholder={t("secret_auto")} />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>{t("webhooks:field_events")}</Label>
+              <Label>{t("field_events")}</Label>
               <div className="flex flex-wrap gap-3">
                 {EVENTS.map((ev) => (
                   <label key={ev} className="flex items-center gap-2 text-sm">
@@ -161,7 +163,7 @@ export default function WebhooksPage() {
             </div>
             <div className="md:col-span-2">
               <Button type="submit" disabled={create.isPending}>
-                {t("webhooks:create")}
+                {t("create")}
               </Button>
             </div>
           </form>
@@ -170,15 +172,15 @@ export default function WebhooksPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("webhooks:list_title")}</CardTitle>
+          <CardTitle>{t("list_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {endpoints.length === 0 ? (
-                <li className="text-muted-foreground px-4 py-3 text-sm">{t("webhooks:empty")}</li>
+                <li className="text-muted-foreground px-4 py-3 text-sm">{t("empty")}</li>
               ) : (
                 endpoints.map((ep) => (
                   <li
@@ -195,7 +197,7 @@ export default function WebhooksPage() {
                       </p>
                       {ep.last_delivered_at ? (
                         <p className="text-muted-foreground text-xs">
-                          {t("webhooks:last_delivered")}: {formatDateTime(ep.last_delivered_at)}
+                          {t("last_delivered")}: {formatDateTime(ep.last_delivered_at)}
                         </p>
                       ) : null}
                     </div>
@@ -206,7 +208,7 @@ export default function WebhooksPage() {
                         size="sm"
                         onClick={() => setEditingEndpoint(ep)}
                       >
-                        {t("dns:edit", { defaultValue: "Edit" })}
+                        {tDns("edit")}
                       </Button>
                       <Button
                         type="button"
@@ -215,7 +217,7 @@ export default function WebhooksPage() {
                         disabled={test.isPending}
                         onClick={() => test.mutate(ep.id)}
                       >
-                        {t("webhooks:test")}
+                        {t("test")}
                       </Button>
                       <Button
                         type="button"
@@ -223,19 +225,19 @@ export default function WebhooksPage() {
                         size="sm"
                         onClick={() => toggle.mutate({ id: ep.id, enabled: !ep.enabled })}
                       >
-                        {ep.enabled ? t("webhooks:enabled") : t("webhooks:disabled")}
+                        {ep.enabled ? t("enabled") : t("disabled")}
                       </Button>
                       <Button
                         type="button"
                         variant="destructive"
                         size="sm"
                         onClick={() => {
-                          if (window.confirm(t("webhooks:delete_confirm"))) {
+                          if (window.confirm(t("delete_confirm"))) {
                             remove.mutate(ep.id)
                           }
                         }}
                       >
-                        {t("webhooks:delete")}
+                        {t("delete")}
                       </Button>
                     </div>
                   </li>
@@ -248,13 +250,13 @@ export default function WebhooksPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("webhooks:deliveries_title")}</CardTitle>
+          <CardTitle>{t("deliveries_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="divide-y rounded-md border">
             {deliveries.length === 0 ? (
               <li className="text-muted-foreground px-4 py-3 text-sm">
-                {t("webhooks:deliveries_empty")}
+                {t("deliveries_empty")}
               </li>
             ) : (
               deliveries.map((d) => (
@@ -275,7 +277,7 @@ export default function WebhooksPage() {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{t("webhooks:edit_title", { defaultValue: "Edit webhook" })}</DialogTitle>
+            <DialogTitle>{t("edit_title")}</DialogTitle>
           </DialogHeader>
           {editingEndpoint ? (
             <form
@@ -298,7 +300,7 @@ export default function WebhooksPage() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="edit-wh-name">{t("webhooks:field_name")}</Label>
+                <Label htmlFor="edit-wh-name">{t("field_name")}</Label>
                 <Input
                   id="edit-wh-name"
                   name="name"
@@ -307,7 +309,7 @@ export default function WebhooksPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-wh-url">{t("webhooks:field_url")}</Label>
+                <Label htmlFor="edit-wh-url">{t("field_url")}</Label>
                 <Input
                   id="edit-wh-url"
                   name="url"
@@ -318,18 +320,16 @@ export default function WebhooksPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-wh-secret">{t("webhooks:field_secret")}</Label>
+                <Label htmlFor="edit-wh-secret">{t("field_secret")}</Label>
                 <Input
                   id="edit-wh-secret"
                   name="secret"
                   dir="ltr"
-                  placeholder={t("webhooks:secret_unchanged", {
-                    defaultValue: "Leave empty to keep current secret",
-                  })}
+                  placeholder={t("secret_unchanged")}
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t("webhooks:field_events")}</Label>
+                <Label>{t("field_events")}</Label>
                 <div className="flex flex-wrap gap-3">
                   {EVENTS.map((ev) => (
                     <label key={ev} className="flex items-center gap-2 text-sm">
@@ -352,7 +352,7 @@ export default function WebhooksPage() {
                   className="rounded"
                   defaultChecked={editingEndpoint.enabled}
                 />
-                {t("webhooks:enabled")}
+                {t("enabled")}
               </label>
               <div className="flex justify-end gap-2">
                 <Button
@@ -360,10 +360,10 @@ export default function WebhooksPage() {
                   variant="outline"
                   onClick={() => setEditingEndpoint(null)}
                 >
-                  {t("common:cancel")}
+                  {tCommon("cancel")}
                 </Button>
                 <Button type="submit" disabled={update.isPending}>
-                  {t("common:save")}
+                  {tCommon("save")}
                 </Button>
               </div>
             </form>

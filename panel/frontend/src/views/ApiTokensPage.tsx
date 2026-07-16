@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 import { useState } from "react"
 
 import { LocaleDatePicker } from "@/components/LocaleDatePicker"
@@ -34,7 +34,8 @@ function toApiDateTime(value: string): string {
 }
 
 export default function ApiTokensPage() {
-  const { t } = useTranslation(["tokens", "common"])
+  const t = useTranslations("tokens")
+  const tCommon = useTranslations("common")
   const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [plaintext, setPlaintext] = useState<string | null>(null)
@@ -69,15 +70,15 @@ export default function ApiTokensPage() {
       {plaintext ? (
         <Card className="border-primary">
           <CardHeader>
-            <CardTitle>{t("tokens:created_title")}</CardTitle>
+            <CardTitle>{t("created_title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-muted-foreground text-sm">{t("tokens:created_hint")}</p>
+            <p className="text-muted-foreground text-sm">{t("created_hint")}</p>
             <pre className="bg-muted overflow-x-auto rounded p-3 text-xs" dir="ltr">
               {plaintext}
             </pre>
             <Button type="button" variant="outline" onClick={() => setPlaintext(null)}>
-              {t("tokens:dismiss")}
+              {t("dismiss")}
             </Button>
           </CardContent>
         </Card>
@@ -85,7 +86,7 @@ export default function ApiTokensPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("tokens:create_title")}</CardTitle>
+          <CardTitle>{t("create_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form
@@ -104,11 +105,11 @@ export default function ApiTokensPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="token-name">{t("tokens:field_name")}</Label>
+              <Label htmlFor="token-name">{t("field_name")}</Label>
               <Input id="token-name" name="name" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="token-expires">{t("tokens:field_expires")}</Label>
+              <Label htmlFor="token-expires">{t("field_expires")}</Label>
               <LocaleDatePicker
                 id="token-expires"
                 value={expiresAt}
@@ -117,7 +118,7 @@ export default function ApiTokensPage() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>{t("tokens:field_abilities")}</Label>
+              <Label>{t("field_abilities")}</Label>
               <div className="flex flex-wrap gap-3">
                 {abilities.map((a) => (
                   <label key={a} className="flex items-center gap-2 text-sm">
@@ -129,7 +130,7 @@ export default function ApiTokensPage() {
             </div>
             <div className="md:col-span-2">
               <Button type="submit" disabled={create.isPending}>
-                {t("tokens:create")}
+                {t("create")}
               </Button>
             </div>
           </form>
@@ -138,15 +139,15 @@ export default function ApiTokensPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("tokens:list_title")}</CardTitle>
+          <CardTitle>{t("list_title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {tokens.length === 0 ? (
-                <li className="text-muted-foreground px-4 py-3 text-sm">{t("tokens:empty")}</li>
+                <li className="text-muted-foreground px-4 py-3 text-sm">{t("empty")}</li>
               ) : (
                 tokens.map((tok) => (
                   <li
@@ -160,11 +161,11 @@ export default function ApiTokensPage() {
                       </p>
                       {tok.expires_at ? (
                         <p className="text-muted-foreground text-xs">
-                          {t("tokens:expires")}: {formatDateTime(tok.expires_at)}
+                          {t("expires")}: {formatDateTime(tok.expires_at)}
                         </p>
                       ) : null}
                       <p className="text-muted-foreground text-xs">
-                        {t("tokens:created_label")}: {formatDateTime(tok.created_at)}
+                        {t("created_label")}: {formatDateTime(tok.created_at)}
                       </p>
                     </div>
                     <Button
@@ -172,12 +173,12 @@ export default function ApiTokensPage() {
                       variant="destructive"
                       size="sm"
                       onClick={() => {
-                        if (window.confirm(t("tokens:revoke_confirm"))) {
+                        if (window.confirm(t("revoke_confirm"))) {
                           remove.mutate(tok.id)
                         }
                       }}
                     >
-                      {t("tokens:revoke")}
+                      {t("revoke")}
                     </Button>
                   </li>
                 ))

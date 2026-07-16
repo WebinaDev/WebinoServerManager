@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +16,8 @@ type TicketResponse = {
 }
 
 export default function WebmailPage() {
-  const { t } = useTranslation(["webmail", "common"])
+  const t = useTranslations("webmail")
+  const tCommon = useTranslations("common")
   const [accounts, setAccounts] = useState<MailRow[]>([])
   const [accountId, setAccountId] = useState<string>("")
   const [iframeSrc, setIframeSrc] = useState<string | null>(null)
@@ -43,19 +44,19 @@ export default function WebmailPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("webmail:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-2">
-              <Label htmlFor="mail_account_id">{t("webmail:field_account")}</Label>
+              <Label htmlFor="mail_account_id">{t("field_account")}</Label>
               <select
                 id="mail_account_id"
                 className="border-input bg-background flex h-9 min-w-[12rem] rounded-md border px-3 text-sm"
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
               >
-                <option value="">{t("webmail:no_account")}</option>
+                <option value="">{t("no_account")}</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.address}
@@ -64,18 +65,18 @@ export default function WebmailPage() {
               </select>
             </div>
             <Button type="button" disabled={open.isPending} onClick={() => open.mutate()}>
-              {t("webmail:open")}
+              {t("open")}
             </Button>
           </div>
           {iframeSrc ? (
             <iframe
-              title={t("webmail:title")}
+              title={t("title")}
               src={iframeSrc}
               className="h-[70vh] w-full rounded-md border"
               sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
             />
           ) : (
-            <p className="text-muted-foreground text-sm">{t("webmail:hint")}</p>
+            <p className="text-muted-foreground text-sm">{t("hint")}</p>
           )}
         </CardContent>
       </Card>

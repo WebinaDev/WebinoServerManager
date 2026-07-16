@@ -15,9 +15,24 @@ x-panel-php-volumes: &panel-php-volumes
   - webino_backups:/var/backups/webino
 
 services:
-  panel-db:
+
+  web:
+    image: ${PANEL_CADDY_IMAGE:-caddy:2-alpine}
+    container_name: webinoserver-web
+    restart: unless-stopped
+    ports:
+      - "${PANEL_HTTP_PORT:-2090}:80"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - webino_panel
+
+  db:
     image: ${PANEL_MARIADB_IMAGE:-mariadb:11}
-    container_name: webinoserver-panel-db
+    container_name: webinoserver-db
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: webinoserver
@@ -35,73 +50,71 @@ services:
     networks:
       - webino_panel
 
-  panel-redis:
+  redis:
     image: ${PANEL_REDIS_IMAGE:-redis:7-alpine}
-    container_name: webinoserver-panel-redis
+    container_name: webinoserver-redis
     restart: unless-stopped
     networks:
       - webino_panel
 
-  panel-api:
+  backend:
     build: *panel-php-build
-    container_name: webinoserver-panel-api
+    container_name: webinoserver-backend
     restart: unless-stopped
     working_dir: /var/www/html
     env_file:
       - ./backend/.env
     environment:
-      REDIS_HOST: panel-redis
+      REDIS_HOST: redis
       WEBINO_BACKUP_DIR: /var/backups/webino
     volumes: *panel-php-volumes
     depends_on:
-      panel-db:
+      db:
         condition: service_healthy
-      panel-redis:
+      redis:
         condition: service_started
     networks:
       - webino_panel
       - webino_platform
 
-  panel-web:
+  frontend:
     build:
       context: ./frontend
       dockerfile: ../docker/next/Dockerfile
       args:
-        API_PROXY_TARGET: http://panel-api:8080
-        AGENT_WS_TARGET: http://panel-agent:9091
-        PHPMYADMIN_PROXY_TARGET: http://panel-phpmyadmin:80
-        PHPPGADMIN_PROXY_TARGET: http://panel-phppgadmin:80
-        ROUNDCUBE_PROXY_TARGET: http://panel-roundcube:80
-    container_name: webinoserver-panel-web
+        API_PROXY_TARGET: http://backend:8080
+        AGENT_WS_TARGET: http://agent:9091
+        PHPMYADMIN_PROXY_TARGET: http://phpmyadmin:80
+        PHPPGADMIN_PROXY_TARGET: http://phppgadmin:80
+        ROUNDCUBE_PROXY_TARGET: http://roundcube:80
+    container_name: webinoserver-frontend
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      INTERNAL_API_URL: http://panel-api:8080
-      API_PROXY_TARGET: http://panel-api:8080
-      AGENT_WS_TARGET: http://panel-agent:9091
-      PHPMYADMIN_PROXY_TARGET: http://panel-phpmyadmin:80
-      PHPPGADMIN_PROXY_TARGET: http://panel-phppgadmin:80
-      ROUNDCUBE_PROXY_TARGET: http://panel-roundcube:80
+      INTERNAL_API_URL: http://backend:8080
+      API_PROXY_TARGET: http://backend:8080
+      AGENT_WS_TARGET: http://agent:9091
+      PHPMYADMIN_PROXY_TARGET: http://phpmyadmin:80
+      PHPPGADMIN_PROXY_TARGET: http://phppgadmin:80
+      ROUNDCUBE_PROXY_TARGET: http://roundcube:80
       AUTH_COOKIE_NAME: webino_auth_token
     depends_on:
-      - panel-api
-      - panel-phpmyadmin
-      - panel-phppgadmin
-      - panel-roundcube
-    ports:
-      - "${PANEL_HTTP_PORT:-2090}:3000"
+      - backend
+      - phpmyadmin
+      - phppgadmin
+      - roundcube
     networks:
       - webino_panel
 
-  panel-phpmyadmin:
+  phpmyadmin:
     image: ${PANEL_PHPMYADMIN_IMAGE:-phpmyadmin:5-apache}
-    container_name: webinoserver-panel-phpmyadmin
+    container_name: webinoserver-phpmyadmin
     restart: unless-stopped
     environment:
       PMA_HOST: ${WEBINO_MYSQL_HOST:-host.docker.internal}
-      PMA_ABSOLUTE_URI: http://panel-web:3000/embed/phpmyadmin/
-      PMA_SIGNON_URL: http://panel-web:3000/embed/phpmyadmin/signon.php
-      PMA_VERIFY_URL: http://panel-api:8080/api/v1/embeds/phpmyadmin/verify
+      PMA_ABSOLUTE_URI: http://frontend:3000/embed/phpmyadmin/
+      PMA_SIGNON_URL: http://frontend:3000/embed/phpmyadmin/signon.php
+      PMA_VERIFY_URL: http://backend:8080/api/v1/embeds/phpmyadmin/verify
       WEBINO_AGENT_TOKEN: ${WEBINO_AGENT_TOKEN:?WEBINO_AGENT_TOKEN is required}
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -111,15 +124,15 @@ services:
     networks:
       - webino_panel
 
-  panel-phppgadmin:
+  phppgadmin:
     image: ${PANEL_PHPPGADMIN_IMAGE:-dockage/phppgadmin:latest}
-    container_name: webinoserver-panel-phppgadmin
+    container_name: webinoserver-phppgadmin
     restart: unless-stopped
     environment:
       PHP_PG_ADMIN_SERVER_HOST: ${WEBINO_PGSQL_HOST:-host.docker.internal}
       PHP_PG_ADMIN_SERVER_PORT: 5432
       PHP_PG_ADMIN_EXTRA_LOGIN_SECURITY: "false"
-      PPA_VERIFY_URL: http://panel-api:8080/api/v1/embeds/phppgadmin/verify
+      PPA_VERIFY_URL: http://backend:8080/api/v1/embeds/phppgadmin/verify
       WEBINO_AGENT_TOKEN: ${WEBINO_AGENT_TOKEN:?WEBINO_AGENT_TOKEN is required}
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -129,15 +142,15 @@ services:
     networks:
       - webino_panel
 
-  panel-roundcube:
+  roundcube:
     image: ${PANEL_ROUNDCUBE_IMAGE:-roundcube/roundcubemail:1.6.9-apache}
-    container_name: webinoserver-panel-roundcube
+    container_name: webinoserver-roundcube
     restart: unless-stopped
     environment:
       ROUNDCUBEMAIL_DEFAULT_HOST: ${WEBINO_IMAP_HOST:-host.docker.internal}
       ROUNDCUBEMAIL_SMTP_SERVER: ${WEBINO_SMTP_HOST:-host.docker.internal}
       ROUNDCUBEMAIL_DES_KEY: ${ROUNDCUBE_DES_KEY:?ROUNDCUBE_DES_KEY is required}
-      ROUNDCUBE_VERIFY_URL: http://panel-api:8080/api/v1/embeds/webmail/verify
+      ROUNDCUBE_VERIFY_URL: http://backend:8080/api/v1/embeds/webmail/verify
       WEBINO_AGENT_TOKEN: ${WEBINO_AGENT_TOKEN:?WEBINO_AGENT_TOKEN is required}
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -147,29 +160,27 @@ services:
     networks:
       - webino_panel
 
-  panel-docs:
+  docs:
     profiles:
       - dev
     build:
       context: ./docs
       dockerfile: ../docker/docs/Dockerfile
       args:
-        OPENAPI_URL: http://panel-api:8080/api/v1/openapi.json
-    container_name: webinoserver-panel-docs
+        OPENAPI_URL: http://backend:8080/api/v1/openapi.json
+    container_name: webinoserver-docs
     restart: unless-stopped
     depends_on:
-      - panel-api
-    ports:
-      - "${PANEL_DOCS_PORT:-2091}:3000"
+      - backend
     networks:
       - webino_panel
 
-  panel-agent:
+  agent:
     # Privileged host agent — see panel/docs/AGENT_SECURITY.md
     build:
       context: ./agent
       dockerfile: ../docker/agent/Dockerfile
-    container_name: webinoserver-panel-agent
+    container_name: webinoserver-agent
     restart: unless-stopped
     privileged: true
     pid: host
@@ -201,48 +212,48 @@ services:
     networks:
       - webino_panel
 
-  panel-scheduler:
+  scheduler:
     build: *panel-php-build
-    container_name: webinoserver-panel-scheduler
+    container_name: webinoserver-scheduler
     restart: unless-stopped
     working_dir: /var/www/html
     env_file:
       - ./backend/.env
     environment:
       RUN_MIGRATIONS: "0"
-      REDIS_HOST: panel-redis
+      REDIS_HOST: redis
       WEBINO_BACKUP_DIR: /var/backups/webino
     volumes: *panel-php-volumes
     depends_on:
-      panel-db:
+      db:
         condition: service_healthy
-      panel-redis:
+      redis:
         condition: service_started
-      panel-api:
+      backend:
         condition: service_started
     command: ["php", "artisan", "schedule:work"]
     networks:
       - webino_panel
       - webino_platform
 
-  panel-worker:
+  worker:
     build: *panel-php-build
-    container_name: webinoserver-panel-worker
+    container_name: webinoserver-worker
     restart: unless-stopped
     working_dir: /var/www/html
     env_file:
       - ./backend/.env
     environment:
       RUN_MIGRATIONS: "0"
-      REDIS_HOST: panel-redis
+      REDIS_HOST: redis
       WEBINO_BACKUP_DIR: /var/backups/webino
     volumes: *panel-php-volumes
     depends_on:
-      panel-db:
+      db:
         condition: service_healthy
-      panel-redis:
+      redis:
         condition: service_started
-      panel-api:
+      backend:
         condition: service_started
     command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=2"]
     networks:

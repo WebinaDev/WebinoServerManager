@@ -72,7 +72,7 @@ panel_compose_up() {
     override=$(mktemp)
     {
       echo "services:"
-      for svc in panel-api panel-scheduler panel-worker; do
+      for svc in backend scheduler worker; do
         echo "  ${svc}:"
         if [[ -n "${WEBINA_DOCKER_BUILD_NETWORK:-}" ]]; then
           echo "    build:"
@@ -124,7 +124,7 @@ panel_up() {
       die "Panel compose failed — try: WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1 ./install.sh --panel"
     fi
   fi
-  wait_for_panel_api "$COMPOSE" "$PANEL_ENV" 120 || die "Panel API did not become ready — check: docker logs webinoserver-panel-api --tail 100"
+  wait_for_panel_api "$COMPOSE" "$PANEL_ENV" 120 || die "Panel API did not become ready — check: docker logs webinoserver-backend --tail 100"
   local ip port
   ip=$(panel_detect_ip)
   port="${PANEL_HTTP_PORT:-2090}"
@@ -135,7 +135,7 @@ panel_up() {
   else
     log "API docs: enable with PANEL_DEV_PROFILE=1 or docker compose --profile dev"
   fi
-  log "Migrations and seed run automatically on panel-api startup."
+  log "Migrations and seed run automatically on backend startup."
   log "Agent security: see panel/docs/AGENT_SECURITY.md"
 }
 

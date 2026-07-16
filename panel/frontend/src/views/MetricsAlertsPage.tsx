@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -70,7 +70,9 @@ function Sparkline({ values }: { values: number[] }) {
 }
 
 export default function MetricsAlertsPage() {
-  const { t } = useTranslation(["metrics", "common", "dns"])
+  const t = useTranslations("metrics")
+  const tCommon = useTranslations("common")
+  const tDns = useTranslations("dns")
   const qc = useQueryClient()
   const [editingAlert, setEditingAlert] = useState<AlertRow | null>(null)
 
@@ -107,7 +109,7 @@ export default function MetricsAlertsPage() {
       cooldown_minutes: number
     }) => api("/api/v1/metrics/alerts", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("metrics:alert_created", { defaultValue: "Alert created" }))
+      toast.success(t("alert_created"))
       invalidate()
     },
     onError: toastMutationError,
@@ -117,7 +119,7 @@ export default function MetricsAlertsPage() {
     mutationFn: ({ id, body }: { id: number; body: Record<string, unknown> }) =>
       api(`/api/v1/metrics/alerts/${id}`, { method: "PATCH", json: body }),
     onSuccess: () => {
-      toast.success(t("metrics:alert_updated", { defaultValue: "Alert updated" }))
+      toast.success(t("alert_updated"))
       setEditingAlert(null)
       invalidate()
     },
@@ -128,7 +130,7 @@ export default function MetricsAlertsPage() {
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/api/v1/metrics/alerts/${id}`, { method: "PATCH", json: { enabled } }),
     onSuccess: () => {
-      toast.success(t("metrics:alert_updated", { defaultValue: "Alert updated" }))
+      toast.success(t("alert_updated"))
       invalidate()
     },
     onError: toastMutationError,
@@ -137,7 +139,7 @@ export default function MetricsAlertsPage() {
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/metrics/alerts/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("metrics:alert_deleted", { defaultValue: "Alert deleted" }))
+      toast.success(t("alert_deleted"))
       invalidate()
     },
     onError: toastMutationError,
@@ -150,19 +152,19 @@ export default function MetricsAlertsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("metrics:current_title")}</CardTitle>
+          <CardTitle>{t("current_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <UsageBar label={t("metrics:cpu")} percent={live?.cpu_percent} />
-          <UsageBar label={t("metrics:mem")} percent={live?.mem_percent} />
-          <UsageBar label={t("metrics:disk")} percent={live?.disk_percent} />
+          <UsageBar label={t("cpu")} percent={live?.cpu_percent} />
+          <UsageBar label={t("mem")} percent={live?.mem_percent} />
+          <UsageBar label={t("disk")} percent={live?.disk_percent} />
           <Sparkline values={cpuHistory} />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("metrics:alerts_title")}</CardTitle>
+          <CardTitle>{t("alerts_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -181,42 +183,42 @@ export default function MetricsAlertsPage() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="metric">{t("metrics:metric")}</Label>
+                <Label htmlFor="metric">{t("metric")}</Label>
                 <select
                   id="metric"
                   name="metric"
                   className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
                   defaultValue="cpu"
                 >
-                  <option value="cpu">{t("metrics:cpu")}</option>
-                  <option value="mem">{t("metrics:mem")}</option>
-                  <option value="disk">{t("metrics:disk")}</option>
-                  <option value="load">{t("metrics:load")}</option>
+                  <option value="cpu">{t("cpu")}</option>
+                  <option value="mem">{t("mem")}</option>
+                  <option value="disk">{t("disk")}</option>
+                  <option value="load">{t("load")}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="comparison">{t("metrics:comparison")}</Label>
+                <Label htmlFor="comparison">{t("comparison")}</Label>
                 <select
                   id="comparison"
                   name="comparison"
                   className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
                   defaultValue="gt"
                 >
-                  <option value="gt">{t("metrics:gt")}</option>
-                  <option value="lt">{t("metrics:lt")}</option>
+                  <option value="gt">{t("gt")}</option>
+                  <option value="lt">{t("lt")}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="threshold">{t("metrics:threshold")}</Label>
+                <Label htmlFor="threshold">{t("threshold")}</Label>
                 <Input id="threshold" name="threshold" type="number" step="0.1" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cooldown_minutes">{t("metrics:cooldown")}</Label>
+                <Label htmlFor="cooldown_minutes">{t("cooldown")}</Label>
                 <Input id="cooldown_minutes" name="cooldown_minutes" type="number" defaultValue={60} />
               </div>
               <div className="flex items-end">
                 <Button type="submit" disabled={create.isPending}>
-                  {t("metrics:add_alert")}
+                  {t("add_alert")}
                 </Button>
               </div>
             </form>
@@ -238,7 +240,7 @@ export default function MetricsAlertsPage() {
                       size="sm"
                       onClick={() => setEditingAlert(a)}
                     >
-                      {t("dns:edit", { defaultValue: "Edit" })}
+                      {tDns("edit")}
                     </Button>
                     <Button
                       type="button"
@@ -246,7 +248,7 @@ export default function MetricsAlertsPage() {
                       size="sm"
                       onClick={() => toggle.mutate({ id: a.id, enabled: !a.enabled })}
                     >
-                      {a.enabled ? t("metrics:enabled") : t("metrics:disabled")}
+                      {a.enabled ? t("enabled") : t("disabled")}
                     </Button>
                     <Button
                       type="button"
@@ -254,7 +256,7 @@ export default function MetricsAlertsPage() {
                       size="sm"
                       onClick={() => remove.mutate(a.id)}
                     >
-                      {t("metrics:delete")}
+                      {t("delete")}
                     </Button>
                   </div>
                 </RequireRouteWrite>
@@ -267,7 +269,7 @@ export default function MetricsAlertsPage() {
       <Dialog open={editingAlert !== null} onOpenChange={(open) => !open && setEditingAlert(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("metrics:edit_alert", { defaultValue: "Edit alert" })}</DialogTitle>
+            <DialogTitle>{t("edit_alert")}</DialogTitle>
           </DialogHeader>
           {editingAlert ? (
             <form
@@ -289,33 +291,33 @@ export default function MetricsAlertsPage() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="edit-metric">{t("metrics:metric")}</Label>
+                <Label htmlFor="edit-metric">{t("metric")}</Label>
                 <select
                   id="edit-metric"
                   name="metric"
                   className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
                   defaultValue={editingAlert.metric}
                 >
-                  <option value="cpu">{t("metrics:cpu")}</option>
-                  <option value="mem">{t("metrics:mem")}</option>
-                  <option value="disk">{t("metrics:disk")}</option>
-                  <option value="load">{t("metrics:load")}</option>
+                  <option value="cpu">{t("cpu")}</option>
+                  <option value="mem">{t("mem")}</option>
+                  <option value="disk">{t("disk")}</option>
+                  <option value="load">{t("load")}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-comparison">{t("metrics:comparison")}</Label>
+                <Label htmlFor="edit-comparison">{t("comparison")}</Label>
                 <select
                   id="edit-comparison"
                   name="comparison"
                   className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
                   defaultValue={editingAlert.comparison}
                 >
-                  <option value="gt">{t("metrics:gt")}</option>
-                  <option value="lt">{t("metrics:lt")}</option>
+                  <option value="gt">{t("gt")}</option>
+                  <option value="lt">{t("lt")}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-threshold">{t("metrics:threshold")}</Label>
+                <Label htmlFor="edit-threshold">{t("threshold")}</Label>
                 <Input
                   id="edit-threshold"
                   name="threshold"
@@ -326,7 +328,7 @@ export default function MetricsAlertsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-cooldown">{t("metrics:cooldown")}</Label>
+                <Label htmlFor="edit-cooldown">{t("cooldown")}</Label>
                 <Input
                   id="edit-cooldown"
                   name="cooldown_minutes"
@@ -341,14 +343,14 @@ export default function MetricsAlertsPage() {
                   className="rounded"
                   defaultChecked={editingAlert.enabled}
                 />
-                {t("metrics:enabled")}
+                {t("enabled")}
               </label>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setEditingAlert(null)}>
-                  {t("common:cancel")}
+                  {tCommon("cancel")}
                 </Button>
                 <Button type="submit" disabled={update.isPending}>
-                  {t("common:save")}
+                  {tCommon("save")}
                 </Button>
               </div>
             </form>

@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -42,7 +42,9 @@ function configPlaceholder(type: string): string {
 }
 
 export default function NotificationChannelsPage() {
-  const { t } = useTranslation(["monitoring", "common", "dns"])
+  const t = useTranslations("monitoring")
+  const tCommon = useTranslations("common")
+  const tDns = useTranslations("dns")
   const qc = useQueryClient()
   const [editingChannel, setEditingChannel] = useState<ChannelRow | null>(null)
 
@@ -57,7 +59,7 @@ export default function NotificationChannelsPage() {
     mutationFn: (body: Record<string, unknown>) =>
       api("/api/v1/monitoring/channels", { method: "POST", json: body }),
     onSuccess: () => {
-      toast.success(t("monitoring:channel_created", { defaultValue: "Channel created" }))
+      toast.success(t("channel_created"))
       invalidate()
     },
     onError: toastMutationError,
@@ -67,7 +69,7 @@ export default function NotificationChannelsPage() {
     mutationFn: ({ id, body }: { id: number; body: Record<string, unknown> }) =>
       api(`/api/v1/monitoring/channels/${id}`, { method: "PATCH", json: body }),
     onSuccess: () => {
-      toast.success(t("monitoring:channel_updated", { defaultValue: "Channel updated" }))
+      toast.success(t("channel_updated"))
       setEditingChannel(null)
       invalidate()
     },
@@ -78,7 +80,7 @@ export default function NotificationChannelsPage() {
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       api(`/api/v1/monitoring/channels/${id}`, { method: "PATCH", json: { enabled } }),
     onSuccess: () => {
-      toast.success(t("monitoring:channel_updated", { defaultValue: "Channel updated" }))
+      toast.success(t("channel_updated"))
       invalidate()
     },
     onError: toastMutationError,
@@ -87,7 +89,7 @@ export default function NotificationChannelsPage() {
   const remove = useMutation({
     mutationFn: (id: number) => api(`/api/v1/monitoring/channels/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success(t("monitoring:channel_deleted", { defaultValue: "Channel deleted" }))
+      toast.success(t("channel_deleted"))
       invalidate()
     },
     onError: toastMutationError,
@@ -97,7 +99,7 @@ export default function NotificationChannelsPage() {
     mutationFn: (id: number) =>
       api(`/api/v1/monitoring/channels/${id}/test`, { method: "POST" }),
     onSuccess: () => {
-      toast.success(t("monitoring:channel_tested", { defaultValue: "Test notification sent" }))
+      toast.success(t("channel_tested"))
     },
     onError: toastMutationError,
   })
@@ -108,7 +110,7 @@ export default function NotificationChannelsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("monitoring:channels_title")}</CardTitle>
+          <CardTitle>{t("channels_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <form
@@ -121,7 +123,7 @@ export default function NotificationChannelsPage() {
               try {
                 config = JSON.parse(String(fd.get("config") ?? "{}")) as Record<string, string>
               } catch {
-                toast.error(t("monitoring:invalid_config", { defaultValue: "Invalid JSON config" }))
+                toast.error(t("invalid_config"))
                 return
               }
               create.mutate({
@@ -133,11 +135,11 @@ export default function NotificationChannelsPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="channel-name">{t("monitoring:channel_name")}</Label>
+              <Label htmlFor="channel-name">{t("channel_name")}</Label>
               <Input id="channel-name" name="name" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="channel-type">{t("monitoring:channel_type")}</Label>
+              <Label htmlFor="channel-type">{t("channel_type")}</Label>
               <select
                 id="channel-type"
                 name="type"
@@ -151,7 +153,7 @@ export default function NotificationChannelsPage() {
               </select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="channel-config">{t("monitoring:channel_config")}</Label>
+              <Label htmlFor="channel-config">{t("channel_config")}</Label>
               <Textarea
                 id="channel-config"
                 name="config"
@@ -162,18 +164,18 @@ export default function NotificationChannelsPage() {
             </div>
             <div className="md:col-span-2">
               <Button type="submit" disabled={create.isPending}>
-                {t("monitoring:add_channel")}
+                {t("add_channel")}
               </Button>
             </div>
           </form>
 
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {channels.length === 0 ? (
                 <li className="text-muted-foreground px-4 py-3 text-sm">
-                  {t("monitoring:channels_empty")}
+                  {t("channels_empty")}
                 </li>
               ) : (
                 channels.map((ch) => (
@@ -192,7 +194,7 @@ export default function NotificationChannelsPage() {
                         size="sm"
                         onClick={() => setEditingChannel(ch)}
                       >
-                        {t("dns:edit", { defaultValue: "Edit" })}
+                        {tDns("edit")}
                       </Button>
                       <Button
                         type="button"
@@ -201,7 +203,7 @@ export default function NotificationChannelsPage() {
                         disabled={test.isPending}
                         onClick={() => test.mutate(ch.id)}
                       >
-                        {t("monitoring:test_channel")}
+                        {t("test_channel")}
                       </Button>
                       <Button
                         type="button"
@@ -209,19 +211,19 @@ export default function NotificationChannelsPage() {
                         size="sm"
                         onClick={() => toggle.mutate({ id: ch.id, enabled: !ch.enabled })}
                       >
-                        {ch.enabled ? t("monitoring:enabled") : t("monitoring:disabled")}
+                        {ch.enabled ? t("enabled") : t("disabled")}
                       </Button>
                       <Button
                         type="button"
                         variant="destructive"
                         size="sm"
                         onClick={() => {
-                          if (window.confirm(t("monitoring:delete_channel_confirm"))) {
+                          if (window.confirm(t("delete_channel_confirm"))) {
                             remove.mutate(ch.id)
                           }
                         }}
                       >
-                        {t("monitoring:delete")}
+                        {t("delete")}
                       </Button>
                     </div>
                   </li>
@@ -239,7 +241,7 @@ export default function NotificationChannelsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {t("monitoring:edit_channel", { defaultValue: "Edit notification channel" })}
+              {t("edit_channel")}
             </DialogTitle>
           </DialogHeader>
           {editingChannel ? (
@@ -253,7 +255,7 @@ export default function NotificationChannelsPage() {
                 try {
                   config = JSON.parse(String(fd.get("config") ?? "{}")) as Record<string, string>
                 } catch {
-                  toast.error(t("monitoring:invalid_config", { defaultValue: "Invalid JSON config" }))
+                  toast.error(t("invalid_config"))
                   return
                 }
                 update.mutate({
@@ -268,7 +270,7 @@ export default function NotificationChannelsPage() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="edit-channel-name">{t("monitoring:channel_name")}</Label>
+                <Label htmlFor="edit-channel-name">{t("channel_name")}</Label>
                 <Input
                   id="edit-channel-name"
                   name="name"
@@ -277,7 +279,7 @@ export default function NotificationChannelsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-channel-type">{t("monitoring:channel_type")}</Label>
+                <Label htmlFor="edit-channel-type">{t("channel_type")}</Label>
                 <select
                   id="edit-channel-type"
                   name="type"
@@ -291,7 +293,7 @@ export default function NotificationChannelsPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-channel-config">{t("monitoring:channel_config")}</Label>
+                <Label htmlFor="edit-channel-config">{t("channel_config")}</Label>
                 <Textarea
                   id="edit-channel-config"
                   name="config"
@@ -307,14 +309,14 @@ export default function NotificationChannelsPage() {
                   className="rounded"
                   defaultChecked={editingChannel.enabled}
                 />
-                {t("monitoring:enabled")}
+                {t("enabled")}
               </label>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setEditingChannel(null)}>
-                  {t("common:cancel")}
+                  {tCommon("cancel")}
                 </Button>
                 <Button type="submit" disabled={update.isPending}>
-                  {t("common:save")}
+                  {tCommon("save")}
                 </Button>
               </div>
             </form>

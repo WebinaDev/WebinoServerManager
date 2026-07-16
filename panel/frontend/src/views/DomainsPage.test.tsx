@@ -1,11 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    i18n: { language: "en" },
-  }),
+vi.mock("next-intl", () => ({
+  useTranslations: (ns: string) => (key: string) => `${ns}:${key}`,
+  useLocale: () => "en",
 }))
 
 vi.mock("next/navigation", () => ({

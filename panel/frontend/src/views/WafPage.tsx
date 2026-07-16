@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,7 +13,8 @@ type WafData = {
 }
 
 export default function WafPage() {
-  const { t } = useTranslation(["security", "common"])
+  const t = useTranslations("security")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["waf"],
@@ -30,18 +31,18 @@ export default function WafPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("security:waf_title")}</CardTitle>
+          <CardTitle>{t("waf_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <>
-              <p className="text-muted-foreground text-sm">{t("security:waf_description")}</p>
+              <p className="text-muted-foreground text-sm">{t("waf_description")}</p>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-muted-foreground text-sm">
-                  {t("security:firewall_status")}:{" "}
-                  {data?.enabled ? t("security:enabled") : t("security:disabled")}
+                  {t("firewall_status")}:{" "}
+                  {data?.enabled ? t("enabled") : t("disabled")}
                 </span>
                 {data?.conf ? (
                   <span className="text-muted-foreground font-mono text-xs" dir="ltr">
@@ -55,7 +56,7 @@ export default function WafPage() {
                   disabled={mutate.isPending || data?.enabled}
                   onClick={() => mutate.mutate(true)}
                 >
-                  {t("security:waf_enable")}
+                  {t("waf_enable")}
                 </Button>
                 <Button
                   type="button"
@@ -64,7 +65,7 @@ export default function WafPage() {
                   disabled={mutate.isPending || !data?.enabled}
                   onClick={() => mutate.mutate(false)}
                 >
-                  {t("security:waf_disable")}
+                  {t("waf_disable")}
                 </Button>
               </div>
             </>

@@ -1,7 +1,8 @@
 "use client"
 
+import { useTranslations, useLocale } from "next-intl"
+import { useChangeLocale } from "@/i18n/changeLocale"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,7 +35,10 @@ type UserProfile = {
 }
 
 export default function ProfileSettingsPage() {
-  const { t, i18n } = useTranslation(["profile", "common"])
+  const t = useTranslations("profile")
+  const tCommon = useTranslations("common")
+  const locale = useLocale()
+  const changeLocale = useChangeLocale()
   const qc = useQueryClient()
   useLocaleSync()
 
@@ -49,22 +53,22 @@ export default function ProfileSettingsPage() {
     onSuccess: async (_data, variables) => {
       await qc.invalidateQueries({ queryKey: ["auth-user"] })
       if (typeof variables.locale === "string") {
-        void i18n.changeLanguage(variables.locale)
+        changeLocale(variables.locale)
       }
     },
   })
 
   if (isLoading || !user) {
-    return <p className="p-6">{t("common:loading")}</p>
+    return <p className="p-6">{tCommon("loading")}</p>
   }
 
-  const profileLocale = normalizeUiLocale(user.locale ?? i18n.language)
+  const profileLocale = normalizeUiLocale(user.locale ?? locale)
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("profile:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form
@@ -80,11 +84,11 @@ export default function ProfileSettingsPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="profile-name">{t("profile:field_name")}</Label>
+              <Label htmlFor="profile-name">{t("field_name")}</Label>
               <Input id="profile-name" name="name" defaultValue={user.name} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile-timezone">{t("profile:field_timezone")}</Label>
+              <Label htmlFor="profile-timezone">{t("field_timezone")}</Label>
               <select
                 id="profile-timezone"
                 name="timezone"
@@ -99,7 +103,7 @@ export default function ProfileSettingsPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile-locale">{t("profile:field_locale")}</Label>
+              <Label htmlFor="profile-locale">{t("field_locale")}</Label>
               <select
                 id="profile-locale"
                 name="locale"
@@ -108,13 +112,13 @@ export default function ProfileSettingsPage() {
               >
                 {PUBLIC_UI_LOCALES.map((code) => (
                   <option key={code} value={code}>
-                    {t(`common:locale_${code}` as `common:locale_${PublicUiLocale}`)}
+                    {t(`locale_${code}` as `locale_${PublicUiLocale}`)}
                   </option>
                 ))}
               </select>
             </div>
             <Button type="submit" disabled={save.isPending}>
-              {t("common:save")}
+              {tCommon("save")}
             </Button>
           </form>
         </CardContent>

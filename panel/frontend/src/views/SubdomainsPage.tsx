@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -33,7 +33,8 @@ type SubdomainRow = {
 }
 
 export default function SubdomainsPage() {
-  const { t } = useTranslation(["subdomains", "common"])
+  const t = useTranslations("subdomains")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
 
   const { data: domains } = useQuery({
@@ -73,7 +74,7 @@ export default function SubdomainsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("subdomains:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -94,14 +95,14 @@ export default function SubdomainsPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="parent_domain">{t("subdomains:field_parent")}</Label>
+              <Label htmlFor="parent_domain">{t("field_parent")}</Label>
               <select
                 id="parent_domain"
                 name="parent_domain"
                 className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
                 required
               >
-                <option value="">{t("subdomains:select_parent")}</option>
+                <option value="">{t("select_parent")}</option>
                 {(domains?.domains ?? []).map((d) => (
                   <option key={d.id} value={d.domain}>
                     {d.domain}
@@ -110,11 +111,11 @@ export default function SubdomainsPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="subdomain">{t("subdomains:field_subdomain")}</Label>
+              <Label htmlFor="subdomain">{t("field_subdomain")}</Label>
               <Input id="subdomain" name="subdomain" required dir="ltr" className="font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="document_root">{t("subdomains:field_docroot")}</Label>
+              <Label htmlFor="document_root">{t("field_docroot")}</Label>
               <Input
                 id="document_root"
                 name="document_root"
@@ -124,13 +125,13 @@ export default function SubdomainsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="php_pool">{t("subdomains:field_php_pool")}</Label>
+              <Label htmlFor="php_pool">{t("field_php_pool")}</Label>
               <select
                 id="php_pool"
                 name="php_pool"
                 className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
               >
-                <option value="">{t("subdomains:no_php_pool")}</option>
+                <option value="">{t("no_php_pool")}</option>
                 {(phpPools?.pools ?? []).map((p) => (
                   <option key={p.name} value={p.name}>
                     {p.name}
@@ -141,22 +142,22 @@ export default function SubdomainsPage() {
             <div className="flex flex-col justify-end gap-2 text-sm">
               <label className="flex items-center gap-2">
                 <input type="checkbox" name="ssl_enabled" />
-                {t("subdomains:ssl_enabled")}
+                {t("ssl_enabled")}
               </label>
               <label className="flex items-center gap-2">
                 <input type="checkbox" name="force_https" />
-                {t("subdomains:force_https")}
+                {t("force_https")}
               </label>
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={create.isPending}>
-                {t("subdomains:add")}
+                {t("add")}
               </Button>
             </div>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.subdomains ?? []).map((s) => (
@@ -188,7 +189,7 @@ export default function SubdomainsPage() {
                         disabled={remove.isPending}
                         onClick={() => remove.mutate(s.id)}
                       >
-                        {t("subdomains:delete")}
+                        {t("delete")}
                       </Button>
                     </RequireRouteWrite>
                   </div>

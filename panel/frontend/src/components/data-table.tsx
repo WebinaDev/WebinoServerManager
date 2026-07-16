@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useTranslations } from "next-intl"
 
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -38,13 +39,16 @@ export function DataTable<T>({
   columns,
   data,
   rowKey,
-  searchPlaceholder = "Search…",
+  searchPlaceholder,
   searchFilter,
   pageSize = 10,
   isLoading = false,
-  emptyMessage = "No results.",
+  emptyMessage,
   toolbar,
 }: DataTableProps<T>) {
+  const t = useTranslations("common")
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t("search_placeholder")
+  const resolvedEmptyMessage = emptyMessage ?? t("no_results")
   const [query, setQuery] = useState("")
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
@@ -84,6 +88,8 @@ export function DataTable<T>({
   const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
   const safePage = Math.min(page, pageCount - 1)
   const pageRows = sorted.slice(safePage * pageSize, safePage * pageSize + pageSize)
+  const from = safePage * pageSize + 1
+  const to = Math.min((safePage + 1) * pageSize, sorted.length)
 
   function toggleSort(id: string) {
     const col = columns.find((c) => c.id === id)
@@ -108,7 +114,7 @@ export function DataTable<T>({
               setQuery(e.target.value)
               setPage(0)
             }}
-            placeholder={searchPlaceholder}
+            placeholder={resolvedSearchPlaceholder}
             className="max-w-xs"
           />
         ) : null}
@@ -145,7 +151,7 @@ export function DataTable<T>({
             ) : pageRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="text-muted-foreground h-24 text-center">
-                  {emptyMessage}
+                  {resolvedEmptyMessage}
                 </TableCell>
               </TableRow>
             ) : (
@@ -166,8 +172,7 @@ export function DataTable<T>({
       {sorted.length > pageSize ? (
         <div className="text-muted-foreground flex items-center justify-between text-sm">
           <span>
-            {safePage * pageSize + 1}–{Math.min((safePage + 1) * pageSize, sorted.length)} of{" "}
-            {sorted.length}
+            {t("pagination_of", { from, to, total: sorted.length })}
           </span>
           <div className="flex gap-2">
             <button
@@ -176,7 +181,7 @@ export function DataTable<T>({
               disabled={safePage <= 0}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
             >
-              Previous
+              {t("previous")}
             </button>
             <button
               type="button"
@@ -184,7 +189,7 @@ export function DataTable<T>({
               disabled={safePage >= pageCount - 1}
               onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
             >
-              Next
+              {t("next")}
             </button>
           </div>
         </div>

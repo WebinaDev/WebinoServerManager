@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl"
 import {
   Activity,
   Bell,
@@ -21,7 +22,6 @@ import {
 } from "lucide-react"
 import { useMemo } from "react"
 import { usePathname } from "next/navigation"
-import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 
 import type { NavMainItem } from "@/components/sidebar-07/nav-main"
@@ -85,7 +85,7 @@ function pathActive(pathname: string, path: string): boolean {
 }
 
 export function useDashboardNav() {
-  const { t } = useTranslation(["nav"])
+  const t = useTranslations("nav")
   const pathname = usePathname() ?? ""
 
   const { data } = useQuery({
@@ -97,10 +97,10 @@ export function useDashboardNav() {
     const sections = data?.sections ?? []
     const out: NavSection[] = [
       {
-        groupLabel: t("nav:section_overview"),
+        groupLabel: t("section_overview"),
         items: [
           {
-            title: t("nav:dashboard"),
+            title: t("dashboard"),
             url: "/",
             icon: LayoutDashboard,
             isActive: pathActive(pathname, "/"),
@@ -111,14 +111,14 @@ export function useDashboardNav() {
 
     for (const sec of sections) {
       const items: NavMainItem[] = sec.items.map((item) => ({
-        title: t(`nav:${item.label_key}` as never),
+        title: t(item.label_key as never),
         url: item.path,
         icon: ICONS[item.slug] ?? Settings,
         isActive: pathActive(pathname, item.path),
       }))
       if (items.length) {
         out.push({
-          groupLabel: t(`nav:${sec.label_key}` as never),
+          groupLabel: t(sec.label_key as never),
           items,
         })
       }

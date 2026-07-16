@@ -16,4 +16,5 @@ return [
     'reset_line' => 'You are receiving this email because we received a password reset request.',
     'reset_action' => 'Reset password',
     'reset_expire' => 'This link expires in :count minutes.',
+    'forbidden_ip' => 'Forbidden from this IP address.',
 ];

@@ -1,22 +1,22 @@
 "use client"
 
 import Image from "next/image"
-import { useTranslation } from "react-i18next"
+import { useTranslations } from "next-intl"
 
-import { LoginForm } from "@/components/login-02/login-form"
+import { LoginForm } from "@/components/login-04/login-form"
 import { LocaleSwitcher } from "@/components/LocaleSwitcher"
 import { SkipLink } from "@/components/SkipLink"
 import { useLocaleSync } from "@/hooks/useLocaleSync"
 
 export default function LoginPage() {
-  const { t } = useTranslation(["common"])
+  const t = useTranslations("common")
   useLocaleSync()
 
   return (
     <>
-      <SkipLink href="#login-form" labelKey="common:a11y_skip_to_login" />
-      <div className="grid min-h-svh lg:grid-cols-2">
-        <div className="flex flex-col gap-4 p-6 md:p-10">
+      <SkipLink href="#login-form" labelKey="a11y_skip_to_login" />
+      <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+        <div className="flex w-full max-w-sm flex-col gap-6 md:max-w-3xl">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 font-medium">
               <Image
@@ -27,23 +27,11 @@ export default function LoginPage() {
                 className="size-6 rounded-md"
                 priority
               />
-              {t("common:appName")}
+              {t("appName")}
             </div>
             <LocaleSwitcher />
           </div>
-          <div className="flex flex-1 items-center justify-center">
-            <div className="w-full max-w-xs">
-              <LoginForm id="login-form" />
-            </div>
-          </div>
-        </div>
-        <div className="relative hidden bg-muted lg:block">
-          <img
-            src="/placeholder.svg"
-            alt=""
-            fetchPriority="low"
-            className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-          />
+          <LoginForm />
         </div>
       </div>
     </>

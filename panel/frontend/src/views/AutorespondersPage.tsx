@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,7 +20,8 @@ type Autoresponder = {
 }
 
 export default function AutorespondersPage() {
-  const { t } = useTranslation(["email", "common"])
+  const t = useTranslations("email")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["email-autoresponders"],
@@ -44,7 +45,7 @@ export default function AutorespondersPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("email:autoresponders_title")}</CardTitle>
+          <CardTitle>{t("autoresponders_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -62,24 +63,24 @@ export default function AutorespondersPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="address">{t("email:field_address")}</Label>
+              <Label htmlFor="address">{t("field_address")}</Label>
               <Input id="address" name="address" type="email" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="subject">{t("email:autoresponders_subject")}</Label>
+              <Label htmlFor="subject">{t("autoresponders_subject")}</Label>
               <Input id="subject" name="subject" dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="body">{t("email:autoresponders_body")}</Label>
+              <Label htmlFor="body">{t("autoresponders_body")}</Label>
               <Textarea id="body" name="body" required rows={4} />
             </div>
             <Button type="submit" disabled={create.isPending}>
-              {t("email:autoresponders_add")}
+              {t("autoresponders_add")}
             </Button>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.autoresponders ?? []).map((a) => (
@@ -102,7 +103,7 @@ export default function AutorespondersPage() {
                       size="sm"
                       onClick={() => remove.mutate(a.id)}
                     >
-                      {t("email:delete")}
+                      {t("delete")}
                     </Button>
                   </RequireRouteWrite>
                 </li>

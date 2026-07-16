@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,7 +13,8 @@ import { api } from "@/lib/api"
 type ProductRow = { name?: string; version?: string }
 
 export default function ProductsPage() {
-  const { t } = useTranslation(["products", "common"])
+  const t = useTranslations("products")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["products"],
@@ -32,7 +33,7 @@ export default function ProductsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("products:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -48,7 +49,7 @@ export default function ProductsPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="product">{t("products:field_product")}</Label>
+              <Label htmlFor="product">{t("field_product")}</Label>
               <select
                 id="product"
                 name="product"
@@ -60,7 +61,7 @@ export default function ProductsPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="channel">{t("products:field_channel")}</Label>
+              <Label htmlFor="channel">{t("field_channel")}</Label>
               <select
                 id="channel"
                 name="channel"
@@ -74,13 +75,13 @@ export default function ProductsPage() {
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={install.isPending}>
-                {t("products:install")}
+                {t("install")}
               </Button>
             </div>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {products.map((p, i) => (

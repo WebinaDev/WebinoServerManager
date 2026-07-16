@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useEffect, useRef, useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -46,7 +46,8 @@ function useTargetRect(target?: string) {
 }
 
 export function OnboardingTour() {
-  const { t } = useTranslation(["onboarding", "common"])
+  const t = useTranslations("onboarding")
+  const tCommon = useTranslations("common")
   const { active, step, isLast, next, skip } = useOnboardingTour()
   const dialogRef = useRef<HTMLDivElement>(null)
   const targetRect = useTargetRect(step?.target)
@@ -83,7 +84,7 @@ export function OnboardingTour() {
       <button
         type="button"
         className="absolute inset-0 bg-black/50"
-        aria-label={t("onboarding:skip")}
+        aria-label={t("skip")}
         onClick={skip}
         tabIndex={-1}
       />
@@ -117,10 +118,10 @@ export function OnboardingTour() {
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={skip}>
-              {t("onboarding:skip")}
+              {t("skip")}
             </Button>
             <Button type="button" onClick={next}>
-              {isLast ? t("onboarding:done") : t("onboarding:next")}
+              {isLast ? t("done") : t("next")}
             </Button>
           </CardFooter>
         </Card>

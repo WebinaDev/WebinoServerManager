@@ -1,21 +1,22 @@
 "use client"
 
 import { useEffect } from "react"
-import { useTranslation } from "react-i18next"
+import { useLocale as useIntlLocale } from "next-intl"
 
 import { normalizeUiLocale } from "@/i18n/locales"
+import { setClientLocale } from "@/i18n/changeLocale"
 import { isRtlLocale, toAppLocale } from "@/lib/locale"
 
-/** Keeps <html lang/dir> and persisted locale aligned with i18n. */
+/** Keeps <html lang/dir> and persisted locale aligned with next-intl. */
 export function useLocaleSync() {
-  const { i18n } = useTranslation()
+  const locale = useIntlLocale()
 
   useEffect(() => {
-    const raw = i18n.resolvedLanguage ?? i18n.language
+    const raw = locale
     const normalized = normalizeUiLocale(raw)
 
     if (normalized !== raw && !raw.startsWith(normalized)) {
-      void i18n.changeLanguage(normalized)
+      setClientLocale(normalized)
       return
     }
 
@@ -25,5 +26,5 @@ export function useLocaleSync() {
     html.classList.remove("locale-en", "locale-fa")
     html.classList.add(toAppLocale(normalized) === "fa" ? "locale-fa" : "locale-en")
     localStorage.setItem("locale", normalized)
-  }, [i18n, i18n.language, i18n.resolvedLanguage])
+  }, [locale])
 }

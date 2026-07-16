@@ -4,19 +4,18 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react"
-import { I18nextProvider } from "react-i18next"
+import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
-import i18n from "@/i18n"
 import { normalizeUiLocale } from "@/i18n/locales"
 import { AppToaster } from "@/components/ui/sonner"
 import { isRtlLocale, toAppLocale } from "@/lib/locale"
 
-type ThemeMode = "light" | "dark"
 export type Accent =
   | "zinc"
   | "slate"
@@ -24,6 +23,8 @@ export type Accent =
   | "green"
   | "rose"
   | "orange"
+
+type ThemeMode = "light" | "dark"
 
 type ThemeCtx = {
   mode: ThemeMode
@@ -64,8 +65,10 @@ function readStoredLocale(): string {
   return localStorage.getItem("locale") ?? "fa"
 }
 
-export function AppProviders({ children }: { children: ReactNode }) {
+function AccentAndAuthProviders({ children }: { children: ReactNode }) {
+  const { resolvedTheme, setTheme } = useTheme()
   const [hydrated, setHydrated] = useState(false)
+  const [accent, setAccent] = useState<Accent>("zinc")
 
   const setToken = useCallback((_t: string | null) => {
     if (typeof window !== "undefined") {
@@ -73,27 +76,20 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const [mode, setMode] = useState<ThemeMode>("light")
-  const [accent, setAccent] = useState<Accent>("zinc")
+  const setMode = useCallback(
+    (m: ThemeMode) => {
+      setTheme(m)
+      localStorage.setItem("theme_mode", m)
+    },
+    [setTheme],
+  )
 
   useLayoutEffect(() => {
     localStorage.removeItem("auth_token")
-    const storedMode = localStorage.getItem("theme_mode") as ThemeMode | null
-    if (storedMode === "light" || storedMode === "dark") {
-      setMode(storedMode)
-    } else {
-      setMode(
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light",
-      )
-    }
     const storedAccent = localStorage.getItem("theme_accent") as Accent | null
     if (
       storedAccent &&
-      ["zinc", "slate", "blue", "green", "rose", "orange"].includes(
-        storedAccent,
-      )
+      ["zinc", "slate", "blue", "green", "rose", "orange"].includes(storedAccent)
     ) {
       setAccent(storedAccent)
     }
@@ -101,7 +97,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
     const normalized = normalizeUiLocale(locale)
     if (normalized !== locale) {
       localStorage.setItem("locale", normalized)
-      void i18n.changeLanguage(normalized)
+      document.cookie = `NEXT_LOCALE=${normalized};path=/;max-age=31536000`
     }
     document.documentElement.lang = normalized
     document.documentElement.dir = isRtlLocale(normalized) ? "rtl" : "ltr"
@@ -112,21 +108,17 @@ export function AppProviders({ children }: { children: ReactNode }) {
     setHydrated(true)
   }, [])
 
-  useLayoutEffect(() => {
-    if (!hydrated) {
-      return
-    }
-    localStorage.setItem("theme_mode", mode)
-    document.documentElement.classList.toggle("dark", mode === "dark")
-  }, [hydrated, mode])
-
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!hydrated) {
       return
     }
     localStorage.setItem("theme_accent", accent)
-    document.body.className = `theme-${accent} min-h-svh bg-background text-foreground font-sans antialiased`
+    document.documentElement.setAttribute("data-accent", accent)
+    document.body.className =
+      "min-h-svh bg-background text-foreground font-sans antialiased"
   }, [hydrated, accent])
+
+  const mode: ThemeMode = resolvedTheme === "dark" ? "dark" : "light"
 
   const themeValue = useMemo(
     () => ({
@@ -135,7 +127,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       accent,
       setAccent,
     }),
-    [mode, accent],
+    [mode, setMode, accent],
   )
 
   const authValue = useMemo(() => ({ setToken }), [setToken])
@@ -145,13 +137,25 @@ export function AppProviders({ children }: { children: ReactNode }) {
   }
 
   return (
-    <I18nextProvider i18n={i18n}>
-      <AuthContext.Provider value={authValue}>
-        <ThemeContext.Provider value={themeValue}>
-          {children}
-          <AppToaster />
-        </ThemeContext.Provider>
-      </AuthContext.Provider>
-    </I18nextProvider>
+    <AuthContext.Provider value={authValue}>
+      <ThemeContext.Provider value={themeValue}>
+        {children}
+        <AppToaster />
+      </ThemeContext.Provider>
+    </AuthContext.Provider>
+  )
+}
+
+export function AppProviders({ children }: { children: ReactNode }) {
+  return (
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      storageKey="theme_mode"
+    >
+      <AccentAndAuthProviders>{children}</AccentAndAuthProviders>
+    </NextThemesProvider>
   )
 }

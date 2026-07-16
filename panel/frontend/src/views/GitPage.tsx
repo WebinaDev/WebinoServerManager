@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,7 +21,8 @@ type GitRow = {
 }
 
 export default function GitPage() {
-  const { t } = useTranslation(["git", "common"])
+  const t = useTranslations("git")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["git"],
@@ -54,7 +55,7 @@ export default function GitPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("git:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -73,30 +74,30 @@ export default function GitPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="name">{t("git:field_name")}</Label>
+              <Label htmlFor="name">{t("field_name")}</Label>
               <Input id="name" name="name" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="branch">{t("git:field_branch")}</Label>
+              <Label htmlFor="branch">{t("field_branch")}</Label>
               <Input id="branch" name="branch" defaultValue="main" dir="ltr" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="repo_url">{t("git:field_repo_url")}</Label>
+              <Label htmlFor="repo_url">{t("field_repo_url")}</Label>
               <Input id="repo_url" name="repo_url" required dir="ltr" className="font-mono" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="target_dir">{t("git:field_target_dir")}</Label>
+              <Label htmlFor="target_dir">{t("field_target_dir")}</Label>
               <Input id="target_dir" name="target_dir" required dir="ltr" className="font-mono" />
             </div>
             <div className="md:col-span-2">
               <Button type="submit" disabled={create.isPending}>
-                {t("git:clone")}
+                {t("clone")}
               </Button>
             </div>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.repositories ?? []).map((r) => (
@@ -122,7 +123,7 @@ export default function GitPage() {
                         disabled={pull.isPending}
                         onClick={() => pull.mutate(r.id)}
                       >
-                        {t("git:pull")}
+                        {t("pull")}
                       </Button>
                       <Button
                         size="sm"
@@ -130,7 +131,7 @@ export default function GitPage() {
                         disabled={remove.isPending}
                         onClick={() => remove.mutate(r.id)}
                       >
-                        {t("git:delete")}
+                        {t("delete")}
                       </Button>
                     </RequireRouteWrite>
                   </div>

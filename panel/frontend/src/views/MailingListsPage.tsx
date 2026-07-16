@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,8 @@ type MailingList = {
 }
 
 export default function MailingListsPage() {
-  const { t } = useTranslation(["email", "common"])
+  const t = useTranslations("email")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["email-lists"],
@@ -40,7 +41,7 @@ export default function MailingListsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("email:lists_title")}</CardTitle>
+          <CardTitle>{t("lists_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -61,11 +62,11 @@ export default function MailingListsPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="source">{t("email:field_source")}</Label>
+              <Label htmlFor="source">{t("field_source")}</Label>
               <Input id="source" name="source" type="email" required dir="ltr" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="destinations">{t("email:lists_destinations")}</Label>
+              <Label htmlFor="destinations">{t("lists_destinations")}</Label>
               <Input
                 id="destinations"
                 name="destinations"
@@ -75,12 +76,12 @@ export default function MailingListsPage() {
               />
             </div>
             <Button type="submit" disabled={create.isPending}>
-              {t("email:lists_add")}
+              {t("lists_add")}
             </Button>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.lists ?? []).map((list) => (
@@ -104,7 +105,7 @@ export default function MailingListsPage() {
                       size="sm"
                       onClick={() => remove.mutate(list.id)}
                     >
-                      {t("email:delete")}
+                      {t("delete")}
                     </Button>
                   </RequireRouteWrite>
                 </li>

@@ -1,7 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,8 @@ type MailDomain = {
 }
 
 export default function EmailDomainsPage() {
-  const { t } = useTranslation(["email", "common"])
+  const t = useTranslations("email")
+  const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ["email-domains"],
@@ -49,7 +50,7 @@ export default function EmailDomainsPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("email:domains_title")}</CardTitle>
+          <CardTitle>{t("domains_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -63,16 +64,16 @@ export default function EmailDomainsPage() {
               }}
             >
               <div className="grow space-y-2">
-                <Label htmlFor="domain">{t("email:domains_field")}</Label>
+                <Label htmlFor="domain">{t("domains_field")}</Label>
                 <Input id="domain" name="domain" required dir="ltr" />
               </div>
               <Button type="submit" disabled={create.isPending}>
-                {t("email:domains_add")}
+                {t("domains_add")}
               </Button>
             </form>
           </RequireRouteWrite>
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.domains ?? []).map((d) => (
@@ -87,12 +88,12 @@ export default function EmailDomainsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            if (window.confirm(t("email:domains_delete_confirm"))) {
+                            if (window.confirm(t("domains_delete_confirm"))) {
                               remove.mutate(d.id)
                             }
                           }}
                         >
-                          {t("email:delete")}
+                          {t("delete")}
                         </Button>
                       </RequireRouteWrite>
                     </div>
@@ -111,7 +112,7 @@ export default function EmailDomainsPage() {
                     >
                       <div className="grow space-y-1">
                         <Label htmlFor={`catchall-${d.id}`} className="text-xs">
-                          {t("email:catchall")}
+                          {t("catchall")}
                         </Label>
                         <Input
                           id={`catchall-${d.id}`}
@@ -119,7 +120,7 @@ export default function EmailDomainsPage() {
                           type="email"
                           dir="ltr"
                           defaultValue={d.catch_all ?? ""}
-                          placeholder={t("email:catchall_placeholder")}
+                          placeholder={t("catchall_placeholder")}
                           className="h-8"
                         />
                       </div>
@@ -129,7 +130,7 @@ export default function EmailDomainsPage() {
                         size="sm"
                         disabled={updateCatchall.isPending}
                       >
-                        {t("email:catchall_save")}
+                        {t("catchall_save")}
                       </Button>
                     </form>
                   </RequireRouteWrite>

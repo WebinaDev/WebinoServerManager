@@ -19,7 +19,7 @@ export function isPublicUiLocale(lng: string): boolean {
   return (PUBLIC_UI_LOCALES as readonly string[]).includes(normalized)
 }
 
-export function localeLabelKey(lng: string): `common:locale_${UiLocale}` {
+export function localeLabelKey(lng: string): `locale_${UiLocale}` {
   const normalized = normalizeUiLocale(lng)
-  return `common:locale_${normalized}`
+  return `locale_${normalized}`
 }

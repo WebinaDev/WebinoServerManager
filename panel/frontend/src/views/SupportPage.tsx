@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,7 +34,8 @@ type TicketDetail = TicketRow & {
 }
 
 export default function SupportPage() {
-  const { t } = useTranslation(["support", "common"])
+  const t = useTranslations("support")
+  const tCommon = useTranslations("common")
   const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -82,7 +83,7 @@ export default function SupportPage() {
     <div className="flex flex-col gap-6 p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("support:title")}</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <RequireRouteWrite>
@@ -100,35 +101,35 @@ export default function SupportPage() {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="subject">{t("support:field_subject")}</Label>
+                <Label htmlFor="subject">{t("field_subject")}</Label>
                 <Input id="subject" name="subject" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="priority">{t("support:field_priority")}</Label>
+                <Label htmlFor="priority">{t("field_priority")}</Label>
                 <select
                   id="priority"
                   name="priority"
                   className="border-input bg-background flex h-9 w-full rounded-md border px-3 text-sm"
                   defaultValue="normal"
                 >
-                  <option value="low">{t("support:priority_low")}</option>
-                  <option value="normal">{t("support:priority_normal")}</option>
-                  <option value="high">{t("support:priority_high")}</option>
-                  <option value="urgent">{t("support:priority_urgent")}</option>
+                  <option value="low">{t("priority_low")}</option>
+                  <option value="normal">{t("priority_normal")}</option>
+                  <option value="high">{t("priority_high")}</option>
+                  <option value="urgent">{t("priority_urgent")}</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="body">{t("support:field_body")}</Label>
+                <Label htmlFor="body">{t("field_body")}</Label>
                 <Textarea id="body" name="body" required rows={4} />
               </div>
               <Button type="submit" disabled={create.isPending}>
-                {t("support:create")}
+                {t("create")}
               </Button>
             </form>
           </RequireRouteWrite>
 
           {isLoading ? (
-            <p>{t("common:loading")}</p>
+            <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.tickets ?? []).map((tk) => (
@@ -171,10 +172,10 @@ export default function SupportPage() {
                               e.currentTarget.reset()
                             }}
                           >
-                            <Textarea name="reply" rows={3} placeholder={t("support:reply_placeholder")} />
+                            <Textarea name="reply" rows={3} placeholder={t("reply_placeholder")} />
                             <div className="flex gap-2">
                               <Button type="submit" size="sm" disabled={reply.isPending}>
-                                {t("support:reply")}
+                                {t("reply")}
                               </Button>
                               <Button
                                 type="button"
@@ -183,13 +184,13 @@ export default function SupportPage() {
                                 disabled={close.isPending}
                                 onClick={() => close.mutate(ticket.id)}
                               >
-                                {t("support:close")}
+                                {t("close")}
                               </Button>
                             </div>
                           </form>
                         </RequireRouteWrite>
                       ) : (
-                        <p className="text-muted-foreground text-sm">{t("support:closed_label")}</p>
+                        <p className="text-muted-foreground text-sm">{t("closed_label")}</p>
                       )}
                     </div>
                   ) : null}

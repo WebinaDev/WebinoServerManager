@@ -1,7 +1,8 @@
 "use client"
 
+import { useTranslations, useLocale } from "next-intl"
+import { useChangeLocale } from "@/i18n/changeLocale"
 import { Languages } from "lucide-react"
-import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -23,8 +24,10 @@ type Props = {
 
 /** Compact locale switcher for auth pages; full toolbar in dashboard header. */
 export function LocaleSwitcher({ showTheme: _showTheme }: Props = {}) {
-  const { i18n, t } = useTranslation()
-  const lng = normalizeUiLocale(i18n.language)
+  const t = useTranslations("common")
+  const locale = useLocale()
+  const changeLocale = useChangeLocale()
+  const lng = normalizeUiLocale(locale)
 
   return (
     <DropdownMenu>
@@ -34,7 +37,7 @@ export function LocaleSwitcher({ showTheme: _showTheme }: Props = {}) {
           size="sm"
           type="button"
           className="ms-auto shrink-0"
-          aria-label={t("common:a11y_choose_locale")}
+          aria-label={t("a11y_choose_locale")}
         >
           <Languages className="size-4" />
           <span className="hidden sm:inline">{t(localeLabelKey(lng))}</span>
@@ -44,9 +47,9 @@ export function LocaleSwitcher({ showTheme: _showTheme }: Props = {}) {
         {PUBLIC_UI_LOCALES.map((code) => (
           <DropdownMenuItem
             key={code}
-            onClick={() => void i18n.changeLanguage(code)}
+            onClick={() => changeLocale(code)}
           >
-            {t(`common:locale_${code}` as `common:locale_${PublicUiLocale}`)}
+            {t(`locale_${code}` as `locale_${PublicUiLocale}`)}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

@@ -767,7 +767,7 @@ flowchart LR
 
 | Step | Command / check | Expected |
 |------|-----------------|----------|
-| 1 | `cd WebinoServer && ./install.sh --panel` | Stack starts; `panel-api` healthy |
+| 1 | `cd WebinoServerManager && ./install.sh --panel` | Stack starts; `panel-api` healthy |
 | 2 | `curl -sf http://<ip>:2090/api/v1/setup/status` | JSON `setup_required` or `completed` |
 | 3 | Login at `http://<ip>:2090` (HTTP install) | Session cookie set; dashboard loads |
 | 4 | `docker compose --env-file panel/.env -f panel/docker-compose.panel.yml ps` | All services `running`/`healthy` |
@@ -780,9 +780,9 @@ flowchart LR
 ### Install
 
 ```bash
-cd WebinoServer && ./install.sh --panel
+cd WebinoServerManager && ./install.sh --panel
 # Or full stack (creates webino_platform network):
-cd WebinoServer && ./install.sh --server --panel
+cd WebinoServerManager && ./install.sh --server --panel
 ```
 
 **Required:** always pass `--env-file panel/.env` when running compose manually:
