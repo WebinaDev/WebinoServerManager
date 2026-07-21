@@ -10,6 +10,8 @@ return [
     'unsuspended' => 'اکانت از حالت تعلیق خارج شد.',
     'suspend_failed' => 'تعلیق اکانت روی سرور ناموفق بود.',
     'unsuspend_failed' => 'خروج از تعلیق روی سرور ناموفق بود.',
+    'provision_failed' => 'ایجاد اکانت روی سرور ناموفق بود.',
+    'deprovision_failed' => 'حذف اکانت روی سرور ناموفق بود.',
     'quota_exceeded' => 'سهمیه :resource تمام شده است.',
     'quota_alert_saved' => 'هشدار سهمیه ذخیره شد.',
     'quota_alert_deleted' => 'هشدار سهمیه حذف شد.',

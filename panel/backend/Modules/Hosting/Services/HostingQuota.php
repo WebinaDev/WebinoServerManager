@@ -82,6 +82,10 @@ class HostingQuota
             'used' => (int) $account->inodes_used,
             'limit' => (int) ($plan?->inodes ?? 0),
         ];
+        $out['bandwidth'] = [
+            'used' => (int) ($account->bandwidth_used_mb ?? 0),
+            'limit' => (int) ($plan?->bandwidth_mb ?? 0),
+        ];
 
         return $out;
     }

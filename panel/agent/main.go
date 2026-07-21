@@ -96,6 +96,8 @@ func main() {
 	mux.HandleFunc("/v1/hosting/suspend", handleHostingSuspend)
 	mux.HandleFunc("/v1/hosting/unsuspend", handleHostingUnsuspend)
 	mux.HandleFunc("/v1/hosting/usage", handleHostingUsage)
+	mux.HandleFunc("/v1/hosting/provision", handleHostingProvision)
+	mux.HandleFunc("/v1/hosting/deprovision", handleHostingDeprovision)
 	mux.HandleFunc("/v1/databases/users", handleDatabaseUsers)
 	mux.HandleFunc("/v1/databases/remote-access", handleDatabaseRemoteAccess)
 	mux.HandleFunc("/v1/docker/containers", handleDockerContainers)

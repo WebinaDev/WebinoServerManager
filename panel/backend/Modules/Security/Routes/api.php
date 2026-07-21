@@ -16,6 +16,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/security/fail2ban/filters', [Fail2banController::class, 'filters']);
         Route::get('/security/sshkeys', [SshKeyController::class, 'index']);
         Route::get('/security/waf', [WafController::class, 'index']);
+        Route::get('/security/clamav/history', [ClamAvController::class, 'history']);
+        Route::get('/security/clamav/schedule', [ClamAvController::class, 'getSchedule']);
+        Route::post('/security/clamav/schedule', [ClamAvController::class, 'updateSchedule']);
         Route::get('/security/audit-log', [AuditLogController::class, 'index']);
         Route::get('/security/login-history', [AuditLogController::class, 'loginHistory']);
         Route::post('/security/firewall', [FirewallController::class, 'store']);

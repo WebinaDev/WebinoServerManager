@@ -13,6 +13,8 @@ type Summary = {
   domains: number
   databases: number
   sites: number
+  hosting_accounts?: number
+  hosting_suspended?: number
   system_status: string
   cpu_percent?: number
   mem_percent?: number
@@ -92,7 +94,7 @@ export default function DashboardHome({ initialSummary = null }: Props) {
           </span>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
           <div className="text-muted-foreground text-sm">{t("kpi_domains")}</div>
           <div className="text-2xl font-semibold">
@@ -112,6 +114,21 @@ export default function DashboardHome({ initialSummary = null }: Props) {
           </div>
         </div>
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
+          <div className="text-muted-foreground text-sm">{t("kpi_hosting")}</div>
+          <div className="text-2xl font-semibold">
+            {summary
+              ? formatNumber(summary.hosting_accounts ?? 0)
+              : tCommon("em_dash")}
+          </div>
+          {summary && (summary.hosting_suspended ?? 0) > 0 ? (
+            <div className="text-muted-foreground mt-1 text-xs">
+              {t("kpi_hosting_suspended", {
+                count: formatNumber(summary.hosting_suspended ?? 0),
+              })}
+            </div>
+          ) : null}
+        </div>
+        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
           <div className="text-muted-foreground text-sm">{t("kpi_system")}</div>
           <div className="text-2xl font-semibold">{statusLabel}</div>
         </div>
@@ -123,6 +140,10 @@ export default function DashboardHome({ initialSummary = null }: Props) {
               { label: t("kpi_domains"), value: summary.domains },
               { label: t("kpi_databases"), value: summary.databases },
               { label: t("kpi_sites"), value: summary.sites },
+              {
+                label: t("kpi_hosting"),
+                value: summary.hosting_accounts ?? 0,
+              },
             ]}
           />
         </div>

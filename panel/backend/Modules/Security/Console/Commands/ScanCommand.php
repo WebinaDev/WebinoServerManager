@@ -2,8 +2,10 @@
 
 namespace Modules\Security\Console\Commands;
 
+use App\Models\PanelSetting;
 use App\Services\Agent\AgentClient;
 use Illuminate\Console\Command;
+use Modules\Security\Entities\ClamAvScan;
 
 class ScanCommand extends Command
 {
@@ -13,19 +15,38 @@ class ScanCommand extends Command
 
     public function handle(AgentClient $agent): int
     {
-        $path = $this->argument('path') ?? '/var/www';
+        $path = $this->argument('path')
+            ?? PanelSetting::get('clamav_schedule_path', '/var/www');
+
+        $record = ClamAvScan::create([
+            'path' => $path,
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
+
         $result = $agent->post('/v1/security/clamav', [
             'action' => 'scan',
             'path' => $path,
         ]);
 
-        if (! ($result['ok'] ?? false)) {
+        $ok = $result['ok'] ?? false;
+        $payload = is_array($result['data'] ?? []) ? ($result['data'] ?? []) : [];
+
+        $record->update([
+            'status' => $ok ? 'completed' : 'failed',
+            'infected_json' => $payload['infected'] ?? [],
+            'finished_at' => now(),
+            'error' => $ok ? null : ($result['error'] ?? null),
+        ]);
+
+        if (! $ok) {
             $this->error($result['error'] ?? 'scan failed');
 
             return self::FAILURE;
         }
 
-        $this->info('ClamAV scan completed.');
+        $count = count($payload['infected'] ?? []);
+        $this->info("ClamAV scan completed. Infected files: {$count}");
 
         return self::SUCCESS;
     }

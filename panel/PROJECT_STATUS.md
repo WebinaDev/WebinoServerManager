@@ -70,10 +70,10 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | **Users** (multi-user + roles) | ✅ | ✅ | — | **Implemented** | `users.manage` enforced on all user routes |
 | **Metrics** (history + alerts) | ✅ | ✅ | ✅ structured `/v1/system/info` | **Partial** | Multi-channel alerts via `NotificationDispatcher`; live `current` when sample stale (>5 min) |
 | **Domains** | ✅ | ✅ | ✅ | **Implemented** | List from panel DB + registry; create/delete UI; agent sites on dashboard |
-| **Subdomains** | ✅ | ✅ | ✅ nginx vhost | **Partial** | PHP pool + SSL/HTTPS toggles; reconcile drift via `/v1/vhosts` |
+| **Subdomains** | ✅ | ✅ | ✅ nginx vhost | **Implemented** | PHP pool + SSL/HTTPS/HSTS + PATCH edit; hosting quota; reconcile via `/v1/vhosts` |
 | **Webserver** | ✅ | ✅ | ✅ nginx vhosts | **Partial** | nginx-only raw editor, redirects, proxy, SSL/HSTS; **Apache / HTTP-3 out of scope** (28.9 won't-fix) |
 | **Databases** | ✅ | ✅ | ✅ MySQL + PostgreSQL | **Implemented** | User CRUD, import/export, phpPgAdmin embed, remote IP UI; quota when `hosting_account_id` set |
-| **Hosting** | ✅ plans + accounts | ✅ | ✅ suspend/usage | **Partial** | Plans, accounts, suspend/unsuspend, quota service, usage metering, **per-account quota alerts**; resellers deferred |
+| **Hosting** | ✅ plans + accounts | ✅ | ✅ provision/suspend/usage | **Implemented** | Plans (incl. `max_apps`), accounts with OS provision/deprovision, quota, bandwidth metering, quota alerts; **reseller won't-fix** |
 | **Apps** (Docker containers) | ✅ | ✅ | ✅ docker.sock | **Partial** | Run/stop/logs/images + optional nginx proxy vhost; one-click catalog **ERP-deferred** (28.2) |
 | **Monitoring** (services, logs, uptime, channels) | ✅ | ✅ | ✅ systemctl/journalctl | **Partial** | Service control, log tail, HTTP/TCP uptime, Telegram/Slack/webhook/email; hosting quota breach alerts |
 | **Webhooks** (domain events, signed delivery) | ✅ | ✅ | — | **Implemented** | `backup.completed`, `ssl.expiring`, `alert.fired`, `user.created` |
@@ -115,7 +115,8 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | Mail accounts/forwarders/domains | Panel DB | Reconcile via agent `GET /v1/mail/accounts` |
 | Cron jobs | Panel DB | Reconcile via agent `GET /v1/cron` |
 | Backups | Panel DB | Reconcile via agent `GET /v1/backups` |
-| Git / WordPress / Subdomains | Panel DB | No |
+| Git / WordPress | Panel DB | No |
+| Subdomains | Panel DB | Reconcile via agent `GET /v1/vhosts` |
 | Docker apps | Panel DB (`docker_apps`) + agent container list merge | Live status via agent `GET /v1/docker/containers` |
 | Files | Agent `POST /v1/files` action `list` | **Yes — live** |
 | System info | Agent `GET /v1/system/info` | **Yes — live** |

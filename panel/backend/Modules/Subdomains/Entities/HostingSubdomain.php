@@ -9,6 +9,7 @@ class HostingSubdomain extends Model
     protected $table = 'hosting_subdomains';
 
     protected $fillable = [
+        'hosting_account_id',
         'parent_domain',
         'subdomain',
         'fqdn',
@@ -16,6 +17,7 @@ class HostingSubdomain extends Model
         'php_pool',
         'ssl_enabled',
         'force_https',
+        'hsts',
         'status',
         'last_error',
     ];
@@ -23,5 +25,6 @@ class HostingSubdomain extends Model
     protected $casts = [
         'ssl_enabled' => 'boolean',
         'force_https' => 'boolean',
+        'hsts' => 'boolean',
     ];
 }

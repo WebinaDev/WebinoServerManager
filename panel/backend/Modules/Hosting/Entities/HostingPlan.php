@@ -19,6 +19,7 @@ class HostingPlan extends Model
         'max_mailboxes',
         'max_ftp',
         'max_cron',
+        'max_apps',
         'price',
         'enabled',
     ];
@@ -35,6 +36,7 @@ class HostingPlan extends Model
             'max_mailboxes' => 'integer',
             'max_ftp' => 'integer',
             'max_cron' => 'integer',
+            'max_apps' => 'integer',
             'price' => 'decimal:2',
             'enabled' => 'boolean',
         ];

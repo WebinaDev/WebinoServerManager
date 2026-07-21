@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RequireRouteWrite } from "@/hooks/usePermissions"
 import { api } from "@/lib/api"
 import { toast, toastMutationError } from "@/lib/toast"
 
@@ -23,13 +24,17 @@ type AccountRow = {
   username: string
   primary_domain: string | null
   plan_id?: number
+  user_id?: number | null
   status: string
   disk_used_mb: number
   inodes_used: number
-  plan?: { name: string; disk_mb: number; inodes: number }
+  bandwidth_used_mb?: number
+  plan?: { name: string; disk_mb: number; inodes: number; bandwidth_mb?: number }
+  owner?: { id: number; name: string; email: string | null } | null
 }
 
 type PlanOption = { id: number; name: string }
+type UserOption = { id: number; name: string; username: string }
 
 type QuotaAlertRow = {
   id: number
@@ -50,7 +55,19 @@ const QUOTA_RESOURCES = [
   "ftp",
   "cron",
   "apps",
-]
+] as const
+
+function quotaResourceLabel(
+  t: (key: string) => string,
+  resource: string,
+): string {
+  const key = `quota_resource_${resource}`
+  try {
+    return t(key)
+  } catch {
+    return resource
+  }
+}
 
 function QuotaAlertsPanel({ accountId, username }: { accountId: number; username: string }) {
   const t = useTranslations("hosting")
@@ -196,7 +213,7 @@ function QuotaAlertsPanel({ accountId, username }: { accountId: number; username
         >
           {QUOTA_RESOURCES.map((r) => (
             <option key={r} value={r}>
-              {r}
+              {quotaResourceLabel(t, r)}
             </option>
           ))}
         </select>
@@ -333,10 +350,12 @@ export default function HostingAccountsPage() {
   const [username, setUsername] = useState("")
   const [planId, setPlanId] = useState("")
   const [domain, setDomain] = useState("")
+  const [ownerId, setOwnerId] = useState("")
   const [alertsAccountId, setAlertsAccountId] = useState<number | null>(null)
   const [editingAccount, setEditingAccount] = useState<AccountRow | null>(null)
   const [editPlanId, setEditPlanId] = useState("")
   const [editDomain, setEditDomain] = useState("")
+  const [editOwnerId, setEditOwnerId] = useState("")
 
   const { data, isLoading } = useQuery({
     queryKey: ["hosting-accounts"],
@@ -346,6 +365,11 @@ export default function HostingAccountsPage() {
   const { data: plansData } = useQuery({
     queryKey: ["hosting-plans"],
     queryFn: () => api<{ plans: PlanOption[] }>("/api/v1/hosting/plans"),
+  })
+
+  const { data: usersData } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => api<{ users: UserOption[] }>("/api/v1/users"),
   })
 
   const accounts = data?.accounts ?? []
@@ -364,6 +388,7 @@ export default function HostingAccountsPage() {
           username,
           plan_id: Number(planId),
           primary_domain: domain || null,
+          user_id: ownerId ? Number(ownerId) : null,
         },
       }),
     onSuccess: () => {
@@ -371,6 +396,7 @@ export default function HostingAccountsPage() {
       invalidate()
       setUsername("")
       setDomain("")
+      setOwnerId("")
     },
     onError: toastMutationError,
   })
@@ -402,14 +428,16 @@ export default function HostingAccountsPage() {
       id,
       plan_id,
       primary_domain,
+      user_id,
     }: {
       id: number
       plan_id: number
       primary_domain: string | null
+      user_id: number | null
     }) =>
       api(`/api/v1/hosting/accounts/${id}`, {
         method: "PATCH",
-        json: { plan_id, primary_domain },
+        json: { plan_id, primary_domain, user_id },
       }),
     onSuccess: () => {
       toast.success(t("account_saved"))
@@ -450,6 +478,11 @@ export default function HostingAccountsPage() {
               limit={a.plan.inodes}
               label={t("usage_inodes")}
             />
+            <UsageBar
+              used={a.bandwidth_used_mb ?? 0}
+              limit={a.plan.bandwidth_mb ?? 0}
+              label={t("usage_bandwidth")}
+            />
           </div>
         ) : (
           <span className="text-muted-foreground">{tCommon("em_dash")}</span>
@@ -459,50 +492,53 @@ export default function HostingAccountsPage() {
       id: "actions",
       header: tCommon("actions"),
       cell: (a) => (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setEditingAccount(a)
-              setEditPlanId(String(a.plan_id ?? ""))
-              setEditDomain(a.primary_domain ?? "")
-            }}
-          >
-            {tCommon("edit")}
-          </Button>
-          {a.status === "suspended" ? (
-            <Button size="sm" variant="outline" onClick={() => unsuspend.mutate(a.id)}>
-              {t("unsuspend")}
-            </Button>
-          ) : (
+        <RequireRouteWrite>
+          <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
               variant="outline"
               onClick={() => {
-                if (window.confirm(t("suspend_confirm"))) suspend.mutate(a.id)
+                setEditingAccount(a)
+                setEditPlanId(String(a.plan_id ?? ""))
+                setEditDomain(a.primary_domain ?? "")
+                setEditOwnerId(String(a.user_id ?? a.owner?.id ?? ""))
               }}
             >
-              {t("suspend")}
+              {tCommon("edit")}
             </Button>
-          )}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setAlertsAccountId((cur) => (cur === a.id ? null : a.id))}
-          >
-            {t("quota_alerts")}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              if (window.confirm(t("delete_account_confirm"))) remove.mutate(a.id)
-            }}
-          >
-            {tCommon("delete")}
-          </Button>
-        </div>
+            {a.status === "suspended" ? (
+              <Button size="sm" variant="outline" onClick={() => unsuspend.mutate(a.id)}>
+                {t("unsuspend")}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (window.confirm(t("suspend_confirm"))) suspend.mutate(a.id)
+                }}
+              >
+                {t("suspend")}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAlertsAccountId((cur) => (cur === a.id ? null : a.id))}
+            >
+              {t("quota_alerts")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (window.confirm(t("delete_account_confirm"))) remove.mutate(a.id)
+              }}
+            >
+              {tCommon("delete")}
+            </Button>
+          </div>
+        </RequireRouteWrite>
       ),
     },
   ]
@@ -514,37 +550,54 @@ export default function HostingAccountsPage() {
           <CardTitle>{t("accounts_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="space-y-1">
-              <Label>{t("field_username")}</Label>
-              <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+          <RequireRouteWrite>
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="space-y-1">
+                <Label>{t("field_username")}</Label>
+                <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("field_plan")}</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={planId}
+                  onChange={(e) => setPlanId(e.target.value)}
+                >
+                  <option value="">{t("select_plan")}</option>
+                  {(plansData?.plans ?? []).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label>{t("field_domain")}</Label>
+                <Input value={domain} onChange={(e) => setDomain(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("field_owner")}</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={ownerId}
+                  onChange={(e) => setOwnerId(e.target.value)}
+                >
+                  <option value="">{t("select_owner")}</option>
+                  {(usersData?.users ?? []).map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.username})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label>{t("field_plan")}</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                value={planId}
-                onChange={(e) => setPlanId(e.target.value)}
-              >
-                <option value="">{t("select_plan")}</option>
-                {(plansData?.plans ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label>{t("field_domain")}</Label>
-              <Input value={domain} onChange={(e) => setDomain(e.target.value)} />
-            </div>
-          </div>
-          <Button
-            onClick={() => create.mutate()}
-            disabled={create.isPending || !username || !planId}
-          >
-            {t("create_account")}
-          </Button>
+            <Button
+              onClick={() => create.mutate()}
+              disabled={create.isPending || !username || !planId}
+            >
+              {t("create_account")}
+            </Button>
+          </RequireRouteWrite>
 
           <DataTable
             columns={columns}
@@ -591,6 +644,21 @@ export default function HostingAccountsPage() {
               <Label>{t("field_domain")}</Label>
               <Input value={editDomain} onChange={(e) => setEditDomain(e.target.value)} />
             </div>
+            <div className="space-y-1">
+              <Label>{t("field_owner")}</Label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={editOwnerId}
+                onChange={(e) => setEditOwnerId(e.target.value)}
+              >
+                <option value="">{t("select_owner")}</option>
+                {(usersData?.users ?? []).map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.username})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <Button
             type="button"
@@ -601,6 +669,7 @@ export default function HostingAccountsPage() {
                 id: editingAccount.id,
                 plan_id: Number(editPlanId),
                 primary_domain: editDomain || null,
+                user_id: editOwnerId ? Number(editOwnerId) : null,
               })
             }}
           >

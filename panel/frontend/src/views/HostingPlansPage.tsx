@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RequireRouteWrite } from "@/hooks/usePermissions"
 import { api } from "@/lib/api"
 import { toast, toastMutationError } from "@/lib/toast"
 
@@ -30,6 +31,7 @@ type PlanRow = {
   max_mailboxes: number
   max_ftp: number
   max_cron: number
+  max_apps: number
   price: string | null
   enabled: boolean
 }
@@ -45,6 +47,7 @@ type PlanForm = {
   max_mailboxes: number
   max_ftp: number
   max_cron: number
+  max_apps: number
   price: string
   enabled: boolean
 }
@@ -60,6 +63,7 @@ const defaultPlan: PlanForm = {
   max_mailboxes: 5,
   max_ftp: 2,
   max_cron: 5,
+  max_apps: 5,
   price: "",
   enabled: true,
 }
@@ -75,6 +79,7 @@ const PLAN_FIELDS = [
   ["max_mailboxes", "field_max_mailboxes"],
   ["max_ftp", "field_max_ftp"],
   ["max_cron", "field_max_cron"],
+  ["max_apps", "field_max_apps"],
   ["price", "field_price"],
 ] as const
 
@@ -90,6 +95,7 @@ function planToForm(plan: PlanRow): PlanForm {
     max_mailboxes: plan.max_mailboxes,
     max_ftp: plan.max_ftp,
     max_cron: plan.max_cron,
+    max_apps: plan.max_apps ?? 5,
     price: plan.price ?? "",
     enabled: plan.enabled,
   }
@@ -188,13 +194,15 @@ export default function HostingPlansPage() {
           <CardTitle>{t("plans_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <PlanFields form={form} setForm={setForm} t={t} />
-          <Button
-            onClick={() => create.mutate(form)}
-            disabled={create.isPending || !form.name}
-          >
-            {t("create_plan")}
-          </Button>
+          <RequireRouteWrite>
+            <PlanFields form={form} setForm={setForm} t={t} />
+            <Button
+              onClick={() => create.mutate(form)}
+              disabled={create.isPending || !form.name}
+            >
+              {t("create_plan")}
+            </Button>
+          </RequireRouteWrite>
 
           {isLoading ? (
             <p>{tCommon("loading")}</p>

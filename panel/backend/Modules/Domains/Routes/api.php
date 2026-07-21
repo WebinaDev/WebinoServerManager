@@ -8,6 +8,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:domains.manage')->group(function () {
         Route::post('/domains', [DomainController::class, 'store']);
+        Route::patch('/domains/{domain}', [DomainController::class, 'update']);
         Route::delete('/domains/{domain}', [DomainController::class, 'destroy']);
     });
 });

@@ -65,6 +65,7 @@ class HostingPlanController extends Controller
             'max_mailboxes' => ['sometimes', 'integer', 'min:0'],
             'max_ftp' => ['sometimes', 'integer', 'min:0'],
             'max_cron' => ['sometimes', 'integer', 'min:0'],
+            'max_apps' => ['sometimes', 'integer', 'min:0'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'enabled' => ['sometimes', 'boolean'],
         ];

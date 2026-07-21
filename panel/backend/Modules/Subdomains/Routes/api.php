@@ -8,6 +8,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:domains.manage')->group(function () {
         Route::post('/subdomains', [SubdomainController::class, 'store']);
+        Route::patch('/subdomains/{subdomain}', [SubdomainController::class, 'update']);
         Route::delete('/subdomains/{subdomain}', [SubdomainController::class, 'destroy']);
     });
 });

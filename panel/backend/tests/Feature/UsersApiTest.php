@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\User;
 use Database\Seeders\RolesPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class UsersApiTest extends TestCase
@@ -69,5 +71,67 @@ class UsersApiTest extends TestCase
             ->getJson('/api/v1/roles')
             ->assertOk()
             ->assertJsonStructure(['roles', 'permissions']);
+    }
+
+    public function test_create_custom_role(): void
+    {
+        $perm = Permission::firstOrCreate(['name' => 'domains.read', 'guard_name' => 'web']);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/v1/roles', [
+                'name' => 'editor',
+                'permissions' => [$perm->name],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('role.name', 'editor');
+
+        $role = Role::query()->where('name', 'editor')->first();
+        $this->assertNotNull($role);
+        $this->assertTrue($role->hasPermissionTo($perm->name));
+    }
+
+    public function test_cannot_delete_admin_role(): void
+    {
+        $adminRole = Role::query()->where('name', 'admin')->first();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->deleteJson('/api/v1/roles/'.$adminRole->id)
+            ->assertStatus(422);
+    }
+
+    public function test_cannot_create_role_named_admin(): void
+    {
+        $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/v1/roles', [
+                'name' => 'admin',
+                'permissions' => [],
+            ])
+            ->assertStatus(422);
+    }
+
+    public function test_update_role_permissions(): void
+    {
+        $role = Role::create(['name' => 'custom-role', 'guard_name' => 'web']);
+        $perm = Permission::firstOrCreate(['name' => 'domains.read', 'guard_name' => 'web']);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->patchJson('/api/v1/roles/'.$role->id, [
+                'permissions' => [$perm->name],
+            ])
+            ->assertOk()
+            ->assertJsonPath('role.name', 'custom-role');
+
+        $this->assertTrue($role->fresh()->hasPermissionTo($perm->name));
+    }
+
+    public function test_delete_unused_custom_role(): void
+    {
+        $role = Role::create(['name' => 'disposable', 'guard_name' => 'web']);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->deleteJson('/api/v1/roles/'.$role->id)
+            ->assertOk();
+
+        $this->assertNull(Role::query()->where('name', 'disposable')->first());
     }
 }

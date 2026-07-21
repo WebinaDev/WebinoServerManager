@@ -18,6 +18,7 @@ class HostingAccount extends Model
         'suspend_reason',
         'disk_used_mb',
         'inodes_used',
+        'bandwidth_used_mb',
         'last_usage_at',
     ];
 
@@ -26,6 +27,7 @@ class HostingAccount extends Model
         return [
             'disk_used_mb' => 'integer',
             'inodes_used' => 'integer',
+            'bandwidth_used_mb' => 'integer',
             'suspended_at' => 'datetime',
             'last_usage_at' => 'datetime',
         ];

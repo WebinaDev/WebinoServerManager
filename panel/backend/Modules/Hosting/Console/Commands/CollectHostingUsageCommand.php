@@ -36,10 +36,11 @@ class CollectHostingUsageCommand extends Command
             $account->update([
                 'disk_used_mb' => (int) ($data['disk_mb'] ?? 0),
                 'inodes_used' => (int) ($data['inodes'] ?? 0),
+                'bandwidth_used_mb' => (int) ($data['bandwidth_mb'] ?? 0),
                 'last_usage_at' => now(),
             ]);
 
-            $this->line("Updated {$account->username}: {$data['disk_mb']} MB, {$data['inodes']} inodes");
+            $this->line("Updated {$account->username}: {$data['disk_mb']} MB disk, {$data['inodes']} inodes, ".((int) ($data['bandwidth_mb'] ?? 0)).' MB bandwidth');
 
             $this->evaluateQuotaAlerts($account, $quota, $dispatcher);
         }

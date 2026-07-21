@@ -57,6 +57,15 @@ export default function Fail2banPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["fail2ban-filters"] }),
   })
 
+  const deleteFilter = useMutation({
+    mutationFn: (name: string) =>
+      api("/api/v1/security/fail2ban/filters", {
+        method: "POST",
+        json: { name, content: "", action: "delete" },
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["fail2ban-filters"] }),
+  })
+
   const jails = data?.jails ?? []
   const filterRows = filters.data?.filters ?? []
 
@@ -137,9 +146,24 @@ export default function Fail2banPage() {
                   ) : (
                     filterRows.map((f) => (
                       <li key={f.name} className="space-y-2 px-4 py-3 text-sm">
-                        <p className="font-medium" dir="ltr">
-                          {f.name}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium" dir="ltr">
+                            {f.name}
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            disabled={deleteFilter.isPending}
+                            onClick={() => {
+                              if (window.confirm(t("fail2ban_filter_delete_confirm", { name: f.name }))) {
+                                deleteFilter.mutate(f.name)
+                              }
+                            }}
+                          >
+                            {t("fail2ban_filter_delete")}
+                          </Button>
+                        </div>
                         <pre
                           className="bg-muted max-h-40 overflow-auto rounded p-2 text-xs whitespace-pre-wrap"
                           dir="ltr"

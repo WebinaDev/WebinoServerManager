@@ -35,9 +35,21 @@ class HostingAccountController extends Controller
             'primary_domain' => ['nullable', 'string', 'max:253'],
         ]);
 
+        $username = strtolower($data['username']);
+
+        $provision = $this->agent->post('/v1/hosting/provision', [
+            'username' => $username,
+        ]);
+
+        if (! ($provision['ok'] ?? false)) {
+            return response()->json([
+                'message' => $provision['error'] ?? __('hosting.provision_failed'),
+            ], 422);
+        }
+
         $account = HostingAccount::query()->create([
             'plan_id' => $data['plan_id'],
-            'username' => strtolower($data['username']),
+            'username' => $username,
             'user_id' => $data['user_id'] ?? null,
             'primary_domain' => $data['primary_domain'] ?? null,
             'status' => 'active',
@@ -45,6 +57,7 @@ class HostingAccountController extends Controller
 
         return response()->json([
             'account' => $account->load(['plan', 'owner']),
+            'agent' => $provision,
             'message' => __('hosting.account_saved'),
         ], 201);
     }
@@ -67,6 +80,16 @@ class HostingAccountController extends Controller
 
     public function destroy(HostingAccount $account): JsonResponse
     {
+        $result = $this->agent->post('/v1/hosting/deprovision', [
+            'username' => $account->username,
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json([
+                'message' => $result['error'] ?? __('hosting.deprovision_failed'),
+            ], 422);
+        }
+
         $account->delete();
 
         return response()->json(['message' => __('hosting.account_deleted')]);

@@ -10,6 +10,8 @@ return [
     'unsuspended' => 'Account unsuspended.',
     'suspend_failed' => 'Failed to suspend account on host.',
     'unsuspend_failed' => 'Failed to unsuspend account on host.',
+    'provision_failed' => 'Failed to provision account on host.',
+    'deprovision_failed' => 'Failed to deprovision account on host.',
     'quota_exceeded' => 'Quota exceeded for :resource.',
     'quota_alert_saved' => 'Quota alert saved.',
     'quota_alert_deleted' => 'Quota alert removed.',

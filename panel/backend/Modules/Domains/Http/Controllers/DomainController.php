@@ -7,10 +7,15 @@ use App\Services\Agent\AgentClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Domains\Entities\HostingDomain;
+use Modules\Hosting\Entities\HostingAccount;
+use Modules\Hosting\Services\HostingQuota;
 
 class DomainController extends Controller
 {
-    public function __construct(private readonly AgentClient $agent) {}
+    public function __construct(
+        private readonly AgentClient $agent,
+        private readonly HostingQuota $quota,
+    ) {}
 
     public function index(): JsonResponse
     {
@@ -34,9 +39,16 @@ class DomainController extends Controller
             'domain' => ['required', 'string', 'max:253'],
             'slug' => ['nullable', 'string', 'max:63'],
             'aliases' => ['nullable', 'string'],
+            'hosting_account_id' => ['nullable', 'integer', 'exists:hosting_accounts,id'],
         ]);
 
+        if (! empty($data['hosting_account_id'])) {
+            $account = HostingAccount::findOrFail($data['hosting_account_id']);
+            $this->quota->assert($account, 'domains');
+        }
+
         $domain = HostingDomain::query()->create([
+            'hosting_account_id' => $data['hosting_account_id'] ?? null,
             'domain' => strtolower($data['domain']),
             'slug' => $data['slug'] ?? null,
             'aliases' => $data['aliases'] ?? null,
@@ -58,6 +70,22 @@ class DomainController extends Controller
         $domain->update(['status' => 'active', 'last_error' => null]);
 
         return response()->json(['domain' => $domain->fresh(), 'agent' => $result], 201);
+    }
+
+    public function update(Request $request, HostingDomain $domain): JsonResponse
+    {
+        $data = $request->validate([
+            'aliases' => ['nullable', 'string'],
+            'slug' => ['nullable', 'string', 'max:63'],
+            'hosting_account_id' => ['nullable', 'integer', 'exists:hosting_accounts,id'],
+        ]);
+
+        $domain->update(array_filter($data, fn ($v) => $v !== null) + [
+            'aliases' => $data['aliases'] ?? null,
+            'hosting_account_id' => $data['hosting_account_id'] ?? null,
+        ]);
+
+        return response()->json(['domain' => $domain->fresh()]);
     }
 
     public function destroy(HostingDomain $domain): JsonResponse

@@ -71,8 +71,103 @@ func handleHostingUsage(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
 		return
 	}
-	data, _ := json.Marshal(map[string]any{"disk_mb": disk, "inodes": inodes})
+	bw := hostingBandwidthForAccount(account)
+	data, _ := json.Marshal(map[string]any{"disk_mb": disk, "inodes": inodes, "bandwidth_mb": bw})
 	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+}
+
+func handleHostingProvision(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeMethod(w)
+		return
+	}
+	var body struct {
+		Username string `json:"username"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Username == "" {
+		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "username required"})
+		return
+	}
+	if err := provisionHostingAccount(body.Username); err != nil {
+		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+		return
+	}
+	data, _ := json.Marshal(map[string]string{"username": body.Username, "home": hostingHomePath(body.Username)})
+	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+}
+
+func handleHostingDeprovision(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeMethod(w)
+		return
+	}
+	var body struct {
+		Username string `json:"username"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Username == "" {
+		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "username required"})
+		return
+	}
+	if err := deprovisionHostingAccount(body.Username); err != nil {
+		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+		return
+	}
+	data, _ := json.Marshal(map[string]string{"username": body.Username, "status": "deleted"})
+	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+}
+
+func provisionHostingAccount(username string) error {
+	home := hostingHomePath(username)
+	if _, err := os.Stat(home); err == nil {
+		return fmt.Errorf("home already exists")
+	}
+	if out, err := runArgv([]string{"id", "-u", username}, ""); err == nil && strings.TrimSpace(out) != "" {
+		return fmt.Errorf("unix user already exists")
+	}
+	if _, err := runArgv([]string{"useradd", "-m", "-d", home, "-s", "/usr/sbin/nologin", username}, ""); err != nil {
+		return fmt.Errorf("useradd: %w", err)
+	}
+	public := filepath.Join(home, "public_html")
+	_ = os.MkdirAll(public, 0o755)
+	_ = os.Chown(public, uidFor(username), gidFor(username))
+	_ = os.WriteFile(filepath.Join(home, ".webino_account"), []byte(username+"\n"), 0o644)
+	return nil
+}
+
+func deprovisionHostingAccount(username string) error {
+	_ = setHostingSuspended(username, true)
+	home := hostingHomePath(username)
+	_, _ = runArgv([]string{"userdel", "-r", username}, "")
+	_ = os.RemoveAll(home)
+	return nil
+}
+
+func uidFor(username string) int {
+	out, err := runArgv([]string{"id", "-u", username}, "")
+	if err != nil {
+		return 0
+	}
+	n, _ := strconv.Atoi(strings.TrimSpace(out))
+	return n
+}
+
+func gidFor(username string) int {
+	out, err := runArgv([]string{"id", "-g", username}, "")
+	if err != nil {
+		return 0
+	}
+	n, _ := strconv.Atoi(strings.TrimSpace(out))
+	return n
+}
+
+func hostingBandwidthForAccount(username string) int {
+	home := hostingHomePath(username)
+	raw, err := os.ReadFile(filepath.Join(home, ".webino_bandwidth_mb"))
+	if err != nil {
+		return 0
+	}
+	n, _ := strconv.Atoi(strings.TrimSpace(string(raw)))
+	return n
 }
 
 func hostingHomePath(username string) string {
@@ -90,6 +185,9 @@ func setHostingSuspended(username string, suspend bool) error {
 		_, _ = runArgv([]string{"pure-pw", "usermod", username, "-r"}, "")
 		_, _ = runArgv([]string{"sh", "-c", fmt.Sprintf("crontab -u %s -l 2>/dev/null | sed 's/^/#SUSPENDED#/' | crontab -u %s -", shellQuote(username), shellQuote(username))}, "")
 		_ = os.WriteFile(filepath.Join(home, ".webino_suspended"), []byte("1"), 0o644)
+		// Soft-lock mail: marker for reconcile/mail tooling; doveadm lock when available.
+		_ = os.WriteFile(filepath.Join(home, ".webino_mail_locked"), []byte("1"), 0o644)
+		_, _ = runArgv([]string{"sh", "-c", fmt.Sprintf("doveadm auth cache flush 2>/dev/null; true")}, "")
 		return nil
 	}
 	if err := enableNginxVhostsForUser(username); err != nil {
@@ -98,6 +196,7 @@ func setHostingSuspended(username string, suspend bool) error {
 	_, _ = runArgv([]string{"pure-pw", "usermod", username, "-r", home}, "")
 	_, _ = runArgv([]string{"sh", "-c", fmt.Sprintf("crontab -u %s -l 2>/dev/null | sed 's/^#SUSPENDED#//' | crontab -u %s -", shellQuote(username), shellQuote(username))}, "")
 	_ = os.Remove(filepath.Join(home, ".webino_suspended"))
+	_ = os.Remove(filepath.Join(home, ".webino_mail_locked"))
 	return nil
 }
 

@@ -7,6 +7,7 @@ use App\Services\Agent\AgentClient;
 use Illuminate\Http\JsonResponse;
 use Modules\Databases\Entities\HostingDatabase;
 use Modules\Domains\Entities\HostingDomain;
+use Modules\Hosting\Entities\HostingAccount;
 use Modules\Metrics\Entities\MetricAlert;
 use Modules\Metrics\Entities\MetricSample;
 
@@ -52,11 +53,16 @@ class DashboardController extends Controller
             $sitesCount = 0;
         }
 
+        $hostingAccounts = HostingAccount::query()->count();
+        $hostingSuspended = HostingAccount::query()->where('status', 'suspended')->count();
+
         return response()->json([
             'data' => [
                 'domains' => HostingDomain::query()->count(),
                 'databases' => HostingDatabase::query()->count(),
                 'sites' => $sitesCount,
+                'hosting_accounts' => $hostingAccounts,
+                'hosting_suspended' => $hostingSuspended,
                 'system_status' => $systemStatus,
                 'cpu_percent' => $sample?->cpu_percent,
                 'mem_percent' => $sample?->mem_percent,
