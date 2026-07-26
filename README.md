@@ -42,7 +42,7 @@ If Docker Hub is blocked in your region, panel/platform image pulls auto-configu
 | **Full stack (local)** | `./install.sh --server --panel --yes` | Platform bootstrap, then panel stack |
 | **Daily ops** | `webina` | Interactive dialog menu for sites and products |
 
-After panel install, open `http://<server-ip>:2090` and complete the setup wizard. See [panel/README.md](panel/README.md).
+After panel install, open `http://<server-ip>:2090/setup` to create the admin and install the hosting stack (Nginx/MariaDB/PHP, …) via the setup wizard. See [panel/README.md](panel/README.md).
 
 ## Update & rebuild (VPS)
 

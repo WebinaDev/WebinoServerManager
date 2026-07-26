@@ -22,6 +22,17 @@ var softstoreScriptIDs = map[string]bool{
 	"install_python_distro":   true,
 	"install_go_distro":       true,
 	"install_java_distro":     true,
+	"install_nginx":           true,
+	"install_apache":          true,
+	"install_mariadb":         true,
+	"install_mysql":           true,
+	"install_php_fpm_81":      true,
+	"install_php_fpm_82":      true,
+	"install_php_fpm_83":      true,
+	"install_php_fpm_84":      true,
+	"install_pureftpd":        true,
+	"ensure_ufw_baseline":     true,
+	"ensure_fail2ban":         true,
 }
 
 func handleSoftstoreStatus(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +92,11 @@ func probeSoftstorePackage(name string) map[string]any {
 	case "wordpress-cms":
 		detail = "install via website document root"
 	default:
-		detail = "unknown package"
+		if installed2, detail2, ok := probeSoftstoreStackPackage(name); ok {
+			installed, detail = installed2, detail2
+		} else {
+			detail = "unknown package"
+		}
 	}
 	status := "available"
 	if installed {
@@ -171,6 +186,10 @@ func runSoftstoreScript(scriptID string, options map[string]any) (string, error)
 		return runSoftstoreComposeUp("compose_up_nginx", "softstore-nginx")
 	case "install_node_nvm", "install_node_nodesource", "install_python_distro", "install_go_distro", "install_java_distro":
 		return runRuntimesInstallScript(scriptID)
+	case "install_nginx", "install_apache", "install_mariadb", "install_mysql",
+		"install_php_fpm_81", "install_php_fpm_82", "install_php_fpm_83", "install_php_fpm_84",
+		"install_pureftpd", "ensure_ufw_baseline", "ensure_fail2ban":
+		return runSoftstoreStackScript(scriptID)
 	default:
 		return "", errSoftstore("unknown script")
 	}

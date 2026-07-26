@@ -8,10 +8,18 @@ Setup, authentication, navigation, dashboard, API tokens, 2FA, and terminal tick
 
 ## Setup wizard
 
+First-run flow (aaPanel-style): administrator → panel settings → **recommended hosting software** → install progress on the host via the agent.
+
 | Method | Path | Notes |
 |--------|------|--------|
-| `GET` | `/api/v1/setup/status` | `{ needs_setup }` |
-| `POST` | `/api/v1/setup` | First admin user; fails with 409 if already done |
+| `GET` | `/api/v1/setup/status` | `needs_setup`, `setup_completed`, latest `stack` |
+| `GET` | `/api/v1/setup/stack` | Poll install progress (`percent`, steps) |
+| `POST` | `/api/v1/setup` | Create admin + start stack (or `stack.skip`); 409 if already done/in progress |
+| `POST` | `/api/v1/setup/stack/retry` | Retry failed stack steps |
+
+Default stack: Nginx, MariaDB, PHP 8.2+8.3, Composer, UFW (22/80/443/2090), Fail2ban; optional Redis/Memcached/Pure-FTPd. `setup_completed` is set only after stack success or explicit skip.
+
+Tables: `setup_stack_runs`, `setup_stack_steps`.
 
 ## Dashboard
 

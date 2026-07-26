@@ -67,7 +67,7 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 
 | Module | Backend | Frontend UI | Agent / host | Status | Gaps |
 |--------|---------|-------------|--------------|--------|------|
-| **Core** (Auth, 2FA, Navigation, Setup, Dashboard, password recovery, API tokens, profile) | ✅ | ✅ | — | **Implemented** | `auth/gate` middleware; shared `route_permissions.php`; read-open GET + `RequireRouteWrite` on mutations |
+| **Core** (Auth, 2FA, Navigation, Setup + hosting stack wizard, Dashboard, password recovery, API tokens, profile) | ✅ | ✅ | — | **Implemented** | `auth/gate` middleware; shared `route_permissions.php`; read-open GET + `RequireRouteWrite` on mutations |
 | **Security** (firewall, fail2ban, SSH, ClamAV, WAF, audit) | ✅ | ✅ | ✅ ufw/fail2ban/etc. | **Implemented** | WAF; UFW; fail2ban filters (incl. delete); ClamAV history+schedule; `security-*` nav icons; `IpAllowlistMiddleware` |
 | **Users** (multi-user + roles) | ✅ | ✅ | — | **Implemented** | Spatie RBAC; Role CRUD + permission matrix; user edit; `RequireRouteWrite`; `users.manage` |
 | **Metrics** (history + alerts) | ✅ | ✅ | ✅ structured `/v1/system/info` | **Have** (Wave 5 + Phase D) | Multi-channel alerts; severity soft/hard; live `current` when sample stale |
@@ -633,7 +633,7 @@ flowchart LR
 | Frontend resilience | Safe JSON parse in `api.ts`; `error.tsx` + `global-error.tsx` |
 | API tokens | Scoped tokens cannot mint abilities outside caller scope (`ApiTokenEscalationTest`) |
 | RBAC reads | `security.manage` / `monitoring.manage` / `system.manage` on sensitive GET routes |
-| Setup | `throttle:3,1` on `POST /setup`; 409 when already completed |
+| Setup | `throttle:3,1` on `POST /setup`; stack poll/retry; 409 when completed or in progress |
 | Webhooks | `SafeWebhookUrl` — block private/metadata IPs; HTTPS required in production |
 | Agent | `WEBINO_AGENT_TOKEN` required unless `WEBINO_AGENT_ALLOW_UNAUTH=true`; `/v1/execute` removed; `/v1/webina` allowlist; WS origin exact match |
 | Agent validation | Cron schedule, UFW port/proto, Docker argv allowlists |

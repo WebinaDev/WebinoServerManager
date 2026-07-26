@@ -28,9 +28,20 @@ if (! function_exists('setup_completed')) {
     }
 }
 
+if (! function_exists('panel_admin_exists')) {
+    function panel_admin_exists(): bool
+    {
+        try {
+            return User::role('admin')->exists();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+}
+
 if (! function_exists('needs_setup')) {
     function needs_setup(): bool
     {
-        return ! (setup_completed() && User::role('admin')->exists());
+        return ! (setup_completed() && panel_admin_exists());
     }
 }

@@ -62,7 +62,13 @@ panel/
 
 ## First-run setup
 
-After `install.sh --panel`, open the printed URL (e.g. `http://<server-ip>:2090`). The setup wizard creates the administrator account and basic panel settings. Optional `hostname` in the wizard updates `APP_URL` / CORS / Sanctum domains in `.env`.
+After `install.sh --panel`, open `http://<server-ip>:2090/setup`. The wizard:
+
+1. Creates the administrator account
+2. Saves panel settings (locale, name, optional hostname/SMTP)
+3. Installs the **hosting stack** on the server via the agent (default: Nginx, MariaDB, PHP 8.2+8.3, Composer, UFW, Fail2ban; optional Redis/Memcached/Pure-FTPd)
+
+`setup_completed` is set only after software install finishes (or you explicitly skip software). Optional `hostname` updates `APP_URL` / CORS / Sanctum domains in `.env`.
 
 ## Update & rebuild
 

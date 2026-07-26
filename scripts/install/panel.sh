@@ -129,7 +129,8 @@ panel_up() {
   ip=$(panel_detect_ip)
   port="${PANEL_HTTP_PORT:-2090}"
   log "Panel ready: http://${ip}:${port}"
-  log "Open this URL in your browser to complete the setup wizard."
+  log "Open http://${ip}:${port}/setup to create the admin and install Nginx/MariaDB/PHP (hosting stack) via the wizard."
+  log "Until the setup wizard finishes (or you skip software), the dashboard stays locked."
   if [[ "${PANEL_DEV_PROFILE:-}" == "1" ]]; then
     log "API docs (dev profile): http://${ip}:${PANEL_DOCS_PORT:-2091}"
   else

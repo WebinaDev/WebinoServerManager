@@ -10,20 +10,42 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Modules\Core\Entities\SetupStackRun;
+use Modules\Core\Jobs\RunSetupStackJob;
+use Modules\Core\Services\SetupStackPlanner;
 use Spatie\Permission\Models\Role;
 
 class SetupController extends Controller
 {
-    public function __construct(private readonly PanelEnvPatcher $envPatcher) {}
+    public function __construct(
+        private readonly PanelEnvPatcher $envPatcher,
+        private readonly SetupStackPlanner $stackPlanner,
+    ) {}
 
     public function status(): JsonResponse
     {
         $needsSetup = needs_setup();
+        $run = SetupStackRun::query()->latest('id')->first();
 
         return response()->json([
             'data' => [
                 'needs_setup' => $needsSetup,
-                'setup_completed' => ! $needsSetup,
+                'setup_completed' => setup_completed(),
+                'admin_created' => panel_admin_exists(),
+                'stack' => $this->serializeStack($run),
+            ],
+        ]);
+    }
+
+    public function stackStatus(): JsonResponse
+    {
+        $run = SetupStackRun::query()->with('steps')->latest('id')->first();
+
+        return response()->json([
+            'data' => [
+                'needs_setup' => needs_setup(),
+                'setup_completed' => setup_completed(),
+                'stack' => $this->serializeStack($run),
             ],
         ]);
     }
@@ -33,6 +55,19 @@ class SetupController extends Controller
         if (setup_completed()) {
             return response()->json([
                 'message' => __('setup.already_completed'),
+            ], 409);
+        }
+
+        if (panel_admin_exists()) {
+            $run = SetupStackRun::query()->with('steps')->latest('id')->first();
+
+            return response()->json([
+                'message' => __('setup.already_in_progress'),
+                'data' => [
+                    'needs_setup' => needs_setup(),
+                    'setup_completed' => false,
+                    'stack' => $this->serializeStack($run),
+                ],
             ], 409);
         }
 
@@ -51,9 +86,38 @@ class SetupController extends Controller
             'smtp_encryption' => ['nullable', 'string', 'in:tls,ssl,'],
             'smtp_from_address' => ['nullable', 'email', 'max:255'],
             'smtp_from_name' => ['nullable', 'string', 'max:255'],
+            'stack' => ['nullable', 'array'],
+            'stack.skip' => ['sometimes', 'boolean'],
+            'stack.webserver' => ['nullable', 'in:nginx,apache'],
+            'stack.database' => ['nullable', 'in:mariadb,mysql'],
+            'stack.php_versions' => ['nullable', 'array'],
+            'stack.php_versions.*' => ['in:8.1,8.2,8.3,8.4'],
+            'stack.redis' => ['sometimes', 'boolean'],
+            'stack.memcached' => ['sometimes', 'boolean'],
+            'stack.pureftpd' => ['sometimes', 'boolean'],
         ]);
 
-        DB::transaction(function () use ($data): void {
+        $stackConfig = $data['stack'] ?? [];
+        $skip = (bool) ($stackConfig['skip'] ?? false);
+        if (! $skip) {
+            $stackConfig['webserver'] = $stackConfig['webserver'] ?? 'nginx';
+            $stackConfig['database'] = $stackConfig['database'] ?? 'mariadb';
+            $phpVersions = $stackConfig['php_versions'] ?? ['8.2', '8.3'];
+            if (! is_array($phpVersions) || $phpVersions === []) {
+                return response()->json(['message' => __('setup.php_required')], 422);
+            }
+            $stackConfig['php_versions'] = array_values($phpVersions);
+            $stackConfig['redis'] = (bool) ($stackConfig['redis'] ?? false);
+            $stackConfig['memcached'] = (bool) ($stackConfig['memcached'] ?? false);
+            $stackConfig['pureftpd'] = (bool) ($stackConfig['pureftpd'] ?? false);
+        } else {
+            $stackConfig = ['skip' => true];
+        }
+
+        $planned = $this->stackPlanner->plan($stackConfig);
+        $runId = null;
+
+        DB::transaction(function () use ($data, $stackConfig, $skip, $planned, &$runId): void {
             $adminRole = Role::query()->firstOrCreate(
                 ['name' => 'admin', 'guard_name' => 'web'],
             );
@@ -90,7 +154,25 @@ class SetupController extends Controller
                 }
             }
 
-            PanelSetting::set('setup_completed', true);
+            // Do not mark setup complete until stack finishes (unless skipped).
+            PanelSetting::set('setup_completed', false);
+
+            $run = SetupStackRun::query()->create([
+                'status' => $skip ? 'skipped' : 'pending',
+                'skip' => $skip,
+                'config' => $stackConfig,
+            ]);
+            $runId = $run->id;
+
+            foreach ($planned as $i => $step) {
+                $run->steps()->create([
+                    'position' => $i + 1,
+                    'slug' => $step['slug'],
+                    'script_id' => $step['script_id'],
+                    'label' => $step['label'],
+                    'status' => 'pending',
+                ]);
+            }
         });
 
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
@@ -103,12 +185,96 @@ class SetupController extends Controller
             $this->envPatcher->applyHostname($host, $port, $request->isSecure());
         }
 
+        if ($runId !== null) {
+            RunSetupStackJob::dispatch($runId);
+        }
+
+        $run = SetupStackRun::query()->with('steps')->find($runId);
+
         return response()->json([
             'data' => [
-                'needs_setup' => false,
-                'setup_completed' => true,
-                'message' => __('setup.completed'),
+                'needs_setup' => needs_setup(),
+                'setup_completed' => setup_completed(),
+                'stack' => $this->serializeStack($run),
+                'message' => setup_completed()
+                    ? __('setup.completed')
+                    : __('setup.stack_started'),
             ],
         ], 201);
+    }
+
+    public function retryStack(): JsonResponse
+    {
+        if (setup_completed()) {
+            return response()->json(['message' => __('setup.already_completed')], 409);
+        }
+
+        $run = SetupStackRun::query()->with('steps')->latest('id')->first();
+        if ($run === null) {
+            return response()->json(['message' => __('setup.stack_not_found')], 404);
+        }
+        if ($run->status === 'running') {
+            return response()->json([
+                'data' => ['stack' => $this->serializeStack($run)],
+                'message' => __('setup.stack_running'),
+            ]);
+        }
+
+        foreach ($run->steps as $step) {
+            if ($step->status === 'failed') {
+                $step->update(['status' => 'pending', 'log' => null]);
+            }
+        }
+        $run->update(['status' => 'pending', 'error' => null]);
+        RunSetupStackJob::dispatch($run->id);
+
+        $run->refresh()->load('steps');
+
+        return response()->json([
+            'data' => [
+                'needs_setup' => needs_setup(),
+                'setup_completed' => setup_completed(),
+                'stack' => $this->serializeStack($run),
+            ],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function serializeStack(?SetupStackRun $run): ?array
+    {
+        if ($run === null) {
+            return null;
+        }
+
+        $run->loadMissing('steps');
+        $steps = $run->steps;
+        $total = max(1, $steps->count());
+        $done = $steps->whereIn('status', ['success', 'skipped'])->count();
+        $percent = $run->skip || $run->status === 'skipped'
+            ? 100
+            : (int) floor(($done / $total) * 100);
+        if ($run->status === 'success') {
+            $percent = 100;
+        }
+
+        return [
+            'id' => $run->id,
+            'status' => $run->status,
+            'skip' => $run->skip,
+            'percent' => $percent,
+            'error' => $run->error,
+            'config' => $run->config,
+            'steps' => $steps->map(fn ($s) => [
+                'id' => $s->id,
+                'position' => $s->position,
+                'slug' => $s->slug,
+                'script_id' => $s->script_id,
+                'label' => $s->label,
+                'status' => $s->status,
+                'log' => $s->log,
+            ])->values()->all(),
+        ];
     }
 }

@@ -240,7 +240,7 @@
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
 | Profile / 2FA / tokens | **Have** | — | — |
-| Setup wizard | **Have** | — | — |
+| Setup wizard | **Have** (admin + hosting stack install) | — | — |
 | Panel port / SSL / bind domain | **Have** | `/settings` hub + agent Caddy write | — |
 | Restart panel / OS | **Have** | Agent privileged actions | — |
 | Repair panel | **Have** | Health repair scripts | — |

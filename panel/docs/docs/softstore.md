@@ -16,8 +16,12 @@ Seeded catalog of allowlisted host packages (not aaPanel commercial downloads). 
 | `python-distro` | runtime | `install_python_distro` |
 | `go-distro` | runtime | `install_go_distro` |
 | `java-distro` | runtime | `install_java_distro` |
+| `nginx` / `apache` | stack | `install_nginx` / `install_apache` |
+| `mariadb` / `mysql` | stack | `install_mariadb` / `install_mysql` |
+| `php-fpm-81`…`84` | stack | `install_php_fpm_8x` |
+| `ufw` / `fail2ban` / `pureftpd` | stack | `ensure_ufw_baseline` / `ensure_fail2ban` / `install_pureftpd` |
 
-Catalog rows are seeded on migrate and re-seeded idempotently from `SoftstoreServiceProvider::boot()`.
+Catalog rows are seeded on migrate and re-seeded idempotently from `SoftstoreServiceProvider::boot()`. Stack packages are also driven by the **first-run setup wizard**.
 
 ## Tables
 
