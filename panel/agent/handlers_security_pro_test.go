@@ -13,7 +13,10 @@ func TestFindWorldWritable(t *testing.T) {
 		t.Fatal(err)
 	}
 	ww := filepath.Join(root, "bad.txt")
-	if err := os.WriteFile(ww, []byte("x"), 0o666); err != nil {
+	if err := os.WriteFile(ww, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(ww, 0o666); err != nil {
 		t.Fatal(err)
 	}
 	hits := findWorldWritable(root, 2, 10)

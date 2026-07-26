@@ -40,7 +40,7 @@
 | Security | Security | **Have** (Wave 6) | malware→recycle overlaps Files W7; heavy vuln scan later | Security | risks, waf sites/logs, tamper | `/security/*` | 6 |
 | WAF | Security WAF | **Have** (Wave 6 core) | geo/webshell Pro polish later | Security | `/v1/security/waf` + sites/logs | `/security/waf` | 6 |
 | Mail Server | Email + Webmail | **Have** (Wave 11 lists UX) | bulk marketing send low priority | Email | `/v1/mail/*` | `/email/*`, `/webmail` | 11 |
-| Files | Files | Partial | Content search, share links, recycle, remote download, history | Files | `/v1/files` — extend | `/files` | 7 |
+| Files | Files | **Have** (Wave 7) | — | Files | `/v1/files` advanced | `/files` | 7 |
 | Logs | Monitoring logs | Partial | Separate panel/site/FTP log analysis | Monitoring | `/v1/logs` — extend | `/monitoring/logs` (+ site log views) | 5 |
 | Node / runtimes | Runtimes | **Have** (Java Partial) | Java runtime installer deferred | **Runtimes** | `/v1/runtimes/*` | `/runtimes` | 9 |
 | Domains (DNS APIs) | Dns + Ssl | **Have** (Wave 10 Cloudflare) | AliDNS/… adapters later | Dns, Ssl | `/v1/dns/providers/cloudflare` | `/dns`, `/ssl` | 10 |
@@ -290,7 +290,7 @@ Each wave: Laravel API → Go agent → Next UI → PHPUnit / `go test` → `pan
 | **4** | Docker depth | **Done** — Compose, network, volume, registry, daemon; Softstore one-click | Apps + Wave 3 |
 | **5** | Home + Monitor Pro | **Done** — TOP5, NIC/Disk IO, risk widget, task box, process view, richer series | Metrics/Monitoring/Security |
 | **6** | Security Pro | **Done** — Risk scanner+fix, deep WAF, tamper, disk analysis, site analytics start | Security + System |
-| **7** | Files advanced | Search, share, recycle, remote-dl, versions | Files |
+| **7** | Files advanced | **Done** — Search, share, recycle, remote-dl, versions | Files |
 | **8** | WP Toolkit | **Done** — Clone/migrate/staging, themes/plugins, integrity | Wordpress |
 | **9** | Runtimes | **Done** — Node/Python/Go + PM2-like projects (Java Partial) | Runtimes |
 | **10** | Data plane | **Done** — FTP quota/enable; DB tools+recycle+Redis partial; Cloudflare DNS; Cron typed tasks | Ftp/Databases/Dns/Cron |

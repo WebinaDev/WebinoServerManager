@@ -147,6 +147,135 @@ class FilesController extends Controller
         return response()->json(['message' => __('files.chmod_ok')]);
     }
 
+    public function search(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['nullable', 'string', 'max:1024'],
+            'query' => ['required', 'string', 'max:128'],
+            'max_depth' => ['nullable', 'integer', 'min:1', 'max:8'],
+            'max_hits' => ['nullable', 'integer', 'min:1', 'max:200'],
+        ]);
+
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'search',
+            'path' => $data['path'] ?? '/',
+            'query' => $data['query'],
+            'max_depth' => $data['max_depth'] ?? 4,
+            'max_hits' => $data['max_hits'] ?? 100,
+        ]);
+
+        return response()->json($this->agentPayload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
+    public function remoteDownload(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['required', 'string', 'max:1024'],
+            'url' => ['required', 'url', 'max:2048'],
+        ]);
+
+        if (! str_starts_with($data['url'], 'http://') && ! str_starts_with($data['url'], 'https://')) {
+            return response()->json(['message' => 'url must be http(s)'], 422);
+        }
+
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'remote_download',
+            'path' => $data['path'],
+            'url' => $data['url'],
+        ]);
+
+        return response()->json($this->agentPayload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
+    public function recycleList(): JsonResponse
+    {
+        $result = $this->agent->post('/v1/files', ['action' => 'recycle_list', 'path' => '/']);
+
+        return response()->json($this->agentPayload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
+    public function recycleRestore(Request $request): JsonResponse
+    {
+        $data = $request->validate(['id' => ['required', 'string', 'max:64']]);
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'recycle_restore',
+            'path' => $data['id'],
+        ]);
+
+        return response()->json($this->agentPayload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
+    public function recyclePurge(Request $request): JsonResponse
+    {
+        $data = $request->validate(['id' => ['required', 'string', 'max:64']]);
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'recycle_purge',
+            'path' => $data['id'],
+        ]);
+
+        return response()->json($this->agentPayload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
+    public function versions(Request $request): JsonResponse
+    {
+        $data = $request->validate(['path' => ['required', 'string', 'max:1024']]);
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'versions',
+            'path' => $data['path'],
+        ]);
+
+        return response()->json($this->agentPayload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
+    public function restoreVersion(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['required', 'string', 'max:1024'],
+            'version' => ['required', 'string', 'max:64'],
+        ]);
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'restore_version',
+            'path' => $data['path'],
+            'dest' => $data['version'],
+        ]);
+
+        return response()->json($this->agentPayload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
+    public function createShare(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['required', 'string', 'max:1024'],
+            'expires_hours' => ['nullable', 'integer', 'min:1', 'max:168'],
+        ]);
+
+        $share = \Modules\Files\Entities\FileShare::query()->create([
+            'token' => bin2hex(random_bytes(24)),
+            'path' => $data['path'],
+            'expires_at' => now()->addHours($data['expires_hours'] ?? 24),
+            'created_by' => $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'share' => $share,
+            'url' => url('/api/v1/files/share/'.$share->token),
+        ], 201);
+    }
+
+    public function listShares(): JsonResponse
+    {
+        return response()->json([
+            'shares' => \Modules\Files\Entities\FileShare::query()->orderByDesc('id')->limit(100)->get(),
+        ]);
+    }
+
+    public function destroyShare(\Modules\Files\Entities\FileShare $share): JsonResponse
+    {
+        $share->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
     /**
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>

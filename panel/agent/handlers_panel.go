@@ -37,8 +37,8 @@ func handlePanelSettings(w http.ResponseWriter, r *http.Request) {
 		outPath := filepath.Join(confPath, "network.json")
 		b, _ := json.Marshal(map[string]any{
 			"bind_domain": strVal(body["bind_domain"]),
-			"http_port":   intVal(body["http_port"]),
-			"https_port":  intVal(body["https_port"]),
+			"http_port":   intVal(body["http_port"], 2090),
+			"https_port":  intVal(body["https_port"], 2090),
 			"ssl_enabled": body["ssl_enabled"],
 		})
 		if err := os.WriteFile(outPath, b, 0o644); err != nil {

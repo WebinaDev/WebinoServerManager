@@ -72,6 +72,11 @@ export default function FilesPage() {
   const [chmodValue, setChmodValue] = useState("644")
   const [newFileName, setNewFileName] = useState("")
 
+  const [searchQuery, setSearchQuery] = useState("")
+  const [remoteUrl, setRemoteUrl] = useState("")
+  const [remoteName, setRemoteName] = useState("")
+  const [searchHits, setSearchHits] = useState<{ path: string; name?: string }[]>([])
+
   const { data, isLoading } = useQuery({
     queryKey: ["files", path],
     queryFn: () =>
@@ -80,10 +85,68 @@ export default function FilesPage() {
       ),
   })
 
+  const recycle = useQuery({
+    queryKey: ["files-recycle"],
+    queryFn: () => api<{ items: { id: string; original?: string }[] }>("/api/v1/files/recycle"),
+  })
+
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ["files", path] })
+
+  const search = useMutation({
+    mutationFn: () =>
+      api<{ hits: { path: string; name?: string }[] }>("/api/v1/files/search", {
+        method: "POST",
+        json: { path, query: searchQuery },
+      }),
+    onSuccess: (res) => setSearchHits(res.hits ?? []),
+    onError: toastMutationError,
+  })
+
+  const remoteDl = useMutation({
+    mutationFn: () =>
+      api("/api/v1/files/remote-download", {
+        method: "POST",
+        json: { path: joinPath(path, remoteName || "download.bin"), url: remoteUrl },
+      }),
+    onSuccess: () => {
+      toast.success(t("remote_ok"))
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const share = useMutation({
+    mutationFn: (filePath: string) =>
+      api<{ url: string }>("/api/v1/files/shares", {
+        method: "POST",
+        json: { path: filePath, expires_hours: 24 },
+      }),
+    onSuccess: (res) => {
+      void navigator.clipboard?.writeText(res.url)
+      toast.success(t("share_copied"))
+    },
+    onError: toastMutationError,
+  })
+
+  const restoreRecycle = useMutation({
+    mutationFn: (id: string) =>
+      api("/api/v1/files/recycle/restore", { method: "POST", json: { id } }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["files-recycle"] })
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const purgeRecycle = useMutation({
+    mutationFn: (id: string) =>
+      api("/api/v1/files/recycle/purge", { method: "POST", json: { id } }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["files-recycle"] }),
+    onError: toastMutationError,
+  })
+
   const entries = data?.entries ?? []
   const breadcrumbs = useMemo(() => pathSegments(path), [path])
-
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["files", path] })
 
   const mkdir = useMutation({
     mutationFn: (folderPath: string) =>
@@ -275,6 +338,16 @@ export default function FilesPage() {
             >
               <Trash2 className="size-3.5" />
             </Button>
+            {!entry.is_dir ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => share.mutate(full)}
+              >
+                {t("share")}
+              </Button>
+            ) : null}
           </div>
         )
       },
@@ -283,6 +356,81 @@ export default function FilesPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("tools_title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-end gap-2">
+            <Input
+              className="max-w-xs"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t("search_placeholder")}
+            />
+            <Button
+              size="sm"
+              disabled={!searchQuery || search.isPending}
+              onClick={() => search.mutate()}
+            >
+              {t("search")}
+            </Button>
+          </div>
+          {searchHits.length > 0 ? (
+            <ul className="space-y-1 font-mono text-xs" dir="ltr">
+              {searchHits.map((h) => (
+                <li key={h.path}>
+                  <button type="button" className="hover:underline" onClick={() => setPath(parentPath(h.path))}>
+                    {h.path}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="flex flex-wrap items-end gap-2">
+            <Input
+              className="max-w-md"
+              dir="ltr"
+              value={remoteUrl}
+              onChange={(e) => setRemoteUrl(e.target.value)}
+              placeholder="https://…"
+            />
+            <Input
+              className="max-w-[10rem]"
+              dir="ltr"
+              value={remoteName}
+              onChange={(e) => setRemoteName(e.target.value)}
+              placeholder="name.bin"
+            />
+            <Button
+              size="sm"
+              disabled={!remoteUrl || remoteDl.isPending}
+              onClick={() => remoteDl.mutate()}
+            >
+              {t("remote_download")}
+            </Button>
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium">{t("recycle_title")}</p>
+            <ul className="space-y-1 text-sm">
+              {(recycle.data?.items ?? []).map((item) => (
+                <li key={item.id} className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs" dir="ltr">
+                    {item.original ?? item.id}
+                  </span>
+                  <Button size="sm" variant="outline" onClick={() => restoreRecycle.mutate(item.id)}>
+                    {t("recycle_restore")}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => purgeRecycle.mutate(item.id)}>
+                    {t("recycle_purge")}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>{t("title")}</CardTitle>

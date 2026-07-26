@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -382,9 +383,17 @@ func intVal(v any, def int) int {
 		return int(t)
 	case int:
 		return t
+	case int64:
+		return int(t)
 	case json.Number:
 		n, _ := t.Int64()
 		return int(n)
+	case string:
+		n, err := strconv.Atoi(strings.TrimSpace(t))
+		if err != nil {
+			return def
+		}
+		return n
 	default:
 		return def
 	}

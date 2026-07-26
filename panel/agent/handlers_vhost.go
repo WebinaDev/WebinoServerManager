@@ -99,7 +99,7 @@ func handleVhosts(w http.ResponseWriter, r *http.Request) {
 			RewriteTemplate: strVal(body["rewrite_template"]),
 			RewriteCustom:   strVal(body["rewrite_custom"]),
 			DenyPaths:       stringSlice(body["deny_paths"]),
-			TrafficLimitMB:  intVal(body["traffic_limit_mb"]),
+			TrafficLimitMB:  intVal(body["traffic_limit_mb"], 0),
 		}
 		if opts.Fqdn == "" {
 			opts.Fqdn = strings.ReplaceAll(name, "_", ".")
@@ -635,24 +635,6 @@ func stringSlice(v any) []string {
 		return out
 	default:
 		return nil
-	}
-}
-
-func intVal(v any) int {
-	switch t := v.(type) {
-	case float64:
-		return int(t)
-	case int:
-		return t
-	case json.Number:
-		i, _ := t.Int64()
-		return int(i)
-	case string:
-		var n int
-		_, _ = fmt.Sscanf(t, "%d", &n)
-		return n
-	default:
-		return 0
 	}
 }
 

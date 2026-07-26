@@ -1,10 +1,10 @@
 # WebinoServer Panel — Project Status
 
-Last updated: 2026-07-26 (aaPanel parity Waves 10–12)
+Last updated: 2026-07-26 (aaPanel parity Waves 0–12)
 
 This document is the single source of truth for architecture, implementation status, known gaps, and planned phases of the WebinoServer hosting control panel.
 
-**aaPanel parity (C+R):** capability gap matrix and waves 0–12 live in [AAPANEL_PARITY.md](AAPANEL_PARITY.md). Waves **1–12 Have** except Wave 7 (Files advanced). Reseller hierarchy remains won't-fix.
+**aaPanel parity (C+R):** capability gap matrix and waves 0–12 live in [AAPANEL_PARITY.md](AAPANEL_PARITY.md). Waves **0–12 Have** (Java runtime Partial). Reseller hierarchy remains won't-fix.
 
 **Important:** Module `index` endpoints list resources from the **panel MariaDB** by default. Provisioning (create/delete) calls the agent. A scheduled `panel:reconcile-host` job (every 15 minutes) compares panel rows with agent GET list endpoints and flags drift — see [Fixed in Phase 9](#fixed-in-phase-9) and [Fixed in Phase 12 & 13](#fixed-in-phase-12--13).
 

@@ -57,7 +57,7 @@ func handleFtpAccountAction(w http.ResponseWriter, body map[string]any) bool {
 	}
 	switch action {
 	case "set_quota":
-		quota := intVal(body["quota_mb"])
+		quota := intVal(body["quota_mb"], 0)
 		if quota < 0 {
 			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "quota_mb required"})
 			return true
@@ -287,18 +287,4 @@ func handleCronFailures(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, envelope{OK: true, Data: b})
-}
-
-func intVal(v any) int {
-	switch t := v.(type) {
-	case float64:
-		return int(t)
-	case int:
-		return t
-	case string:
-		n, _ := strconv.Atoi(strings.TrimSpace(t))
-		return n
-	default:
-		return 0
-	}
 }

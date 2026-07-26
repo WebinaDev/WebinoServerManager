@@ -74,7 +74,7 @@ func handleFtpAccounts(w http.ResponseWriter, r *http.Request) {
 		"-d", absHome,
 		"-m",
 	}
-	if quota := intVal(body["quota_mb"]); quota > 0 {
+	if quota := intVal(body["quota_mb"], 0); quota > 0 {
 		argv = append(argv, "-N", strconv.Itoa(quota))
 	}
 	out, err := runArgv(argv, "")
