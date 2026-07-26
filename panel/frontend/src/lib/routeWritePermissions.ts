@@ -26,6 +26,7 @@ export const routeWritePermissions: Record<string, string> = {
   "/runtimes": "system.manage",
   "/sites": "platform.manage",
   "/products": "platform.manage",
+  "/system-info": "platform.manage",
 }
 
 export function writePermissionForPath(pathname: string | null): string | undefined {

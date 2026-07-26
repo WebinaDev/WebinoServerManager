@@ -29,6 +29,7 @@ type DataTableProps<T> = {
   rowKey: (row: T) => string | number
   searchPlaceholder?: string
   searchFilter?: (row: T, query: string) => boolean
+  initialSearch?: string
   pageSize?: number
   isLoading?: boolean
   emptyMessage?: string
@@ -41,6 +42,7 @@ export function DataTable<T>({
   rowKey,
   searchPlaceholder,
   searchFilter,
+  initialSearch = "",
   pageSize = 10,
   isLoading = false,
   emptyMessage,
@@ -49,7 +51,7 @@ export function DataTable<T>({
   const t = useTranslations("common")
   const resolvedSearchPlaceholder = searchPlaceholder ?? t("search_placeholder")
   const resolvedEmptyMessage = emptyMessage ?? t("no_results")
-  const [query, setQuery] = useState("")
+  const [query, setQuery] = useState(initialSearch)
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
   const [page, setPage] = useState(0)

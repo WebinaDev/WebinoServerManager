@@ -31,7 +31,7 @@
 | aaPanel | SM equivalent (today) | Status | Primary gap | Target module(s) | Agent surface (today / needed) | UI path (today / planned) | Wave |
 |---------|----------------------|--------|-------------|------------------|-------------------------------|---------------------------|------|
 | Home | Dashboard `/` | Have (Wave 5 core) | richer Pro polish later | Core, Metrics, Monitoring, Security, Softstore | `/v1/system/info` + processes | `/` | 5 |
-| Website | `/websites` hub + Domains/Subdomains/Webserver | Have (Wave 1) | Project types Node/… → Wave 9 | Websites (+ Webserver, Ftp, Databases, Php, Ssl) | `/v1/vhosts` + composer + per-site logs | `/websites`, `/websites/[id]` | 1 |
+| Website | `/websites` hub + Domains/Subdomains/Webserver | Have (Wave 1) | — | Websites (+ Webserver, Ftp, Databases, Php, Ssl) | `/v1/vhosts` + composer + per-site logs | `/websites`, `/websites/[id]` | 1 |
 | WP Toolkit | Wordpress | **Have** | — | Wordpress | `/v1/wordpress` | `/wordpress` | 8 |
 | FTP | Ftp | **Have** (Wave 10) | deeper log analysis later | Ftp | `/v1/ftp/accounts` + `/v1/ftp/service` | `/ftp` | 10 |
 | Databases | Databases + Embed | **Have** (Wave 10 + Phase D) | — | Databases | `/v1/databases*` + Mongo/Redis/tools | `/databases` | 10 |
@@ -293,7 +293,7 @@ Each wave: Laravel API → Go agent → Next UI → PHPUnit / `go test` → `pan
 | **7** | Files advanced | **Done** — Search, share, recycle, remote-dl, versions | Files |
 | **8** | WP Toolkit | **Done** — Clone/migrate/staging, themes/plugins, integrity | Wordpress |
 | **9** | Runtimes | **Done** — Node/Python/Go/Java + PM2-like projects | Runtimes |
-| **10** | Data plane | **Done** — FTP quota/enable; DB tools+recycle+Redis partial; Cloudflare DNS; Cron typed tasks | Ftp/Databases/Dns/Cron |
+| **10** | Data plane | **Done** — FTP quota/enable; DB tools+recycle+Mongo/Redis; Cloudflare+AliDNS; Cron typed tasks | Ftp/Databases/Dns/Cron |
 | **11** | Mail + Backup polish | **Done** — Mailing list member UX; backup verify/retention/restore wizard | Email/Backup |
 | **12** | Panel Settings | **Done** — `/settings` hub, port/SSL/bind, restart/reboot/repair | Core/System |
 

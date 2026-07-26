@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
@@ -442,6 +443,7 @@ export default function HostingAccountsPage() {
   const t = useTranslations("hosting")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
   const [username, setUsername] = useState("")
   const [planId, setPlanId] = useState("")
   const [domain, setDomain] = useState("")
@@ -453,6 +455,12 @@ export default function HostingAccountsPage() {
   const [editDomain, setEditDomain] = useState("")
   const [editOwnerId, setEditOwnerId] = useState("")
 
+  useEffect(() => {
+    const highlight = Number(searchParams.get("highlight") ?? "")
+    if (Number.isFinite(highlight) && highlight > 0) {
+      setDetailAccountId(highlight)
+    }
+  }, [searchParams])
   const { data, isLoading } = useQuery({
     queryKey: ["hosting-accounts"],
     queryFn: () => api<{ accounts: AccountRow[] }>("/api/v1/hosting/accounts"),

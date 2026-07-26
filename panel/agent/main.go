@@ -185,15 +185,62 @@ func handleWebina(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: err.Error()})
 		return
 	}
-	webina := filepath.Join(webinaRoot, "bin", "webina")
-	argv := append([]string{webina}, req.Args...)
-	out, err := runArgv(argv, webinaRoot)
+
+	// Structured list/status responses for panel UI (registry / installed products).
+	if len(req.Args) >= 2 && req.Args[0] == "site" && req.Args[1] == "list" {
+		payload := map[string]any{"sites": listSitesFromRegistry()}
+		if out, err := runWebina(req.Args); err == nil {
+			payload["output"] = out
+		}
+		data, _ := json.Marshal(payload)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return
+	}
+	if len(req.Args) >= 2 && req.Args[0] == "product" && req.Args[1] == "list" {
+		installed := listProductsInstalled()
+		payload := map[string]any{"products": installed}
+		if out, err := runWebina(req.Args); err == nil {
+			payload["output"] = out
+			if len(installed) == 0 {
+				if parsed := tryParseJSONArray(out); len(parsed) > 0 {
+					payload["products"] = parsed
+				}
+			}
+		}
+		data, _ := json.Marshal(payload)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return
+	}
+	if len(req.Args) >= 2 && req.Args[0] == "platform" && req.Args[1] == "status" {
+		out, err := runWebina(req.Args)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		payload := map[string]any{"output": out}
+		if fields := tryParseJSONObject(out); fields != nil {
+			for k, v := range fields {
+				payload[k] = v
+			}
+		}
+		data, _ := json.Marshal(payload)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return
+	}
+
+	out, err := runWebina(req.Args)
 	if err != nil {
 		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
 		return
 	}
 	data, _ := json.Marshal(map[string]string{"output": out})
 	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+}
+
+func runWebina(args []string) (string, error) {
+	webina := filepath.Join(webinaRoot, "bin", "webina")
+	argv := append([]string{webina}, args...)
+	return runArgv(argv, webinaRoot)
 }
 
 func handleDomains(w http.ResponseWriter, r *http.Request) {
@@ -232,26 +279,99 @@ func handleDomains(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func registryPath() string {
+	return envOr("WEBINA_REGISTRY_PATH", "/var/lib/webina/registry.json")
+}
+
+func productsDataRoot() string {
+	if v := os.Getenv("WEBINA_PRODUCTS_DIR"); v != "" {
+		return v
+	}
+	return filepath.Join(envOr("WEBINA_DATA_ROOT", envOr("WEBINO_DATA_ROOT", "/var/lib/webina")), "products")
+}
+
 func listDomainsFromRegistry() []map[string]string {
-	reg := "/var/lib/webina/registry.json"
-	b, err := os.ReadFile(reg)
+	sites := listSitesFromRegistry()
+	out := make([]map[string]string, 0, len(sites))
+	for _, s := range sites {
+		out = append(out, map[string]string{"slug": s["slug"], "domain": s["domain"]})
+	}
+	return out
+}
+
+func listSitesFromRegistry() []map[string]string {
+	b, err := os.ReadFile(registryPath())
 	if err != nil {
-		return nil
+		return []map[string]string{}
 	}
 	var doc struct {
 		Sites []struct {
-			Slug   string `json:"slug"`
-			Domain string `json:"domain"`
+			Slug    string `json:"slug"`
+			Domain  string `json:"domain"`
+			Product string `json:"product"`
+			Channel string `json:"channel"`
 		} `json:"sites"`
 	}
 	if json.Unmarshal(b, &doc) != nil {
-		return nil
+		return []map[string]string{}
 	}
 	out := make([]map[string]string, 0, len(doc.Sites))
 	for _, s := range doc.Sites {
-		out = append(out, map[string]string{"slug": s.Slug, "domain": s.Domain})
+		row := map[string]string{"slug": s.Slug, "domain": s.Domain}
+		if s.Product != "" {
+			row["product"] = s.Product
+		}
+		if s.Channel != "" {
+			row["channel"] = s.Channel
+		}
+		out = append(out, row)
 	}
 	return out
+}
+
+func listProductsInstalled() []map[string]string {
+	root := productsDataRoot()
+	names := []string{"Webino", "WebinoERM"}
+	out := make([]map[string]string, 0, len(names))
+	for _, name := range names {
+		dir := filepath.Join(root, name)
+		st, err := os.Stat(dir)
+		if err != nil || !st.IsDir() {
+			continue
+		}
+		channel := "Dev"
+		if b, err := os.ReadFile(filepath.Join(dir, ".webino-channel")); err == nil {
+			if c := strings.TrimSpace(string(b)); c != "" {
+				channel = c
+			}
+		}
+		out = append(out, map[string]string{"name": name, "channel": channel})
+	}
+	return out
+}
+
+func tryParseJSONObject(s string) map[string]any {
+	s = strings.TrimSpace(s)
+	if s == "" || s[0] != '{' {
+		return nil
+	}
+	var m map[string]any
+	if json.Unmarshal([]byte(s), &m) != nil {
+		return nil
+	}
+	return m
+}
+
+func tryParseJSONArray(s string) []map[string]string {
+	s = strings.TrimSpace(s)
+	if s == "" || s[0] != '[' {
+		return nil
+	}
+	var rows []map[string]string
+	if json.Unmarshal([]byte(s), &rows) != nil {
+		return nil
+	}
+	return rows
 }
 
 func runArgv(argv []string, dir string) (string, error) {

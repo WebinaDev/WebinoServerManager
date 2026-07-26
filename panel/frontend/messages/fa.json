@@ -1004,10 +1004,13 @@
   "sites": {
     "aliases_placeholder": "www.example.com, app.example.com",
     "create": "ایجاد سایت",
+    "create_failed": "ایجاد سایت ناموفق بود",
     "create_ok": "سایت ایجاد شد",
     "delete": "حذف",
     "delete_confirm": "این سایت حذف شود؟",
+    "delete_failed": "حذف سایت ناموفق بود",
     "delete_ok": "سایت حذف شد",
+    "empty": "هنوز سایتی فهرست نشده.",
     "field_aliases": "نام‌های مستعار (با ویرگول)",
     "field_channel": "کانال",
     "field_domain": "دامنه",
@@ -1118,7 +1121,8 @@
     "platform_status_hint": "وضعیت پلتفرم هاست از طریق agent. اگر استک آماده نیست، مقداردهی اولیه را بزنید.",
     "platform_init": "مقداردهی اولیه پلتفرم",
     "platform_init_running": "در حال مقداردهی…",
-    "platform_init_ok": "مقداردهی پلتفرم تمام شد"
+    "platform_init_ok": "مقداردهی پلتفرم تمام شد",
+    "platform_init_failed": "مقداردهی پلتفرم ناموفق بود"
   },
   "terminal": {
     "connected": "متصل",

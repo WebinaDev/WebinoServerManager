@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
@@ -44,6 +45,8 @@ export default function DomainsPage() {
   const t = useTranslations("domains")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
+  const accountFilter = Number(searchParams.get("account") ?? "") || null
 
   const [editTarget, setEditTarget] = useState<DomainRow | null>(null)
   const [editAliases, setEditAliases] = useState("")
@@ -59,7 +62,9 @@ export default function DomainsPage() {
     queryFn: () => api<{ accounts: AccountRow[] }>("/api/v1/hosting/accounts"),
   })
 
-  const domains = data?.domains ?? []
+  const domains = (data?.domains ?? []).filter(
+    (d) => accountFilter == null || d.hosting_account_id === accountFilter,
+  )
   const sites = data?.sites ?? []
   const accounts = accountsData?.accounts ?? []
 

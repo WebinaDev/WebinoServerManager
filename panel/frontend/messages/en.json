@@ -1004,10 +1004,13 @@
   "sites": {
     "aliases_placeholder": "www.example.com, app.example.com",
     "create": "Create site",
+    "create_failed": "Failed to create site",
     "create_ok": "Site created",
     "delete": "Delete",
     "delete_confirm": "Delete this site?",
+    "delete_failed": "Failed to delete site",
     "delete_ok": "Site deleted",
+    "empty": "No sites listed yet.",
     "field_aliases": "Aliases (comma-separated)",
     "field_channel": "Channel",
     "field_domain": "Domain",
@@ -1118,7 +1121,8 @@
     "platform_status_hint": "Host platform status from the Webina agent. Use Initialize if the platform stack is not ready.",
     "platform_init": "Initialize platform",
     "platform_init_running": "Initializing…",
-    "platform_init_ok": "Platform init finished"
+    "platform_init_ok": "Platform init finished",
+    "platform_init_failed": "Platform init failed"
   },
   "terminal": {
     "connected": "Connected",

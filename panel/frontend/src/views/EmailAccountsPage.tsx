@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+import { useSearchParams } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 
@@ -50,6 +51,8 @@ export default function EmailAccountsPage() {
   const t = useTranslations("email")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
+  const usernameFilter = searchParams.get("username") ?? ""
   const [passwordTarget, setPasswordTarget] = useState<MailAccount | null>(null)
   const [passwordValue, setPasswordValue] = useState("")
   const [quotaTarget, setQuotaTarget] = useState<MailAccount | null>(null)
@@ -238,6 +241,7 @@ export default function EmailAccountsPage() {
             data={accounts}
             rowKey={(row) => row.id}
             isLoading={isLoading}
+            initialSearch={usernameFilter}
             searchPlaceholder={t("search_accounts")}
             searchFilter={(row, q) =>
               row.address.toLowerCase().includes(q) || row.status.toLowerCase().includes(q)

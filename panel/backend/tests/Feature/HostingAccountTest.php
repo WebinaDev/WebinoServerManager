@@ -56,6 +56,23 @@ class HostingAccountTest extends TestCase
             ->assertJsonStructure(['account', 'usage']);
     }
 
+    public function test_show_includes_summary_links(): void
+    {
+        $plan = $this->makePlan();
+        $account = HostingAccount::query()->create([
+            'plan_id' => $plan->id,
+            'username' => 'show1',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/v1/hosting/accounts/'.$account->id)
+            ->assertOk()
+            ->assertJsonPath('summary.links.domains', '/domains?account='.$account->id)
+            ->assertJsonPath('summary.links.files', '/files?path='.urlencode('/var/www/show1'))
+            ->assertJsonPath('summary.ftp_count', 0);
+    }
+
     private function makePlan(): HostingPlan
     {
         return HostingPlan::query()->create([

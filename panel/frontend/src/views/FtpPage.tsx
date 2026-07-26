@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
@@ -35,6 +36,8 @@ export default function FtpPage() {
   const t = useTranslations("ftp")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
+  const usernameFilter = searchParams.get("username") ?? ""
   const [passwordAccount, setPasswordAccount] = useState<FtpRow | null>(null)
   const [newPassword, setNewPassword] = useState("")
   const { data, isLoading } = useQuery({
@@ -255,6 +258,7 @@ export default function FtpPage() {
             data={accounts}
             rowKey={(row) => row.id}
             isLoading={isLoading}
+            initialSearch={usernameFilter}
             searchPlaceholder={t("search")}
             searchFilter={(row, q) =>
               row.username.toLowerCase().includes(q) ||

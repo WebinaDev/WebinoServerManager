@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useRef } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,6 +19,14 @@ type SiteRow = {
   channel?: string
 }
 
+type SitesResponse = {
+  ok?: boolean
+  sites?: SiteRow[]
+  data?: SiteRow[]
+  output?: string
+  error?: string
+}
+
 type CreateSiteBody = {
   slug: string
   domain: string
@@ -31,15 +40,22 @@ export default function SitesPage() {
   const t = useTranslations("sites")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
+  const formRef = useRef<HTMLFormElement>(null)
   const { data, isLoading } = useQuery({
     queryKey: ["sites"],
-    queryFn: () => api<{ data?: SiteRow[]; sites?: SiteRow[] }>("/api/v1/sites"),
+    queryFn: () => api<SitesResponse>("/api/v1/sites"),
   })
 
   const create = useMutation({
-    mutationFn: (body: CreateSiteBody) => api("/api/v1/sites", { method: "POST", json: body }),
-    onSuccess: () => {
+    mutationFn: (body: CreateSiteBody) =>
+      api<SitesResponse>("/api/v1/sites", { method: "POST", json: body }),
+    onSuccess: (res) => {
+      if (res?.ok === false) {
+        toast.error(res.error || t("create_failed"))
+        return
+      }
       toast.success(t("create_ok"))
+      formRef.current?.reset()
       qc.invalidateQueries({ queryKey: ["sites"] })
     },
     onError: toastMutationError,
@@ -47,15 +63,22 @@ export default function SitesPage() {
 
   const remove = useMutation({
     mutationFn: (slug: string) =>
-      api(`/api/v1/sites/${encodeURIComponent(slug)}`, { method: "DELETE" }),
-    onSuccess: () => {
+      api<{ ok?: boolean; error?: string }>(
+        `/api/v1/sites/${encodeURIComponent(slug)}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: (res) => {
+      if (res?.ok === false) {
+        toast.error(res.error || t("delete_failed"))
+        return
+      }
       toast.success(t("delete_ok"))
       qc.invalidateQueries({ queryKey: ["sites"] })
     },
     onError: toastMutationError,
   })
 
-  const sites = data?.data ?? data?.sites ?? []
+  const sites = data?.sites ?? (Array.isArray(data?.data) ? data.data : [])
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
@@ -66,6 +89,7 @@ export default function SitesPage() {
         <CardContent className="space-y-4">
           <RequireRouteWrite>
             <form
+              ref={formRef}
               className="grid gap-3 md:grid-cols-2"
               onSubmit={(e) => {
                 e.preventDefault()
@@ -85,7 +109,6 @@ export default function SitesPage() {
                 if (aliasesRaw.length) body.aliases = aliasesRaw
                 if (envKey) body.env = { [envKey]: envVal }
                 create.mutate(body)
-                e.currentTarget.reset()
               }}
             >
               <div className="space-y-2">
@@ -148,6 +171,8 @@ export default function SitesPage() {
           </RequireRouteWrite>
           {isLoading ? (
             <p>{tCommon("loading")}</p>
+          ) : sites.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{t("empty")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {sites.map((s, i) => (

@@ -15,21 +15,27 @@ class PlatformController extends Controller
     {
         $result = $this->agent->webina(['platform', 'status']);
 
-        return response()->json($result);
+        return $this->agentPayload($result);
     }
 
     public function init(): JsonResponse
     {
         $result = $this->agent->webina(['platform', 'init']);
 
-        return response()->json($result);
+        return $this->agentPayload($result, requireOk: true);
     }
 
     public function sites(): JsonResponse
     {
         $result = $this->agent->webina(['site', 'list']);
+        $data = $this->agentData($result);
 
-        return response()->json($result);
+        return response()->json([
+            'ok' => (bool) ($result['ok'] ?? false),
+            'sites' => $data['sites'] ?? [],
+            'output' => $data['output'] ?? null,
+            'error' => $result['error'] ?? null,
+        ], ($result['ok'] ?? false) ? 200 : 422);
     }
 
     public function createSite(Request $request): JsonResponse
@@ -76,7 +82,7 @@ class PlatformController extends Controller
             ]);
         }
 
-        return response()->json($result);
+        return $this->agentPayload($result, requireOk: true);
     }
 
     public function destroySite(string $slug): JsonResponse
@@ -88,6 +94,45 @@ class PlatformController extends Controller
 
         $result = $this->agent->webina(['site', 'delete', '--slug', $slug, '--yes']);
 
-        return response()->json($result, ($result['ok'] ?? false) ? 200 : 422);
+        return $this->agentPayload($result, requireOk: true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     */
+    private function agentPayload(array $result, bool $requireOk = false): JsonResponse
+    {
+        $ok = (bool) ($result['ok'] ?? false);
+        $data = $this->agentData($result);
+        $payload = array_merge($data, [
+            'ok' => $ok,
+            'error' => $result['error'] ?? null,
+        ]);
+        if (! $ok && empty($payload['message']) && ! empty($result['error'])) {
+            $payload['message'] = $result['error'];
+        }
+
+        $status = 200;
+        if (! $ok && $requireOk) {
+            $status = 422;
+        }
+
+        return response()->json($payload, $status);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function agentData(array $result): array
+    {
+        $data = $result['data'] ?? [];
+        if (is_string($data)) {
+            $decoded = json_decode($data, true);
+
+            return is_array($decoded) ? $decoded : ['output' => $data];
+        }
+
+        return is_array($data) ? $data : [];
     }
 }

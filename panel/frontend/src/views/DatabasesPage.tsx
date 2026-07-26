@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState, useEffect } from "react"
 
@@ -27,6 +28,7 @@ type DbRow = {
   size_mb?: number
   db_user: string | null
   status: string
+  hosting_account_id?: number | null
 }
 
 type DbUserRow = {
@@ -55,6 +57,8 @@ export default function DatabasesPage() {
   const t = useTranslations("databases")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
+  const accountFilter = Number(searchParams.get("account") ?? "") || null
   const [engine, setEngine] = useState("mysql")
   const [importFile, setImportFile] = useState("")
   const [importName, setImportName] = useState("")
@@ -100,7 +104,9 @@ export default function DatabasesPage() {
     setRemoteIps((remoteData.remote_access.allowed_ips ?? []).join("\n"))
   }, [remoteData])
 
-  const databases = data?.databases ?? []
+  const databases = (data?.databases ?? []).filter(
+    (db) => accountFilter == null || db.hosting_account_id === accountFilter,
+  )
   const dbUsers = usersData?.users ?? []
 
   const invalidate = () => {

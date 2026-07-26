@@ -31,4 +31,5 @@ return [
     '/runtimes' => 'system.manage',
     '/sites' => 'platform.manage',
     '/products' => 'platform.manage',
+    '/system-info' => 'platform.manage',
 ];

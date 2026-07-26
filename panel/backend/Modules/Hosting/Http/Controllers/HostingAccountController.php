@@ -24,8 +24,10 @@ class HostingAccountController extends Controller
             ->where('hosting_account_id', $account->id)
             ->count();
         $ftp = \Modules\Ftp\Entities\FtpAccount::query()
-            ->where('username', $account->username)
-            ->orWhere('home_dir', 'like', '%/'.$account->username.'/%')
+            ->where(function ($q) use ($account): void {
+                $q->where('username', $account->username)
+                    ->orWhere('home_dir', 'like', '%/'.$account->username.'/%');
+            })
             ->count();
         $databases = \Modules\Databases\Entities\HostingDatabase::query()
             ->where('hosting_account_id', $account->id)
@@ -42,8 +44,8 @@ class HostingAccountController extends Controller
                     'domains' => '/domains?account='.$account->id,
                     'ftp' => '/ftp?username='.urlencode($account->username),
                     'databases' => '/databases?account='.$account->id,
-                    'files' => '/files?account='.$account->username,
-                    'email' => '/email/accounts?account='.$account->id,
+                    'files' => '/files?path='.urlencode('/var/www/'.$account->username),
+                    'email' => '/email/accounts?username='.urlencode($account->username),
                     'usage' => '/hosting/accounts?highlight='.$account->id,
                 ],
             ],

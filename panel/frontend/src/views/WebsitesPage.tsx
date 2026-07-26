@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState, type ReactNode } from "react"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
@@ -93,6 +94,8 @@ export default function WebsitesPage() {
   const t = useTranslations("websites")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
+  const accountFilter = Number(searchParams.get("account") ?? "") || null
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<CreateState>(emptyCreate)
 
@@ -113,7 +116,9 @@ export default function WebsitesPage() {
     queryFn: () => api<{ templates: Template[] }>("/api/v1/websites/rewrite-templates"),
   })
 
-  const websites = data?.websites ?? []
+  const websites = (data?.websites ?? []).filter(
+    (w) => accountFilter == null || w.hosting_account_id === accountFilter,
+  )
   const accounts = accountsData?.accounts ?? []
 
   const create = useMutation({

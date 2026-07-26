@@ -82,7 +82,7 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | **Monitoring** (services, logs, uptime, channels) | ✅ | ✅ | ✅ systemctl/journalctl | **Have** (Wave 5 + Phase D) | Grouped log sources; service control; uptime; Telegram/Slack/webhook/email; process manager |
 | **Webhooks** (domain events, signed delivery) | ✅ | ✅ | — | **Implemented** | `backup.completed`, `ssl.expiring`, `alert.fired`, `user.created` |
 | **Automation** (API tokens, CLI, SDKs) | ✅ | ✅ | — | **Implemented** | Scoped Sanctum tokens; `wpanel` CLI with 2FA + write commands; TS/Python SDKs; OpenAPI export in CI |
-| **Platform / Sites** | ✅ | ✅ | ✅ via webina | **Implemented** | Structured platform status + init on System Info; Sites create with channel/aliases/env; list/delete |
+| **Platform / Sites** | ✅ | ✅ | ✅ via webina | **Implemented** | Structured site list from registry; platform status + init; Sites create with channel/aliases/env |
 | **Products** | ✅ | ✅ | ✅ via webina | **Implemented** | Install feedback (ok/error/log) + list invalidate; Webino platform products, not hosting plans |
 | **Dns** | ✅ | ✅ | ✅ list + CRUD | **Have** (Wave 10 + Phase D) | Cloudflare + AliDNS providers; DNS-01; local DNSSEC/slaves/templates |
 | **Ssl** | ✅ | ✅ | ✅ renew/wildcard/custom | **Have** (Wave 14) | Auto-renew + expiry alerts; DNS-01 wildcard; custom upload; panel/mail bind |

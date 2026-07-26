@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+import { useSearchParams } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ChevronRight, Download, FileText, FolderPlus, Pencil, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -76,7 +77,13 @@ export default function FilesPage() {
   const t = useTranslations("files")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
-  const [path, setPath] = useState("/")
+  const searchParams = useSearchParams()
+  const initialPath = (() => {
+    const raw = searchParams.get("path")
+    if (!raw || !raw.startsWith("/")) return "/"
+    return raw.replace(/\/+$/, "") || "/"
+  })()
+  const [path, setPath] = useState(initialPath)
   const [editorPath, setEditorPath] = useState<string | null>(null)
   const [editorContent, setEditorContent] = useState("")
   const [renameTarget, setRenameTarget] = useState<FileEntry | null>(null)

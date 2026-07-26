@@ -131,7 +131,13 @@ export default function SystemInfoPage() {
 
   const initPlatform = useMutation({
     mutationFn: () => api<PlatformStatus>("/api/v1/platform/init", { method: "POST" }),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      if (res && typeof res === "object" && "ok" in res && res.ok === false) {
+        toast.error(
+          (typeof res.error === "string" && res.error) || t("platform_init_failed"),
+        )
+        return
+      }
       toast.success(t("platform_init_ok"))
       qc.invalidateQueries({ queryKey: ["platform-status"] })
     },
