@@ -5,6 +5,7 @@
  * Keep in sync with panel/frontend/src/lib/routeWritePermissions.ts
  */
 return [
+    '/websites' => 'domains.manage',
     '/domains' => 'domains.manage',
     '/subdomains' => 'domains.manage',
     '/databases' => 'databases.manage',
@@ -25,6 +26,7 @@ return [
     '/wordpress' => 'system.manage',
     '/support' => 'system.manage',
     '/apps' => 'apps.manage',
+    '/softstore' => 'system.manage',
     '/sites' => 'platform.manage',
     '/products' => 'platform.manage',
 ];

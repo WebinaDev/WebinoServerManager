@@ -44,7 +44,7 @@ Provisioning is fully automatic: `panel.sh` generates secrets, creates `webino_p
 
 See [docs/AGENT_SECURITY.md](docs/AGENT_SECURITY.md) for agent trust model, **token sync** between `panel/.env` and `panel/backend/.env`, and token rotation.
 
-**Web server:** nginx-only — Apache and HTTP/3 are out of scope unless product direction changes (see `PROJECT_STATUS.md` 28.9).
+**Web server:** nginx + Apache dual-stack (`engine` per vhost/website); optional HTTP/3 (QUIC) on nginx only — see `docs/docs/webserver.md` and [AAPANEL_PARITY.md](AAPANEL_PARITY.md) Wave 2.
 
 Embed failures (phpMyAdmin, phpPgAdmin, Roundcube) are often caused by `WEBINO_AGENT_TOKEN` mismatch — see [docs/TROUBLESHOOTING.md](../docs/TROUBLESHOOTING.md#panel-stack-hosting-control-panel).
 

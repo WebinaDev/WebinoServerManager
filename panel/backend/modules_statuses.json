@@ -25,5 +25,7 @@
     "Users": true,
     "Webhooks": true,
     "Webserver": true,
+    "Websites": true,
+    "Softstore": true,
     "Wordpress": true
 }

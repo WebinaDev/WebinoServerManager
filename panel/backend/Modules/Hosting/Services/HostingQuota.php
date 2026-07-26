@@ -10,6 +10,7 @@ class HostingQuota
 {
     private const RESOURCE_MAP = [
         'domains' => ['table' => 'hosting_domains', 'column' => 'max_domains'],
+        'websites' => ['table' => 'hosting_websites', 'column' => 'max_domains'],
         'subdomains' => ['table' => 'hosting_subdomains', 'column' => 'max_subdomains'],
         'databases' => ['table' => 'hosting_databases', 'column' => 'max_databases'],
         'mailboxes' => ['table' => 'mail_accounts', 'column' => 'max_mailboxes'],

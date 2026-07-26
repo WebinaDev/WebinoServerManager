@@ -19,6 +19,8 @@ class NginxVhost extends Model
         'redirects',
         'proxy_rules',
         'subdomain_id',
+        'engine',
+        'http3',
         'status',
         'last_error',
     ];
@@ -27,6 +29,7 @@ class NginxVhost extends Model
         'ssl_enabled' => 'boolean',
         'force_https' => 'boolean',
         'hsts' => 'boolean',
+        'http3' => 'boolean',
         'redirects' => 'array',
         'proxy_rules' => 'array',
     ];

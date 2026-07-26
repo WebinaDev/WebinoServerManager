@@ -1,8 +1,10 @@
 # WebinoServer Panel — Project Status
 
-Last updated: 2026-07-07 (Phase 32 done)
+Last updated: 2026-07-26 (aaPanel parity SSOT Wave 0)
 
 This document is the single source of truth for architecture, implementation status, known gaps, and planned phases of the WebinoServer hosting control panel.
+
+**aaPanel parity (C+R):** capability gap matrix and waves 0–12 live in [AAPANEL_PARITY.md](AAPANEL_PARITY.md). Waves **1–3 Have** (Website hub, dual-stack, Softstore). Reseller hierarchy remains won't-fix.
 
 **Important:** Module `index` endpoints list resources from the **panel MariaDB** by default. Provisioning (create/delete) calls the agent. A scheduled `panel:reconcile-host` job (every 15 minutes) compares panel rows with agent GET list endpoints and flags drift — see [Fixed in Phase 9](#fixed-in-phase-9) and [Fixed in Phase 12 & 13](#fixed-in-phase-12--13).
 
@@ -66,15 +68,16 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | Module | Backend | Frontend UI | Agent / host | Status | Gaps |
 |--------|---------|-------------|--------------|--------|------|
 | **Core** (Auth, 2FA, Navigation, Setup, Dashboard, password recovery, API tokens, profile) | ✅ | ✅ | — | **Implemented** | `auth/gate` middleware; shared `route_permissions.php`; read-open GET + `RequireRouteWrite` on mutations |
-| **Security** (firewall, fail2ban, SSH, ClamAV, WAF, audit) | ✅ | ✅ | ✅ ufw/fail2ban/etc. | **Implemented** | WAF page; UFW IP rules; fail2ban filters/jails UI; `IpAllowlistMiddleware` |
-| **Users** (multi-user + roles) | ✅ | ✅ | — | **Implemented** | `users.manage` enforced on all user routes |
+| **Security** (firewall, fail2ban, SSH, ClamAV, WAF, audit) | ✅ | ✅ | ✅ ufw/fail2ban/etc. | **Implemented** | WAF; UFW; fail2ban filters (incl. delete); ClamAV history+schedule; `security-*` nav icons; `IpAllowlistMiddleware` |
+| **Users** (multi-user + roles) | ✅ | ✅ | — | **Implemented** | Spatie RBAC; Role CRUD + permission matrix; user edit; `RequireRouteWrite`; `users.manage` |
 | **Metrics** (history + alerts) | ✅ | ✅ | ✅ structured `/v1/system/info` | **Partial** | Multi-channel alerts via `NotificationDispatcher`; live `current` when sample stale (>5 min) |
-| **Domains** | ✅ | ✅ | ✅ | **Implemented** | List from panel DB + registry; create/delete UI; agent sites on dashboard |
+| **Websites** (hosting hub) | ✅ | ✅ | ✅ nginx vhost + composer/logs | **Implemented** | Wave 1 aaPanel parity: orchestrated create (pool/FTP/DB/SSL), rewrite/deny/hotlink/traffic, htpasswd, per-site logs; nav `/websites` |
+| **Domains** | ✅ | ✅ | ✅ | **Implemented** | Aliases create/PATCH; hosting quota; agent registry drift UI; reconcile; create/delete |
 | **Subdomains** | ✅ | ✅ | ✅ nginx vhost | **Implemented** | PHP pool + SSL/HTTPS/HSTS + PATCH edit; hosting quota; reconcile via `/v1/vhosts` |
-| **Webserver** | ✅ | ✅ | ✅ nginx vhosts | **Partial** | nginx-only raw editor, redirects, proxy, SSL/HSTS; **Apache / HTTP-3 out of scope** (28.9 won't-fix) |
+| **Webserver** | ✅ | ✅ | ✅ nginx + Apache | **Have** (Wave 2) | dual-stack `engine`, HTTP/3 nginx; raw editor/redirects/proxy; see [AAPANEL_PARITY.md](AAPANEL_PARITY.md) |
 | **Databases** | ✅ | ✅ | ✅ MySQL + PostgreSQL | **Implemented** | User CRUD, import/export, phpPgAdmin embed, remote IP UI; quota when `hosting_account_id` set |
 | **Hosting** | ✅ plans + accounts | ✅ | ✅ provision/suspend/usage | **Implemented** | Plans (incl. `max_apps`), accounts with OS provision/deprovision, quota, bandwidth metering, quota alerts; **reseller won't-fix** |
-| **Apps** (Docker containers) | ✅ | ✅ | ✅ docker.sock | **Partial** | Run/stop/logs/images + optional nginx proxy vhost; one-click catalog **ERP-deferred** (28.2) |
+| **Apps** (Docker containers) | ✅ | ✅ | ✅ docker.sock | **Partial** | Run/stop/logs/images + Softstore catalog **Have** (Wave 3); Compose depth planned Wave 4 |
 | **Monitoring** (services, logs, uptime, channels) | ✅ | ✅ | ✅ systemctl/journalctl | **Partial** | Service control, log tail, HTTP/TCP uptime, Telegram/Slack/webhook/email; hosting quota breach alerts |
 | **Webhooks** (domain events, signed delivery) | ✅ | ✅ | — | **Implemented** | `backup.completed`, `ssl.expiring`, `alert.fired`, `user.created` |
 | **Automation** (API tokens, CLI, SDKs) | ✅ | ✅ | — | **Implemented** | Scoped Sanctum tokens; `wpanel` CLI with 2FA + write commands; TS/Python SDKs; OpenAPI export in CI |
@@ -210,14 +213,14 @@ Phase 22–23 delivered cookie-only auth, 2FA login OTP/recovery, `/forbidden` U
 | Module | File(s) | Issue |
 |--------|---------|--------|
 | Sites | `SitesPage.tsx` | No delete (no platform delete route) |
-| Apps | `Modules/Apps/` | One-click app catalog / staging / composer-npm deferred to ERP / later phases |
+| Apps | `Modules/Apps/` + Softstore | Softstore **Have** Wave 3; Compose depth planned Wave 4 |
 | Monitoring | `Modules/Monitoring/` | Per-site resource graphs and soft/hard limits not implemented |
 
 ### Missing standard panel features (not started)
 
 Compared to cPanel, Plesk, DirectAdmin, HestiaCP, CyberPanel:
 
-- **Web server:** ~~redirect manager, reverse proxy, raw vhost editor, htpasswd, custom error pages, hotlink protection~~ — nginx-only subset in Phase 13 (no Apache, no HTTP/3)
+- **Web server:** redirect manager, reverse proxy, raw vhost editor, htpasswd, hotlink — nginx + **Apache dual-stack + HTTP/3** ([AAPANEL_PARITY.md](AAPANEL_PARITY.md) Wave 2 **done**)
 - **DNS:** ~~DNSSEC, reverse/PTR, zone templates, secondary DNS, import/export~~ — done in Phase 12 (PTR helper UI; SPF/DKIM via Phase 11 mail auth)
 - **Email:** SPF/DKIM/DMARC automation, antispam, autoresponders, mailing lists, catch-all, mail queue management
 - **SSL:** ~~Auto-renew scheduler, wildcard (DNS-01), custom cert upload, panel/mail service certs~~ — done in Phase 14 (expiry alerts email-only, not Metrics module)
@@ -225,7 +228,7 @@ Compared to cPanel, Plesk, DirectAdmin, HestiaCP, CyberPanel:
 - **Backups:** ~~Restore, offsite (S3/FTP/SFTP/rsync), incremental, verification~~ — done in Phase 15 (restic engine; S3/SFTP/REST targets)
 - **Multi-tenancy:** ~~Hosting packages, customer accounts, suspend/unsuspend, quota enforcement~~ — Phase 16 (customers + plans; resellers deferred)
 - **Databases:** ~~PostgreSQL, standalone DB-user CRUD, import/export, size stats~~ — Phase 17 (PG agent-only; no phpPgAdmin embed)
-- **Applications:** ~~Docker UI~~ — Phase 18 (Docker run/stop/logs + proxy); one-click catalog, Node/Python/Ruby systemd, staging, composer/npm still deferred
+- **Applications:** Docker UI Phase 18; Softstore catalog **Have** Wave 3; Compose depth, Node/Python runtimes planned — Waves 4, 9
 - **Monitoring:** ~~Service restart UI, log viewer, external uptime, Telegram/Slack/webhook alerts~~ — Phase 19; per-site limits and alert escalation still deferred
 - **API/CLI:** ~~Scoped API tokens, public customer CLI, webhooks, rate limiting, SDK~~ — done in Phase 20
 
@@ -313,14 +316,14 @@ flowchart LR
 | # | Fix |
 |---|-----|
 | 28.1 | Per-user crontab (`crontab -u`); `CronPage` account selector; reconcile per-user; `CronPerUserTest` |
-| 28.2 | One-click apps catalog — **ERP-deferred** (out of panel scope) |
+| 28.2 | One-click apps catalog — **done** Softstore ([AAPANEL_PARITY.md](AAPANEL_PARITY.md) Wave 3; was ERP-deferred) |
 | 28.3 | `hosting_quota_alerts` table; `CollectHostingUsageCommand` breach evaluation + escalation; UI on `HostingAccountsPage` |
 | 28.4 | Sites delete UI; `DELETE /api/v1/sites/{slug}`; agent `site delete` allowlist |
 | 28.5 | PHP ini/extensions editor; `PhpPage` tabs (Pools \| ini \| Extensions); `PhpIniTest` |
 | 28.6 | UFW `from_ip` rules; fail2ban filters/jails UI; `IpAllowlistMiddleware`; `Fail2banFilterTest` |
 | 28.7 | `WafPage` + nav/i18n; `WafTest` |
 | 28.8 | phpPgAdmin embed stack; remote IP UI on `DatabasesPage`; `RemoteAccessTest` |
-| 28.9 | Apache / HTTP-3 — **won't-fix** (nginx-only architecture unless product direction changes) |
+| 28.9 | Apache / HTTP-3 — **done** dual-stack ([AAPANEL_PARITY.md](AAPANEL_PARITY.md) Wave 2; was won't-fix) |
 | 28.10 | Full OpenAPI export (`OpenApiRouteCatalog`); CI drift; TS `schema.d.ts`; `OpenApiExportTest` |
 | 28.11 | Git / WordPress / Subdomains reconcile — **done in 27.4** |
 
@@ -471,7 +474,7 @@ flowchart LR
 
 ---
 
-### Phase 13 — Web server & vhost management (nginx-only) ✅
+### Phase 13 — Web server & vhost management (dual-stack) ✅
 
 **Status:** Complete (2026-07-05)
 
@@ -482,7 +485,7 @@ flowchart LR
 - Extended `SubdomainController` with `php_pool`, `ssl_enabled`, `force_https`
 - Frontend: `VhostsPage`, `VhostEditorPage`, extended `SubdomainsPage`; nav section + i18n
 
-**Note:** Primary domains remain on Caddy/Webina; Phase 13 targets traditional nginx vhosts under `WEBINO_NGINX_SITES`. No Apache.
+**Note:** Primary domains remain on Caddy/Webina; Phase 13 targets traditional vhosts under `WEBINO_NGINX_SITES` / `WEBINO_APACHE_SITES`. Dual-stack + HTTP/3 — [AAPANEL_PARITY.md](AAPANEL_PARITY.md) Wave 2.
 
 **Key files:** `agent/handlers_vhost.go`, `Modules/Webserver/`, `frontend/src/pages/VhostsPage.tsx`
 
@@ -565,7 +568,7 @@ flowchart LR
 - Optional nginx proxy vhost on create; `HostingQuota` `apps` resource; `apps.manage` permission
 - Frontend: `AppsPage` — containers, create form, logs sheet, images card; nav + i18n
 
-**Note:** One-click app catalog, staging environments, and composer/npm run intentionally deferred to ERP / later phases.
+**Note:** Softstore catalog **Have** Wave 3; Compose depth and runtimes planned — Waves 4, 9.
 
 **Key files:** `agent/handlers_docker.go`, `Modules/Apps/`, `frontend/src/pages/AppsPage.tsx`
 
@@ -698,8 +701,8 @@ flowchart LR
 - **28.10** Full OpenAPI export (`OpenApiRouteCatalog`); CI drift; TS `schema.d.ts`
 
 **Out of scope / deferred:**
-- **28.2** One-click apps catalog — ERP-deferred
-- **28.9** Apache / HTTP-3 — won't-fix (nginx-only architecture)
+- **28.2** One-click apps catalog — **done Softstore** ([AAPANEL_PARITY.md](AAPANEL_PARITY.md) Wave 3)
+- **28.9** Apache / HTTP-3 — **done** dual-stack ([AAPANEL_PARITY.md](AAPANEL_PARITY.md) Wave 2)
 - **28.11** Git/WP/Subdomains reconcile — done in 27.4
 
 **Key files:** `frontend/src/pages/WafPage.tsx`, `HostingQuotaAlertController.php`, `PhpPage.tsx`, `Fail2banPage.tsx`, `PhpPgAdminPage.tsx`, `OpenApiRouteCatalog.php`, `storage/app/openapi.json`
@@ -762,7 +765,7 @@ flowchart LR
 | E2E | Playwright — setup → login → domains; **`playwright-e2e` CI job** |
 | CI | `.github/workflows/panel-ci.yml` — backend, agent, frontend, cli, `openapi-export`, **`compose-smoke`**, **`playwright-e2e` |
 
-**Gaps:** No integration tests against real pdns/postfix/nginx on CI (29.5 deferred). One-click apps catalog ERP-deferred (28.2). Apache/HTTP-3 won't-fix (28.9).
+**Gaps:** No integration tests against real pdns/postfix/nginx on CI (29.5 deferred). Softstore **Have** (Wave 3). Apache/HTTP-3 **Have** (Wave 2). aaPanel parity SSOT: [AAPANEL_PARITY.md](AAPANEL_PARITY.md).
 
 **Install regression checklist (after Phase 24):**
 

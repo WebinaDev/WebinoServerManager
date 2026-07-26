@@ -10,6 +10,8 @@ use Modules\Domains\Entities\HostingDomain;
 use Modules\Hosting\Entities\HostingAccount;
 use Modules\Metrics\Entities\MetricAlert;
 use Modules\Metrics\Entities\MetricSample;
+use Modules\Softstore\Entities\SoftstoreInstall;
+use Modules\Softstore\Entities\SoftstorePin;
 
 class DashboardController extends Controller
 {
@@ -56,6 +58,27 @@ class DashboardController extends Controller
         $hostingAccounts = HostingAccount::query()->count();
         $hostingSuspended = HostingAccount::query()->where('status', 'suspended')->count();
 
+        $softstorePins = [];
+        try {
+            $userId = request()->user()?->id;
+            if ($userId) {
+                $softstorePins = SoftstorePin::query()
+                    ->with('package:id,slug,name,category')
+                    ->where('user_id', $userId)
+                    ->orderBy('id')
+                    ->get()
+                    ->map(fn (SoftstorePin $pin) => [
+                        'package_id' => $pin->package_id,
+                        'slug' => $pin->package?->slug,
+                        'name' => $pin->package?->name,
+                        'category' => $pin->package?->category,
+                    ])
+                    ->values()
+                    ->all();
+            }
+        } catch (\Throwable) {
+            $softstorePins = [];
+        }
         return response()->json([
             'data' => [
                 'domains' => HostingDomain::query()->count(),
@@ -67,6 +90,10 @@ class DashboardController extends Controller
                 'cpu_percent' => $sample?->cpu_percent,
                 'mem_percent' => $sample?->mem_percent,
                 'disk_percent' => $sample?->disk_percent,
+                'softstore_pins' => $softstorePins,
+                'softstore_active_installs' => SoftstoreInstall::query()
+                    ->whereIn('status', ['pending', 'running'])
+                    ->count(),
             ],
         ]);
     }

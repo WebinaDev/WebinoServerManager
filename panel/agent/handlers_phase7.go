@@ -18,6 +18,8 @@ var (
 	dovecotUserdb  string
 	nginxSitesDir  string
 	nginxEnabled   string
+	apacheSitesDir string
+	apacheEnabled  string
 )
 
 func initPhase7Env() {
@@ -28,6 +30,8 @@ func initPhase7Env() {
 	dovecotUserdb = envOr("WEBINO_DOVECOT_USERDB", "/etc/dovecot/users")
 	nginxSitesDir = envOr("WEBINO_NGINX_SITES", "/etc/nginx/sites-available")
 	nginxEnabled = envOr("WEBINO_NGINX_ENABLED", "/etc/nginx/sites-enabled")
+	apacheSitesDir = envOr("WEBINO_APACHE_SITES", "/etc/apache2/sites-available")
+	apacheEnabled = envOr("WEBINO_APACHE_ENABLED", "/etc/apache2/sites-enabled")
 }
 
 func handleDnsZones(w http.ResponseWriter, r *http.Request) {

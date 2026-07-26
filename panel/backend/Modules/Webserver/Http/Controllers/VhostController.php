@@ -54,20 +54,26 @@ class VhostController extends Controller
             'ssl_enabled' => ['nullable', 'boolean'],
             'force_https' => ['nullable', 'boolean'],
             'hsts' => ['nullable', 'boolean'],
+            'engine' => ['nullable', 'in:nginx,apache'],
+            'http3' => ['nullable', 'boolean'],
         ]);
 
         $fqdn = strtolower($data['fqdn']);
         $configName = str_replace('.', '_', $fqdn);
         $docRoot = $data['document_root'] ?? 'sites/'.$fqdn.'/public';
+        $engine = $data['engine'] ?? 'nginx';
+        $http3 = $engine === 'nginx' && (bool) ($data['http3'] ?? false);
 
         $vhost = NginxVhost::query()->create([
             'fqdn' => $fqdn,
             'config_name' => $configName,
+            'engine' => $engine,
             'document_root' => ltrim($docRoot, '/'),
             'php_pool' => $data['php_pool'] ?? null,
             'ssl_enabled' => $data['ssl_enabled'] ?? false,
             'force_https' => $data['force_https'] ?? false,
             'hsts' => $data['hsts'] ?? false,
+            'http3' => $http3,
             'status' => 'pending',
         ]);
 
@@ -79,6 +85,8 @@ class VhostController extends Controller
             'ssl' => $vhost->ssl_enabled,
             'force_https' => $vhost->force_https,
             'hsts' => $vhost->hsts,
+            'http3' => $http3,
+            'engine' => $engine,
         ];
         if (! empty($data['content'])) {
             $payload['content'] = $data['content'];

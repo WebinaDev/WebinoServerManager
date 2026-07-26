@@ -47,6 +47,7 @@ func main() {
 	initMailEnv()
 	initHostingEnv()
 	initDockerEnv()
+	initDockerDepthEnv()
 
 	go startWebSocketServer(wsAddr)
 
@@ -102,8 +103,16 @@ func main() {
 	mux.HandleFunc("/v1/databases/remote-access", handleDatabaseRemoteAccess)
 	mux.HandleFunc("/v1/docker/containers", handleDockerContainers)
 	mux.HandleFunc("/v1/docker/images", handleDockerImages)
+	mux.HandleFunc("/v1/docker/compose", handleDockerCompose)
+	mux.HandleFunc("/v1/docker/networks", handleDockerNetworks)
+	mux.HandleFunc("/v1/docker/volumes", handleDockerVolumes)
+	mux.HandleFunc("/v1/docker/registry", handleDockerRegistry)
+	mux.HandleFunc("/v1/docker/daemon", handleDockerDaemon)
 	mux.HandleFunc("/v1/services", handleServices)
 	mux.HandleFunc("/v1/logs", handleLogs)
+	mux.HandleFunc("/v1/websites/composer", handleWebsiteComposer)
+	mux.HandleFunc("/v1/softstore/status", handleSoftstoreStatus)
+	mux.HandleFunc("/v1/softstore/install", handleSoftstoreInstall)
 
 	log.Printf("webino-agent listening on %s (root=%s, backups=%s)", socket, webinaRoot, backupDir)
 	log.Fatal(http.Serve(ln, authMiddleware(mux)))
@@ -234,6 +243,19 @@ func runArgv(argv []string, dir string) (string, error) {
 		cmd.Dir = dir
 	}
 	cmd.Env = os.Environ()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return string(out), err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+func runArgvEnvWithStdin(argv []string, stdin string) (string, error) {
+	unlock := acquireExecLock(execLockKey(argv))
+	defer unlock()
+	cmd := exec.Command(argv[0], argv[1:]...)
+	cmd.Env = os.Environ()
+	cmd.Stdin = strings.NewReader(stdin)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return string(out), err

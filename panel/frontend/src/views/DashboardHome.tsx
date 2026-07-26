@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
@@ -19,6 +20,13 @@ type Summary = {
   cpu_percent?: number
   mem_percent?: number
   disk_percent?: number
+  softstore_pins?: Array<{
+    package_id: number
+    slug?: string | null
+    name?: string | null
+    category?: string | null
+  }>
+  softstore_active_installs?: number
 }
 
 type Props = {
@@ -133,6 +141,36 @@ export default function DashboardHome({ initialSummary = null }: Props) {
           <div className="text-2xl font-semibold">{statusLabel}</div>
         </div>
       </div>
+      {(summary?.softstore_pins?.length ?? 0) > 0 ||
+      (summary?.softstore_active_installs ?? 0) > 0 ? (
+        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-medium">{t("softstore_pins_title")}</div>
+            <Link href="/softstore" className="text-primary text-sm hover:underline">
+              {t("softstore_open")}
+            </Link>
+          </div>
+          {(summary?.softstore_active_installs ?? 0) > 0 ? (
+            <p className="text-muted-foreground mb-2 text-xs">
+              {t("softstore_active_installs", {
+                count: formatNumber(summary?.softstore_active_installs ?? 0),
+              })}
+            </p>
+          ) : null}
+          <ul className="flex flex-wrap gap-2">
+            {(summary?.softstore_pins ?? []).map((pin) => (
+              <li key={pin.package_id}>
+                <Link
+                  href="/softstore"
+                  className="bg-muted hover:bg-muted/80 inline-block rounded-md px-3 py-1 text-sm"
+                >
+                  {pin.name ?? pin.slug ?? `#${pin.package_id}`}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {summary ? (
         <div className="rounded-xl border bg-card p-4 shadow">
           <AccentBarChart

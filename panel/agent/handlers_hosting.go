@@ -182,6 +182,7 @@ func setHostingSuspended(username string, suspend bool) error {
 		if err := disableNginxVhostsForUser(username); err != nil {
 			return err
 		}
+		_ = disableApacheVhostsForUser(username)
 		_, _ = runArgv([]string{"pure-pw", "usermod", username, "-r"}, "")
 		_, _ = runArgv([]string{"sh", "-c", fmt.Sprintf("crontab -u %s -l 2>/dev/null | sed 's/^/#SUSPENDED#/' | crontab -u %s -", shellQuote(username), shellQuote(username))}, "")
 		_ = os.WriteFile(filepath.Join(home, ".webino_suspended"), []byte("1"), 0o644)
@@ -193,6 +194,7 @@ func setHostingSuspended(username string, suspend bool) error {
 	if err := enableNginxVhostsForUser(username); err != nil {
 		return err
 	}
+	_ = enableApacheVhostsForUser(username)
 	_, _ = runArgv([]string{"pure-pw", "usermod", username, "-r", home}, "")
 	_, _ = runArgv([]string{"sh", "-c", fmt.Sprintf("crontab -u %s -l 2>/dev/null | sed 's/^#SUSPENDED#//' | crontab -u %s -", shellQuote(username), shellQuote(username))}, "")
 	_ = os.Remove(filepath.Join(home, ".webino_suspended"))
@@ -234,6 +236,43 @@ func enableNginxVhostsForUser(username string) error {
 		}
 	}
 	_, err = reloadNginx()
+	return err
+}
+
+func disableApacheVhostsForUser(username string) error {
+	prefix := username + "_"
+	entries, err := os.ReadDir(apacheEnabled)
+	if err != nil {
+		return nil
+	}
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), prefix) || strings.HasPrefix(e.Name(), username+".") {
+			_ = os.Remove(filepath.Join(apacheEnabled, e.Name()))
+		}
+	}
+	_, err = reloadApache()
+	return err
+}
+
+func enableApacheVhostsForUser(username string) error {
+	prefix := username + "_"
+	entries, err := os.ReadDir(apacheSitesDir)
+	if err != nil {
+		return nil
+	}
+	for _, e := range entries {
+		if !strings.HasSuffix(e.Name(), ".conf") {
+			continue
+		}
+		name := strings.TrimSuffix(e.Name(), ".conf")
+		if strings.HasPrefix(name, prefix) || strings.HasPrefix(name, username+".") {
+			confPath := filepath.Join(apacheSitesDir, e.Name())
+			enabledPath := filepath.Join(apacheEnabled, e.Name())
+			_ = os.Remove(enabledPath)
+			_ = os.Symlink(confPath, enabledPath)
+		}
+	}
+	_, err = reloadApache()
 	return err
 }
 

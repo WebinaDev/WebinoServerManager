@@ -1,5 +1,6 @@
 /** Write permission for mutation UI on read-open routes. Sync with backend config/route_write_permissions.php */
 export const routeWritePermissions: Record<string, string> = {
+  "/websites": "domains.manage",
   "/domains": "domains.manage",
   "/subdomains": "domains.manage",
   "/databases": "databases.manage",
@@ -20,6 +21,7 @@ export const routeWritePermissions: Record<string, string> = {
   "/wordpress": "system.manage",
   "/support": "system.manage",
   "/apps": "apps.manage",
+  "/softstore": "system.manage",
   "/sites": "platform.manage",
   "/products": "platform.manage",
 }

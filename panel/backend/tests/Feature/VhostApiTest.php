@@ -54,4 +54,23 @@ class VhostApiTest extends TestCase
             'status' => 'active',
         ]);
     }
+
+    public function test_store_creates_vhost_with_apache_engine(): void
+    {
+        $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/v1/webserver/vhosts', [
+                'fqdn' => 'apache.example.com',
+                'engine' => 'apache',
+                'http3' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('vhost.engine', 'apache')
+            ->assertJsonPath('vhost.http3', false);
+
+        $this->assertDatabaseHas('nginx_vhosts', [
+            'fqdn' => 'apache.example.com',
+            'engine' => 'apache',
+            'http3' => 0,
+        ]);
+    }
 }

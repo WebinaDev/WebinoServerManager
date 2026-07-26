@@ -67,6 +67,9 @@ export default function AppsPage() {
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [logsApp, setLogsApp] = useState<AppRow | null>(null)
+  const [tab, setTab] = useState<
+    "containers" | "compose" | "networks" | "volumes" | "registry" | "daemon"
+  >("containers")
 
   const { data, isLoading } = useQuery({
     queryKey: ["apps"],
@@ -78,6 +81,50 @@ export default function AppsPage() {
     queryFn: () => api<{ images: ImageRow[] }>("/api/v1/apps/images"),
   })
 
+  const { data: composeData } = useQuery({
+    queryKey: ["apps-compose"],
+    queryFn: () =>
+      api<{ projects: { id: number; name: string; status: string; last_error?: string | null }[] }>(
+        "/api/v1/apps/compose",
+      ),
+    enabled: tab === "compose",
+  })
+
+  const { data: networksData } = useQuery({
+    queryKey: ["apps-networks"],
+    queryFn: () =>
+      api<{ networks: { id?: string; name: string; driver?: string }[] }>("/api/v1/apps/networks"),
+    enabled: tab === "networks",
+  })
+
+  const { data: volumesData } = useQuery({
+    queryKey: ["apps-volumes"],
+    queryFn: () =>
+      api<{ volumes: { name: string; driver?: string }[] }>("/api/v1/apps/volumes"),
+    enabled: tab === "volumes",
+  })
+
+  const { data: registriesData } = useQuery({
+    queryKey: ["apps-registries"],
+    queryFn: () =>
+      api<{ registries: { id: number; name: string; server: string; username: string }[] }>(
+        "/api/v1/apps/registries",
+      ),
+    enabled: tab === "registry",
+  })
+
+  const { data: daemonData } = useQuery({
+    queryKey: ["apps-daemon"],
+    queryFn: () =>
+      api<{
+        daemon: {
+          "registry-mirrors"?: string[]
+          "log-opts"?: { "max-size"?: string; "max-file"?: string }
+        }
+      }>("/api/v1/apps/daemon"),
+    enabled: tab === "daemon",
+  })
+
   const { data: logsData, isFetching: logsLoading } = useQuery({
     queryKey: ["apps-logs", logsApp?.id],
     queryFn: () =>
@@ -86,8 +133,13 @@ export default function AppsPage() {
   })
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["apps"] })
-    qc.invalidateQueries({ queryKey: ["apps-images"] })
+    void qc.invalidateQueries({ queryKey: ["apps"] })
+    void qc.invalidateQueries({ queryKey: ["apps-images"] })
+    void qc.invalidateQueries({ queryKey: ["apps-compose"] })
+    void qc.invalidateQueries({ queryKey: ["apps-networks"] })
+    void qc.invalidateQueries({ queryKey: ["apps-volumes"] })
+    void qc.invalidateQueries({ queryKey: ["apps-registries"] })
+    void qc.invalidateQueries({ queryKey: ["apps-daemon"] })
   }
 
   const create = useMutation({
@@ -128,11 +180,83 @@ export default function AppsPage() {
     onSuccess: invalidate,
   })
 
+  const createCompose = useMutation({
+    mutationFn: (body: { name: string; compose_yaml: string; env_file?: string }) =>
+      api("/api/v1/apps/compose", { method: "POST", json: body }),
+    onSuccess: invalidate,
+  })
+  const composeUp = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/apps/compose/${id}/up`, { method: "POST" }),
+    onSuccess: invalidate,
+  })
+  const composeDown = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/apps/compose/${id}/down`, { method: "POST" }),
+    onSuccess: invalidate,
+  })
+  const composeRemove = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/apps/compose/${id}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  })
+  const createNetwork = useMutation({
+    mutationFn: (name: string) => api("/api/v1/apps/networks", { method: "POST", json: { name } }),
+    onSuccess: invalidate,
+  })
+  const removeNetwork = useMutation({
+    mutationFn: (name: string) => api(`/api/v1/apps/networks/${name}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  })
+  const createVolume = useMutation({
+    mutationFn: (name: string) => api("/api/v1/apps/volumes", { method: "POST", json: { name } }),
+    onSuccess: invalidate,
+  })
+  const removeVolume = useMutation({
+    mutationFn: (name: string) => api(`/api/v1/apps/volumes/${name}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  })
+  const saveRegistry = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api("/api/v1/apps/registries", { method: "POST", json: body }),
+    onSuccess: invalidate,
+  })
+  const removeRegistry = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/apps/registries/${id}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  })
+  const saveDaemon = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api("/api/v1/apps/daemon", { method: "PUT", json: body }),
+    onSuccess: invalidate,
+  })
+
   const apps = data?.apps ?? []
   const images = imagesData?.images ?? []
+  const tabs = [
+    "containers",
+    "compose",
+    "networks",
+    "volumes",
+    "registry",
+    "daemon",
+  ] as const
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
+      <div className="flex flex-wrap gap-2">
+        {tabs.map((key) => (
+          <Button
+            key={key}
+            type="button"
+            size="sm"
+            variant={tab === key ? "default" : "outline"}
+            onClick={() => setTab(key)}
+          >
+            {t(`tab_${key}`)}
+          </Button>
+        ))}
+      </div>
+
+      {tab === "containers" ? (
+        <>
       <Card>
         <CardHeader>
           <CardTitle>{t("create_title")}</CardTitle>
@@ -380,6 +504,305 @@ export default function AppsPage() {
           </ul>
         </CardContent>
       </Card>
+        </>
+      ) : null}
+
+      {tab === "compose" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("compose_title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RequireRouteWrite>
+              <form
+                className="grid gap-3"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const fd = new FormData(e.currentTarget)
+                  createCompose.mutate({
+                    name: String(fd.get("name")),
+                    compose_yaml: String(fd.get("compose_yaml")),
+                    env_file: String(fd.get("env_file") ?? "") || undefined,
+                  })
+                  e.currentTarget.reset()
+                }}
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="compose-name">{t("compose_name")}</Label>
+                  <Input id="compose-name" name="name" required dir="ltr" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="compose-yaml">{t("compose_yaml")}</Label>
+                  <Textarea id="compose-yaml" name="compose_yaml" required dir="ltr" rows={8} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="compose-env">{t("compose_env")}</Label>
+                  <Textarea id="compose-env" name="env_file" dir="ltr" rows={3} />
+                </div>
+                <Button type="submit" disabled={createCompose.isPending}>
+                  {t("compose_up")}
+                </Button>
+              </form>
+            </RequireRouteWrite>
+            <ul className="divide-y rounded-md border">
+              {(composeData?.projects ?? []).length === 0 ? (
+                <li className="text-muted-foreground px-4 py-3 text-sm">{t("compose_empty")}</li>
+              ) : (
+                (composeData?.projects ?? []).map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium" dir="ltr">
+                        {p.name}
+                      </p>
+                      <p className="text-muted-foreground text-xs">{p.status}</p>
+                    </div>
+                    <RequireRouteWrite>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => composeUp.mutate(p.id)}
+                        >
+                          {t("compose_up")}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => composeDown.mutate(p.id)}
+                        >
+                          {t("compose_down")}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => composeRemove.mutate(p.id)}
+                        >
+                          {t("delete")}
+                        </Button>
+                      </div>
+                    </RequireRouteWrite>
+                  </li>
+                ))
+              )}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {tab === "networks" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("networks_title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RequireRouteWrite>
+              <form
+                className="flex flex-wrap gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const fd = new FormData(e.currentTarget)
+                  createNetwork.mutate(String(fd.get("name")))
+                  e.currentTarget.reset()
+                }}
+              >
+                <Input name="name" required dir="ltr" placeholder="mynet" className="max-w-xs" />
+                <Button type="submit">{t("create")}</Button>
+              </form>
+            </RequireRouteWrite>
+            <ul className="divide-y rounded-md border">
+              {(networksData?.networks ?? []).map((n) => (
+                <li
+                  key={n.name}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                >
+                  <span dir="ltr">
+                    {n.name}
+                    {n.driver ? ` · ${n.driver}` : ""}
+                  </span>
+                  <RequireRouteWrite>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => removeNetwork.mutate(n.name)}
+                    >
+                      {t("delete")}
+                    </Button>
+                  </RequireRouteWrite>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {tab === "volumes" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("volumes_title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RequireRouteWrite>
+              <form
+                className="flex flex-wrap gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const fd = new FormData(e.currentTarget)
+                  createVolume.mutate(String(fd.get("name")))
+                  e.currentTarget.reset()
+                }}
+              >
+                <Input name="name" required dir="ltr" placeholder="myvol" className="max-w-xs" />
+                <Button type="submit">{t("create")}</Button>
+              </form>
+            </RequireRouteWrite>
+            <ul className="divide-y rounded-md border">
+              {(volumesData?.volumes ?? []).map((v) => (
+                <li
+                  key={v.name}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                >
+                  <span dir="ltr">{v.name}</span>
+                  <RequireRouteWrite>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => removeVolume.mutate(v.name)}
+                    >
+                      {t("delete")}
+                    </Button>
+                  </RequireRouteWrite>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {tab === "registry" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("registry_title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RequireRouteWrite>
+              <form
+                className="grid gap-3 md:grid-cols-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const fd = new FormData(e.currentTarget)
+                  saveRegistry.mutate({
+                    name: String(fd.get("name")),
+                    server: String(fd.get("server")),
+                    username: String(fd.get("username")),
+                    password: String(fd.get("password")),
+                    login: true,
+                  })
+                  e.currentTarget.reset()
+                }}
+              >
+                <Input name="name" required placeholder={t("registry_name")} />
+                <Input name="server" required dir="ltr" placeholder="https://index.docker.io/v1/" />
+                <Input name="username" required dir="ltr" />
+                <Input name="password" type="password" required dir="ltr" />
+                <Button type="submit" className="md:col-span-2">
+                  {t("registry_save")}
+                </Button>
+              </form>
+            </RequireRouteWrite>
+            <ul className="divide-y rounded-md border">
+              {(registriesData?.registries ?? []).map((r) => (
+                <li
+                  key={r.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                >
+                  <span dir="ltr">
+                    {r.name} · {r.server} · {r.username}
+                  </span>
+                  <RequireRouteWrite>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => removeRegistry.mutate(r.id)}
+                    >
+                      {t("delete")}
+                    </Button>
+                  </RequireRouteWrite>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {tab === "daemon" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("daemon_title")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RequireRouteWrite>
+              <form
+                className="grid gap-3"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const fd = new FormData(e.currentTarget)
+                  const mirrors = String(fd.get("mirrors") ?? "")
+                    .split("\n")
+                    .map((l) => l.trim())
+                    .filter(Boolean)
+                  saveDaemon.mutate({
+                    "registry-mirrors": mirrors,
+                    "log-opts": {
+                      "max-size": String(fd.get("max_size") ?? "") || undefined,
+                      "max-file": String(fd.get("max_file") ?? "") || undefined,
+                    },
+                  })
+                }}
+              >
+                <div className="space-y-2">
+                  <Label>{t("daemon_mirrors")}</Label>
+                  <Textarea
+                    name="mirrors"
+                    dir="ltr"
+                    rows={3}
+                    defaultValue={(daemonData?.daemon?.["registry-mirrors"] ?? []).join("\n")}
+                  />
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>{t("daemon_max_size")}</Label>
+                    <Input
+                      name="max_size"
+                      dir="ltr"
+                      defaultValue={daemonData?.daemon?.["log-opts"]?.["max-size"] ?? ""}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("daemon_max_file")}</Label>
+                    <Input
+                      name="max_file"
+                      dir="ltr"
+                      defaultValue={daemonData?.daemon?.["log-opts"]?.["max-file"] ?? ""}
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={saveDaemon.isPending}>
+                  {t("daemon_save")}
+                </Button>
+              </form>
+            </RequireRouteWrite>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Sheet open={logsApp != null} onOpenChange={(open) => !open && setLogsApp(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">

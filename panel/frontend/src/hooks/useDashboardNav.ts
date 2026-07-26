@@ -39,6 +39,7 @@ export type NavSection = {
 }
 
 const ICONS: Record<string, LucideIcon> = {
+  websites: Globe,
   domains: Globe,
   subdomains: Globe,
   dns: Globe,

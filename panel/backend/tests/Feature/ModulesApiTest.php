@@ -71,6 +71,8 @@ class ModulesApiTest extends TestCase
             'email antispam' => ['/api/v1/email/antispam'],
             'apps' => ['/api/v1/apps'],
             'apps images' => ['/api/v1/apps/images'],
+            'softstore packages' => ['/api/v1/softstore/packages'],
+            'softstore installs' => ['/api/v1/softstore/installs'],
             'monitoring services' => ['/api/v1/monitoring/services'],
             'monitoring log sources' => ['/api/v1/monitoring/logs/sources'],
             'monitoring uptime' => ['/api/v1/monitoring/uptime'],

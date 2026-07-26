@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 type logSource struct {
@@ -19,6 +21,32 @@ var allowedLogSources = map[string]logSource{
 	"auth":         {Kind: "journal", Ref: "ssh"},
 	"php-fpm":      {Kind: "journal", Ref: "php8.2-fpm"},
 	"panel":        {Kind: "journal", Ref: "nginx"},
+}
+
+func resolveLogSource(source string) (logSource, bool) {
+	if src, ok := allowedLogSources[source]; ok {
+		return src, true
+	}
+	// Per-vhost: vhost-access:{config_name|fqdn} / vhost-error:{...}
+	if strings.HasPrefix(source, "vhost-access:") {
+		name := strings.TrimPrefix(source, "vhost-access:")
+		if err := validateSafeName(strings.ReplaceAll(name, ".", "_"), 128); err != nil {
+			return logSource{}, false
+		}
+		fqdn := strings.ReplaceAll(name, "_", ".")
+		path := filepath.Join(vhostLogDir(), strings.ToLower(fqdn)+".access.log")
+		return logSource{Kind: "file", Ref: path}, true
+	}
+	if strings.HasPrefix(source, "vhost-error:") {
+		name := strings.TrimPrefix(source, "vhost-error:")
+		if err := validateSafeName(strings.ReplaceAll(name, ".", "_"), 128); err != nil {
+			return logSource{}, false
+		}
+		fqdn := strings.ReplaceAll(name, "_", ".")
+		path := filepath.Join(vhostLogDir(), strings.ToLower(fqdn)+".error.log")
+		return logSource{Kind: "file", Ref: path}, true
+	}
+	return logSource{}, false
 }
 
 func handleLogs(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +64,7 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 		return
 	}
-	src, ok := allowedLogSources[source]
+	src, ok := resolveLogSource(source)
 	if !ok {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "source not allowed"})
 		return
@@ -67,6 +95,6 @@ func tailLogSource(src logSource, lines int) (string, error) {
 }
 
 func isAllowedLogSource(name string) bool {
-	_, ok := allowedLogSources[name]
+	_, ok := resolveLogSource(name)
 	return ok
 }

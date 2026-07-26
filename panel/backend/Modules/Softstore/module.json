@@ -1,0 +1,6 @@
+{
+  "name": "Softstore",
+  "alias": "softstore",
+  "providers": ["Modules\\Softstore\\Providers\\SoftstoreServiceProvider"],
+  "requires": []
+}

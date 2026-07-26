@@ -1,0 +1,6 @@
+{
+  "name": "Websites",
+  "alias": "websites",
+  "providers": ["Modules\\Websites\\Providers\\WebsitesServiceProvider"],
+  "requires": []
+}

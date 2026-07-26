@@ -44,6 +44,7 @@ class NavigationController extends Controller
                 'id' => 'account',
                 'label_key' => 'section_account',
                 'items' => [
+                    ['slug' => 'websites', 'path' => '/websites', 'label_key' => 'websites'],
                     ['slug' => 'domains', 'path' => '/domains', 'label_key' => 'domains'],
                     ['slug' => 'subdomains', 'path' => '/subdomains', 'label_key' => 'subdomains'],
                     ['slug' => 'dns', 'path' => '/dns', 'label_key' => 'dns'],
@@ -61,6 +62,7 @@ class NavigationController extends Controller
                 'items' => [
                     ['slug' => 'webserver-vhosts', 'path' => '/webserver/vhosts', 'label_key' => 'webserver_vhosts', 'permission' => 'system.manage'],
                     ['slug' => 'apps', 'path' => '/apps', 'label_key' => 'apps', 'permission' => 'apps.manage'],
+                    ['slug' => 'softstore', 'path' => '/softstore', 'label_key' => 'softstore'],
                 ],
             ],
             [
