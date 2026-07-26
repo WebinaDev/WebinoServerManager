@@ -193,6 +193,59 @@ func handleFilesAdvanced(action, path, dest, content, query, url string, maxDept
 			return nil, err
 		}
 		return map[string]any{"path": path, "version": ver}, nil
+	case "compress":
+		abs, err := safeFilePath(path)
+		if err != nil {
+			return nil, err
+		}
+		destAbs := abs + ".zip"
+		if dest != "" {
+			destAbs, err = safeFilePath(dest)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if !strings.HasSuffix(strings.ToLower(destAbs), ".zip") {
+			destAbs += ".zip"
+		}
+		info, err := os.Stat(abs)
+		if err != nil {
+			return nil, err
+		}
+		var argv []string
+		if info.IsDir() {
+			base := filepath.Base(abs)
+			argv = []string{"zip", "-r", destAbs, base}
+			_, err = runArgv(argv, filepath.Dir(abs))
+		} else {
+			argv = []string{"zip", "-j", destAbs, abs}
+			_, err = runArgv(argv, "")
+		}
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"path": path, "archive": destAbs}, nil
+	case "decompress":
+		abs, err := safeFilePath(path)
+		if err != nil {
+			return nil, err
+		}
+		if !strings.HasSuffix(strings.ToLower(abs), ".zip") {
+			return nil, fmt.Errorf("only .zip archives supported")
+		}
+		outDir := filepath.Dir(abs)
+		if dest != "" {
+			outDir, err = safeFilePath(dest)
+			if err != nil {
+				return nil, err
+			}
+		}
+		_ = os.MkdirAll(outDir, 0o755)
+		_, err = runArgv([]string{"unzip", "-o", abs, "-d", outDir}, "")
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"path": path, "dest": outDir}, nil
 	default:
 		return nil, fmt.Errorf("unknown advanced action")
 	}

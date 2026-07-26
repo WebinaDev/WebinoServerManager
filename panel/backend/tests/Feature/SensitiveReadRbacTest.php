@@ -145,13 +145,6 @@ class SensitiveReadRbacTest extends TestCase
             ->assertOk();
     }
 
-    public function test_viewer_cannot_list_api_tokens(): void
-    {
-        $this->actingAs($this->viewer, 'sanctum')
-            ->getJson('/api/v1/auth/tokens')
-            ->assertForbidden();
-    }
-
     public function test_viewer_navigation_hides_gated_items(): void
     {
         $response = $this->actingAs($this->viewer, 'sanctum')

@@ -10,6 +10,7 @@ class MetricAlert extends Model
         'metric',
         'comparison',
         'threshold',
+        'severity',
         'enabled',
         'channel',
         'last_triggered_at',

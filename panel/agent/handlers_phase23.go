@@ -182,7 +182,7 @@ func handleFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch body.Action {
-	case "search", "recycle", "recycle_list", "recycle_restore", "recycle_purge", "remote_download", "versions", "restore_version":
+	case "search", "recycle", "recycle_list", "recycle_restore", "recycle_purge", "remote_download", "versions", "restore_version", "compress", "decompress":
 		pathArg := body.Path
 		if body.Action == "recycle_list" {
 			pathArg = "/"
@@ -293,10 +293,12 @@ func handleCron(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Schedule string `json:"schedule"`
-		Command  string `json:"command"`
-		Action   string `json:"action"`
-		Username string `json:"username"`
+		Schedule      string `json:"schedule"`
+		Command       string `json:"command"`
+		Action        string `json:"action"`
+		Username      string `json:"username"`
+		OldSchedule   string `json:"old_schedule"`
+		OldCommand    string `json:"old_command"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Command == "" {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "command required"})
@@ -318,6 +320,45 @@ func handleCron(w http.ResponseWriter, r *http.Request) {
 	line := strings.TrimSpace(body.Schedule) + " " + strings.TrimSpace(body.Command)
 	existing, _ := runCrontab(username, "-l")
 	lines := strings.Split(strings.TrimSpace(existing), "\n")
+	if body.Action == "update" {
+		oldLine := strings.TrimSpace(body.OldSchedule) + " " + strings.TrimSpace(body.OldCommand)
+		if body.OldSchedule == "" || body.OldCommand == "" {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "old_schedule and old_command required"})
+			return
+		}
+		if body.Schedule == "" {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "schedule required"})
+			return
+		}
+		if err := validateCronSchedule(body.Schedule); err != nil {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		replaced := false
+		filtered := make([]string, 0, len(lines))
+		for _, l := range lines {
+			if strings.TrimSpace(l) == oldLine && !replaced {
+				filtered = append(filtered, line)
+				replaced = true
+				continue
+			}
+			if strings.TrimSpace(l) != "" {
+				filtered = append(filtered, l)
+			}
+		}
+		if !replaced {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "cron entry not found"})
+			return
+		}
+		newCrontab := strings.Join(filtered, "\n") + "\n"
+		if err := writeCrontab(username, newCrontab); err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(map[string]string{"line": line, "username": username, "updated": "true"})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return
+	}
 	if body.Action == "delete" {
 		filtered := make([]string, 0, len(lines))
 		for _, l := range lines {

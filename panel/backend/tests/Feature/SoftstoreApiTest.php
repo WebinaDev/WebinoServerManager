@@ -75,10 +75,10 @@ class SoftstoreApiTest extends TestCase
             ->assertOk();
     }
 
-    public function test_cms_stub_requires_website(): void
+    public function test_wordpress_cms_requires_website(): void
     {
         $this->actingAs($this->admin, 'sanctum')
-            ->postJson('/api/v1/softstore/packages/cms-stub/install')
+            ->postJson('/api/v1/softstore/packages/wordpress-cms/install')
             ->assertStatus(422);
     }
 }

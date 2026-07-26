@@ -95,6 +95,65 @@ class CronController extends Controller
         return response()->json(['job' => $job->fresh()->load('hostingAccount:id,username'), 'agent' => $result], 201);
     }
 
+    public function update(Request $request, CronJob $job): JsonResponse
+    {
+        $data = $request->validate([
+            'schedule' => ['required', 'string', 'max:128'],
+            'command' => ['nullable', 'string', 'max:2048'],
+            'task_type' => ['nullable', 'string', 'max:32'],
+            'task_config' => ['nullable', 'array'],
+            'notify_on_failure' => ['boolean'],
+        ]);
+
+        $taskType = $data['task_type'] ?? $job->task_type ?? 'shell';
+        $taskConfig = $data['task_config'] ?? ($job->task_config ?? []);
+
+        try {
+            $command = $this->taskBuilder->build($taskType, $taskConfig, $data['command'] ?? $job->command);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        if ($command === '') {
+            return response()->json(['message' => __('cron.command_required')], 422);
+        }
+
+        $username = null;
+        if ($job->hosting_account_id) {
+            $account = HostingAccount::query()->find($job->hosting_account_id);
+            $username = $account?->username;
+        }
+
+        $payload = [
+            'action' => 'update',
+            'old_schedule' => $job->schedule,
+            'old_command' => $job->command,
+            'schedule' => $data['schedule'],
+            'command' => $command,
+        ];
+        if ($username !== null) {
+            $payload['username'] = $username;
+        }
+
+        $result = $this->agent->post('/v1/cron', $payload);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('cron.update_failed'), 'job' => $job], 422);
+        }
+
+        $job->update([
+            'schedule' => $data['schedule'],
+            'command' => $command,
+            'task_type' => $taskType,
+            'task_config' => $taskConfig !== [] ? $taskConfig : null,
+            'notify_on_failure' => $request->boolean('notify_on_failure', $job->notify_on_failure),
+            'status' => 'active',
+            'last_error' => null,
+        ]);
+
+        return response()->json(['job' => $job->fresh()->load('hostingAccount:id,username'), 'message' => __('cron.updated')]);
+    }
+
     public function destroy(CronJob $job): JsonResponse
     {
         $payload = [

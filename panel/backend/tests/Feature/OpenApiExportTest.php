@@ -15,7 +15,7 @@ class OpenApiExportTest extends TestCase
         $spec = app(OpenApiRouteCatalog::class)->build();
         $paths = $spec['paths'] ?? [];
 
-        $this->assertGreaterThanOrEqual(100, count($paths), 'OpenAPI path count regressed');
+        $this->assertGreaterThanOrEqual(200, count($paths), 'OpenAPI path count regressed');
     }
 
     public function test_committed_openapi_json_matches_catalog(): void

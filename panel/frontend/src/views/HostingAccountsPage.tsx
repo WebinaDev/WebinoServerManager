@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
@@ -67,6 +68,52 @@ function quotaResourceLabel(
   } catch {
     return resource
   }
+}
+
+function AccountDetailPanel({ accountId }: { accountId: number }) {
+  const t = useTranslations("hosting")
+  const { data, isLoading } = useQuery({
+    queryKey: ["hosting-account-detail", accountId],
+    queryFn: () =>
+      api<{
+        account: AccountRow
+        summary: {
+          websites_count: number
+          ftp_count: number
+          databases_count: number
+          links: Record<string, string>
+        }
+      }>(`/api/v1/hosting/accounts/${accountId}`),
+  })
+
+  if (isLoading || !data?.summary) {
+    return null
+  }
+
+  const s = data.summary
+  return (
+    <div className="bg-muted/40 space-y-2 rounded-md border p-3 text-sm">
+      <p className="font-medium">{t("account_detail_title", { username: data.account.username })}</p>
+      <p className="text-muted-foreground">
+        {t("account_counts", {
+          websites: s.websites_count,
+          ftp: s.ftp_count,
+          databases: s.databases_count,
+        })}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="outline" asChild>
+          <Link href={s.links.websites}>{t("link_websites")}</Link>
+        </Button>
+        <Button type="button" size="sm" variant="outline" asChild>
+          <Link href={s.links.ftp}>{t("link_ftp")}</Link>
+        </Button>
+        <Button type="button" size="sm" variant="outline" asChild>
+          <Link href={s.links.databases}>{t("link_databases")}</Link>
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 function QuotaAlertsPanel({ accountId, username }: { accountId: number; username: string }) {
@@ -352,6 +399,7 @@ export default function HostingAccountsPage() {
   const [domain, setDomain] = useState("")
   const [ownerId, setOwnerId] = useState("")
   const [alertsAccountId, setAlertsAccountId] = useState<number | null>(null)
+  const [detailAccountId, setDetailAccountId] = useState<number | null>(null)
   const [editingAccount, setEditingAccount] = useState<AccountRow | null>(null)
   const [editPlanId, setEditPlanId] = useState("")
   const [editDomain, setEditDomain] = useState("")
@@ -524,6 +572,13 @@ export default function HostingAccountsPage() {
             <Button
               size="sm"
               variant="outline"
+              onClick={() => setDetailAccountId((cur) => (cur === a.id ? null : a.id))}
+            >
+              {t("account_detail")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => setAlertsAccountId((cur) => (cur === a.id ? null : a.id))}
             >
               {t("quota_alerts")}
@@ -612,6 +667,10 @@ export default function HostingAccountsPage() {
             }
             emptyMessage={t("empty_accounts")}
           />
+
+          {detailAccountId ? (
+            <AccountDetailPanel accountId={detailAccountId} />
+          ) : null}
 
           {alertsAccount ? (
             <QuotaAlertsPanel accountId={alertsAccount.id} username={alertsAccount.username} />

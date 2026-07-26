@@ -16,6 +16,37 @@ class HostingAccountController extends Controller
         private readonly HostingQuota $quota,
     ) {}
 
+    public function show(HostingAccount $account): JsonResponse
+    {
+        $account->load(['plan', 'owner:id,name,email']);
+
+        $websites = \Modules\Websites\Entities\HostingWebsite::query()
+            ->where('hosting_account_id', $account->id)
+            ->count();
+        $ftp = \Modules\Ftp\Entities\FtpAccount::query()
+            ->where('username', $account->username)
+            ->orWhere('home_dir', 'like', '%/'.$account->username.'/%')
+            ->count();
+        $databases = \Modules\Databases\Entities\HostingDatabase::query()
+            ->where('hosting_account_id', $account->id)
+            ->count();
+
+        return response()->json([
+            'account' => $account,
+            'summary' => [
+                'websites_count' => $websites,
+                'ftp_count' => $ftp,
+                'databases_count' => $databases,
+                'links' => [
+                    'websites' => '/websites?account='.$account->id,
+                    'ftp' => '/ftp?username='.urlencode($account->username),
+                    'databases' => '/databases?account='.$account->id,
+                    'usage' => '/hosting/accounts?highlight='.$account->id,
+                ],
+            ],
+        ]);
+    }
+
     public function index(): JsonResponse
     {
         $accounts = HostingAccount::query()

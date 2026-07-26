@@ -34,18 +34,10 @@ class BackupController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'type' => ['required', 'in:files,db,full'],
+            'type' => ['required', 'in:files,db,full,wordpress'],
             'target' => ['required', 'string', 'max:512'],
             'target_id' => ['nullable', 'exists:backup_targets,id'],
-        ]);
-
-        $backup = Backup::query()->create([
-            'trigger' => 'manual',
-            'type' => $data['type'],
-            'target' => $data['target'],
-            'target_id' => $data['target_id'] ?? null,
-            'filename' => '',
-            'status' => 'pending',
+            'wordpress_site_id' => ['nullable', 'exists:wordpress_sites,id'],
         ]);
 
         $payload = [
@@ -53,6 +45,23 @@ class BackupController extends Controller
             'type' => $data['type'],
             'target' => $data['target'],
         ];
+
+        if ($data['type'] === 'wordpress') {
+            $site = \Modules\Wordpress\Entities\WordpressSite::query()->findOrFail($data['wordpress_site_id'] ?? 0);
+            $payload['wp_path'] = $site->path;
+            $payload['wp_db'] = $data['target'];
+            $payload['target'] = $site->domain ?: basename($site->path);
+        }
+
+        $backup = Backup::query()->create([
+            'trigger' => 'manual',
+            'type' => $data['type'],
+            'target' => $payload['target'],
+            'target_id' => $data['target_id'] ?? null,
+            'filename' => '',
+            'status' => 'pending',
+        ]);
+
         if ($backup->target_id) {
             $backup->load('target');
             if ($backup->target) {

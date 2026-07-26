@@ -15,6 +15,7 @@ var softstoreScriptIDs = map[string]bool{
 	"install_memcached":       true,
 	"ensure_composer":         true,
 	"cms_composer_stub":       true,
+	"install_wordpress_cms":   true,
 	"compose_up_redis":        true,
 	"compose_up_nginx":        true,
 	"install_node_nvm":        true,
@@ -144,6 +145,26 @@ func runSoftstoreScript(scriptID string, options map[string]any) (string, error)
 			return "", err
 		}
 		return runArgv([]string{"composer", "install", "--no-interaction", "--working-dir=" + absRoot}, "")
+	case "install_wordpress_cms":
+		docRoot := strVal(options["document_root"])
+		domain := strVal(options["domain"])
+		if docRoot == "" {
+			return "", errSoftstore("document_root required for install_wordpress_cms")
+		}
+		absRoot, err := safeFilePath(docRoot)
+		if err != nil {
+			return "", err
+		}
+		_ = os.MkdirAll(absRoot, 0o755)
+		if _, err := os.Stat(filepath.Join(absRoot, "wp-config.php")); err == nil {
+			return "WordPress already installed in " + absRoot, nil
+		}
+		webina := filepath.Join(webinaRoot, "bin", "webina")
+		argv := []string{webina, "wordpress", "install", "--path", absRoot}
+		if domain != "" {
+			argv = append(argv, "--domain", domain)
+		}
+		return runArgv(argv, webinaRoot)
 	case "compose_up_redis":
 		return runSoftstoreComposeUp("compose_up_redis", "softstore-redis")
 	case "compose_up_nginx":

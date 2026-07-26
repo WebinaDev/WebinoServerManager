@@ -2,9 +2,9 @@
 sidebar_position: 1
 ---
 
-# WebinoServer API
+# WebinoServer Panel API
 
-API-first hosting control panel. All endpoints are versioned under `/api/v1`.
+API-first hosting control panel. All endpoints are versioned under `/api/v1`. The panel never mutates the host directly — privileged operations go through the Go **webino-agent** (Unix socket).
 
 ## Authentication
 
@@ -24,24 +24,61 @@ Login uses **username** (not email) plus password. Optional `otp` or recovery co
 
 See [Core](./core.md) for 2FA, API tokens, setup wizard, and dashboard summary.
 
-## Domains
+## RBAC
+
+Spatie permissions gate mutations (`RequireRouteWrite` on UI). Sensitive GETs require matching `*.manage` permission. Navigation filtered via `GET /api/v1/navigation`.
+
+## Module guides
+
+| Area | Guide |
+|------|--------|
+| Auth, dashboard, tokens | [Core](./core.md) |
+| Hosting plans & accounts | [Hosting](./hosting.md) |
+| Users & roles | [Users & RBAC](./users-rbac.md) |
+| Firewall, WAF, ClamAV | [Security](./security.md) |
+| Website hub | [Websites](./websites.md) |
+| Domains & subdomains | [Domains](./domains.md), [Subdomains](./subdomains.md) |
+| Nginx/Apache vhosts | [Webserver](./webserver.md) |
+| App Store catalog | [Softstore](./softstore.md) |
+| Docker & Compose | [Apps](./apps.md) |
+| Node/Python/Go/Java | [Runtimes](./runtimes.md) |
+| Email & webmail | [Email](./email.md) |
+| Databases & embeds | [Databases](./databases.md), [Embed](./embed.md) |
+| DNS & SSL | [DNS](./dns.md), [SSL](./ssl.md) |
+| FTP, Cron (data plane) | [Data plane](./data-plane.md) |
+| Files advanced | [Files](./files.md) |
+| Monitoring & metrics | [Monitoring](./monitoring.md), [Metrics](./metrics.md) |
+| Backups & mail polish | [Mail & Backup polish](./mail-backup-polish.md) |
+| System & panel settings | [System](./system.md), [Panel Settings](./panel-settings.md) |
+| Terminal | [Terminal](./terminal.md) |
+| Webhooks & automation | [Webhooks](./webhooks.md) |
+| Git & WordPress | [Git](./git.md), [WordPress](./wordpress.md) |
+| Webino platform | [Platform & Products](./platform.md) |
+| PHP pools | [PHP](./php.md) |
+
+## Live OpenAPI
+
+Interactive reference: [API explorer](./api). Regenerate spec: `cd panel/backend && composer openapi` (**267+ paths**). CI fails on drift (`openapi-export` job).
+
+## aaPanel parity
+
+Capability matrix and waves 0–12 + Phase D polish: [`AAPANEL_PARITY.md`](../../AAPANEL_PARITY.md) in the panel repo.
+
+## Quick domain examples
+
+**Domains**
 
 - `GET /api/v1/domains` — panel rows + optional agent registry
 - `POST /api/v1/domains` — `{ domain, slug?, aliases?, hosting_account_id? }`
-- `PATCH /api/v1/domains/{id}` — update aliases / hosting link
-- `DELETE /api/v1/domains/{id}`
 
-## Databases
+**Databases**
 
-- `GET /api/v1/databases`
-- `POST /api/v1/databases` — `{ name, create_user?, hosting_account_id? }`
-- `DELETE /api/v1/databases/{id}`
+- `GET /api/v1/databases` — all engines (MySQL, PG, MongoDB, Redis)
+- `POST /api/v1/databases` — `{ name, engine?, create_user? }`
 
-## Platform
+**Platform**
 
-- `GET /api/v1/platform/status`
-- `POST /api/v1/platform/init`
-- `GET /api/v1/sites`
-- `POST /api/v1/sites`
+- `GET /api/v1/sites` — live Webino sites
+- `GET /api/v1/platform/status` — bootstrap state
 
-Module guides: [Core](./core.md), [Hosting](./hosting.md), [Users & RBAC](./users-rbac.md), [Security](./security.md), [Domains](./domains.md), [Subdomains](./subdomains.md). Live OpenAPI: [API explorer](./api).
+For the full path catalog, use the embedded Redoc explorer or exported `storage/app/openapi.json`.

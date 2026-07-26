@@ -8,6 +8,7 @@ use Modules\Hosting\Http\Controllers\HostingQuotaAlertController;
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/hosting/plans', [HostingPlanController::class, 'index']);
     Route::get('/hosting/accounts', [HostingAccountController::class, 'index']);
+    Route::get('/hosting/accounts/{account}', [HostingAccountController::class, 'show']);
     Route::get('/hosting/accounts/{account}/usage', [HostingAccountController::class, 'usage']);
     Route::get('/hosting/accounts/{account}/quota-alerts', [HostingQuotaAlertController::class, 'index']);
 

@@ -5,7 +5,9 @@ sidebar_position: 2
 
 # Live API reference
 
-The OpenAPI specification is generated from the Laravel panel API routes.
+The OpenAPI specification is generated from the Laravel panel API routes (`composer openapi` in `panel/backend`). The current export contains **267+ paths** covering all nwidart modules — regenerate after route changes; CI `openapi-export` fails on drift.
+
+Full module guides with endpoint tables live alongside this explorer under **Docs →** each module page (e.g. [Email](./email), [Databases](./databases)).
 
 import ApiDoc from '@site/src/components/ApiDoc';
 

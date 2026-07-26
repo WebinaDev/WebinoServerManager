@@ -47,6 +47,14 @@ class RuntimesServiceProvider extends ServiceProvider
                 'agent_script_id' => 'install_go_distro',
                 'version_label' => 'distro',
             ],
+            [
+                'slug' => 'java-distro',
+                'runtime' => 'java',
+                'name' => 'OpenJDK 17 (distro packages)',
+                'install_method' => 'distro',
+                'agent_script_id' => 'install_java_distro',
+                'version_label' => '17',
+            ],
         ];
 
         foreach ($rows as $row) {

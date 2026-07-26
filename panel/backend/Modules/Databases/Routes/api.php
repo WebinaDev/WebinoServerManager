@@ -10,6 +10,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/databases/root-password', [DatabaseController::class, 'rootPasswordStatus']);
     Route::get('/databases/users', [DatabaseUserController::class, 'index']);
     Route::get('/databases/remote-access', [DatabaseController::class, 'remoteAccess']);
+    Route::get('/databases/redis/info', [DatabaseController::class, 'redisInfo']);
     Route::get('/databases/{database}/size', [DatabaseController::class, 'size']);
 
     Route::middleware('permission:databases.manage')->group(function () {

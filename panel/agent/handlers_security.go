@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -358,9 +359,14 @@ func handleSecurityClamav(w http.ResponseWriter, r *http.Request) {
 	}
 	out, scanErr := runArgv([]string{"clamscan", "-r", "--infected", abs}, "")
 	infected := parseClamscanInfected(out)
+	recycled := []map[string]string{}
+	if len(infected) > 0 {
+		recycled = quarantineInfectedFiles(infected)
+	}
 	data, _ := json.Marshal(map[string]any{
 		"infected": infected,
 		"count":    len(infected),
+		"recycled": recycled,
 		"output":   out,
 		"ok":       scanErr == nil && len(infected) == 0,
 	})
@@ -408,19 +414,16 @@ func handleSecurityWaf(w http.ResponseWriter, r *http.Request) {
 
 func parseUfwStatus(out string) []map[string]string {
 	rules := make([]map[string]string, 0)
+	re := regexp.MustCompile(`^\[\s*(\d+)\s*\]\s+(.+)$`)
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
-		if !strings.HasPrefix(line, "[") {
+		m := re.FindStringSubmatch(line)
+		if m == nil {
 			continue
 		}
-		parts := strings.Fields(line)
-		if len(parts) < 2 {
-			continue
-		}
-		num := strings.Trim(parts[0], "[]")
 		rules = append(rules, map[string]string{
-			"num":  num,
-			"rule": strings.Join(parts[1:], " "),
+			"num":  m[1],
+			"rule": strings.TrimSpace(m[2]),
 		})
 	}
 	return rules

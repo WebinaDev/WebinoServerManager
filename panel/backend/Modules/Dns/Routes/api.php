@@ -9,6 +9,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/dns/templates', [DnsController::class, 'indexTemplates']);
     Route::get('/dns/zones/{zone}/records', [DnsController::class, 'indexRecords']);
     Route::get('/dns/providers/cloudflare', [DnsProviderController::class, 'show']);
+    Route::get('/dns/providers/alidns', [DnsProviderController::class, 'showAlidns']);
 
     Route::middleware('permission:system.manage')->group(function () {
         Route::get('/dns/zones/{zone}/export', [DnsController::class, 'exportZone']);
@@ -23,6 +24,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::patch('/dns/records/{record}', [DnsController::class, 'updateRecord']);
         Route::delete('/dns/records/{record}', [DnsController::class, 'destroyRecord']);
         Route::patch('/dns/providers/cloudflare', [DnsProviderController::class, 'update']);
+        Route::patch('/dns/providers/alidns', [DnsProviderController::class, 'updateAlidns']);
         Route::post('/dns/providers/cloudflare/sync', [DnsProviderController::class, 'syncSiteRecords']);
         Route::post('/dns/providers/cloudflare/dns01', [DnsProviderController::class, 'dns01Challenge']);
     });

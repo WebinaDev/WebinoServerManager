@@ -451,6 +451,7 @@ function WebsiteAnalytics({ id }: { id: string }) {
       api<{
         requests?: number
         status_counts?: Record<string, number>
+        top_paths?: { path: string; count: number }[]
       }>(`/api/v1/websites/${id}/analytics`),
   })
 
@@ -459,6 +460,7 @@ function WebsiteAnalytics({ id }: { id: string }) {
   }
 
   const statuses = data?.status_counts ?? {}
+  const topPaths = data?.top_paths ?? []
 
   return (
     <Card>
@@ -469,6 +471,20 @@ function WebsiteAnalytics({ id }: { id: string }) {
         <p>
           {t("analytics_requests")}: {data?.requests ?? 0}
         </p>
+        <div>
+          <p className="mb-2 font-medium">{t("analytics_top_paths")}</p>
+          <ul className="space-y-1 font-mono text-xs" dir="ltr">
+            {topPaths.length === 0 ? (
+              <li className="text-muted-foreground">{tCommon("em_dash")}</li>
+            ) : (
+              topPaths.map((row) => (
+                <li key={row.path}>
+                  {row.path}: {row.count}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
         <div>
           <p className="mb-2 font-medium">{t("analytics_status")}</p>
           <ul className="space-y-1 font-mono text-xs" dir="ltr">

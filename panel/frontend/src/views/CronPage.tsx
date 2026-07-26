@@ -73,6 +73,23 @@ export default function CronPage() {
     onError: toastMutationError,
   })
 
+  const updateJob = useMutation({
+    mutationFn: (body: { id: number; schedule: string; command: string; notify_on_failure: boolean }) =>
+      api(`/api/v1/cron/jobs/${body.id}`, {
+        method: "PATCH",
+        json: {
+          schedule: body.schedule,
+          command: body.command,
+          notify_on_failure: body.notify_on_failure,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(t("updated"))
+      qc.invalidateQueries({ queryKey: ["cron-jobs"] })
+    },
+    onError: toastMutationError,
+  })
+
   const columns: DataTableColumn<CronRow>[] = [
     {
       id: "schedule",
@@ -121,14 +138,35 @@ export default function CronPage() {
       id: "actions",
       header: tCommon("actions"),
       cell: (job) => (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => remove.mutate(job.id)}
-        >
-          {t("delete")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const schedule = window.prompt(t("field_schedule"), job.schedule)
+              if (!schedule) return
+              const command = window.prompt(t("field_command"), job.command)
+              if (!command) return
+              updateJob.mutate({
+                id: job.id,
+                schedule,
+                command,
+                notify_on_failure: job.notify_on_failure,
+              })
+            }}
+          >
+            {tCommon("edit")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => remove.mutate(job.id)}
+          >
+            {t("delete")}
+          </Button>
+        </div>
       ),
     },
   ]

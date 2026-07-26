@@ -8,6 +8,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/cron/jobs', [CronController::class, 'index']);
         Route::get('/cron/scripts', [CronController::class, 'scriptLibrary']);
         Route::post('/cron/jobs', [CronController::class, 'store']);
+        Route::patch('/cron/jobs/{job}', [CronController::class, 'update']);
         Route::delete('/cron/jobs/{job}', [CronController::class, 'destroy']);
     });
 });

@@ -20,7 +20,7 @@ class LogController extends Controller
 
         $data = $this->agentPayload($result);
 
-        return response()->json(['sources' => $data['sources'] ?? []]);
+        return response()->json(['sources' => $data['sources'] ?? [], 'groups' => $data['groups'] ?? []]);
     }
 
     public function tail(Request $request): JsonResponse

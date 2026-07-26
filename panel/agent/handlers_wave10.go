@@ -89,6 +89,20 @@ func handleFtpAccountAction(w http.ResponseWriter, body map[string]any) bool {
 		data, _ := json.Marshal(map[string]string{"username": username, "enabled": "true", "output": out})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 		return true
+	case "set_password":
+		password := strVal(body["password"])
+		if password == "" {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "password required"})
+			return true
+		}
+		if err := setPurePwPassword(username, password); err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return true
+		}
+		_, _ = runArgv([]string{"pure-pw", "mkdb"}, "")
+		data, _ := json.Marshal(map[string]string{"username": username, "updated": "true"})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return true
 	}
 	return false
 }
@@ -162,19 +176,29 @@ func handleDatabaseExtraActions(w http.ResponseWriter, body map[string]any) bool
 		data, _ := json.Marshal(map[string]string{"updated": "true", "output": out})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 		return true
+	case "redis_info":
+		if engine != "redis" {
+			engine = "redis"
+		}
+		info, err := redisInfoPayload()
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return true
+		}
+		data, _ := json.Marshal(info)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return true
 	}
 	return false
 }
 
 func listRedisDatabases() ([]map[string]any, error) {
-	out, err := runArgv([]string{"redis-cli", "ping"}, "")
+	info, err := redisInfoPayload()
 	if err != nil {
 		return nil, err
 	}
-	if !strings.Contains(strings.ToUpper(out), "PONG") {
-		return nil, fmt.Errorf("redis not responding")
-	}
-	return []map[string]any{{"name": "default", "engine": "redis", "size_mb": 0}}, nil
+	memMB := intVal(info["memory_mb"], 0)
+	return []map[string]any{{"name": "default", "engine": "redis", "size_mb": memMB, "ping": info["ping"]}}, nil
 }
 
 func handleDnsCloudflareProvider(w http.ResponseWriter, r *http.Request) {

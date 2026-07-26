@@ -1,10 +1,10 @@
 # WebinoServer Panel — Project Status
 
-Last updated: 2026-07-26 (aaPanel parity Waves 0–12)
+Last updated: 2026-07-26 (aaPanel parity Waves 0–12 + Phase D polish; **100% audit Phase A–D complete**)
 
 This document is the single source of truth for architecture, implementation status, known gaps, and planned phases of the WebinoServer hosting control panel.
 
-**aaPanel parity (C+R):** capability gap matrix and waves 0–12 live in [AAPANEL_PARITY.md](AAPANEL_PARITY.md). Waves **0–12 Have** (Java runtime Partial). Reseller hierarchy remains won't-fix.
+**aaPanel parity (C+R):** capability gap matrix and waves 0–12 live in [AAPANEL_PARITY.md](AAPANEL_PARITY.md). Waves **0–12 Done**; Phase D closed remaining Partials. Mandatory aaPanel C coverage is **Have** except **N/A** (reseller, AI, load-balance, aaPanel brand, OLS). Reseller hierarchy remains won't-fix.
 
 **Important:** Module `index` endpoints list resources from the **panel MariaDB** by default. Provisioning (create/delete) calls the agent. A scheduled `panel:reconcile-host` job (every 15 minutes) compares panel rows with agent GET list endpoints and flags drift — see [Fixed in Phase 9](#fixed-in-phase-9) and [Fixed in Phase 12 & 13](#fixed-in-phase-12--13).
 
@@ -70,32 +70,33 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | **Core** (Auth, 2FA, Navigation, Setup, Dashboard, password recovery, API tokens, profile) | ✅ | ✅ | — | **Implemented** | `auth/gate` middleware; shared `route_permissions.php`; read-open GET + `RequireRouteWrite` on mutations |
 | **Security** (firewall, fail2ban, SSH, ClamAV, WAF, audit) | ✅ | ✅ | ✅ ufw/fail2ban/etc. | **Implemented** | WAF; UFW; fail2ban filters (incl. delete); ClamAV history+schedule; `security-*` nav icons; `IpAllowlistMiddleware` |
 | **Users** (multi-user + roles) | ✅ | ✅ | — | **Implemented** | Spatie RBAC; Role CRUD + permission matrix; user edit; `RequireRouteWrite`; `users.manage` |
-| **Metrics** (history + alerts) | ✅ | ✅ | ✅ structured `/v1/system/info` | **Partial** | Multi-channel alerts via `NotificationDispatcher`; live `current` when sample stale (>5 min) |
+| **Metrics** (history + alerts) | ✅ | ✅ | ✅ structured `/v1/system/info` | **Have** (Wave 5 + Phase D) | Multi-channel alerts; severity soft/hard; live `current` when sample stale |
 | **Websites** (hosting hub) | ✅ | ✅ | ✅ nginx vhost + composer/logs | **Implemented** | Wave 1 aaPanel parity: orchestrated create (pool/FTP/DB/SSL), rewrite/deny/hotlink/traffic, htpasswd, per-site logs; nav `/websites` |
 | **Domains** | ✅ | ✅ | ✅ | **Implemented** | Aliases create/PATCH; hosting quota; agent registry drift UI; reconcile; create/delete |
 | **Subdomains** | ✅ | ✅ | ✅ nginx vhost | **Implemented** | PHP pool + SSL/HTTPS/HSTS + PATCH edit; hosting quota; reconcile via `/v1/vhosts` |
 | **Webserver** | ✅ | ✅ | ✅ nginx + Apache | **Have** (Wave 2) | dual-stack `engine`, HTTP/3 nginx; raw editor/redirects/proxy; see [AAPANEL_PARITY.md](AAPANEL_PARITY.md) |
-| **Databases** | ✅ | ✅ | ✅ MySQL + PostgreSQL + Redis partial | **Have** (Wave 10) | Recycle bin, repair/optimize/engine, root PW mgr |
-| **Hosting** | ✅ plans + accounts | ✅ | ✅ provision/suspend/usage | **Implemented** | Plans (incl. `max_apps`), accounts with OS provision/deprovision, quota, bandwidth metering, quota alerts; **reseller won't-fix** |
+| **Databases** | ✅ | ✅ | ✅ MySQL + PG + Mongo + Redis | **Have** (Wave 10 + Phase D) | Recycle bin, repair/optimize/engine, root PW mgr, remote IP |
+| **Hosting** | ✅ plans + accounts | ✅ | ✅ provision/suspend/usage | **Have** (Phase D) | Plans, accounts, quota alerts, usage bars; **reseller won't-fix** |
 | **Apps** (Docker containers) | ✅ | ✅ | ✅ docker.sock | **Have** (Wave 4) | Containers/images + Compose/networks/volumes/registry/daemon + Softstore docker one-click |
-| **Monitoring** (services, logs, uptime, channels) | ✅ | ✅ | ✅ systemctl/journalctl | **Partial** | Service control, log tail, HTTP/TCP uptime, Telegram/Slack/webhook/email; hosting quota breach alerts |
+| **Softstore** (App Store catalog) | ✅ | ✅ | ✅ install allowlist | **Have** (Wave 3) | Seeded catalog, async install jobs, Home pins, runtime/docker templates |
+| **Monitoring** (services, logs, uptime, channels) | ✅ | ✅ | ✅ systemctl/journalctl | **Have** (Wave 5 + Phase D) | Grouped log sources; service control; uptime; Telegram/Slack/webhook/email; process manager |
 | **Webhooks** (domain events, signed delivery) | ✅ | ✅ | — | **Implemented** | `backup.completed`, `ssl.expiring`, `alert.fired`, `user.created` |
 | **Automation** (API tokens, CLI, SDKs) | ✅ | ✅ | — | **Implemented** | Scoped Sanctum tokens; `wpanel` CLI with 2FA + write commands; TS/Python SDKs; OpenAPI export in CI |
 | **Platform / Sites** | ✅ | ✅ | ✅ via webina | **Implemented** | List/create/delete UI + `DELETE /api/v1/sites/{slug}` |
 | **Products** | ✅ | ✅ | ✅ via webina | **Implemented** | Webino platform products, not hosting plans |
-| **Dns** | ✅ | ✅ | ✅ list + CRUD | **Have** (Wave 10 CF) | Cloudflare DNS-01 + sync; local DNSSEC/slaves/templates |
-| **Ssl** | ✅ | ✅ | ✅ renew/wildcard/custom | **Partial** | Auto-renew + expiry alerts; DNS-01 wildcard via pdnsutil hooks; custom upload + chain validation; panel/mail bind |
-| **Ftp** | ✅ | ✅ | ✅ list + provision | **Have** (Wave 10) | Quota, enable/disable, passive/port + log source notes |
-| **Php** | ✅ | ✅ | ✅ settings in conf | **Implemented** | Pools + php.ini + extensions tabs; agent path jail |
-| **Email** | ✅ | ✅ | ✅ Rspamd/Dovecot | **Have** (Wave 11 lists) | Mailing list member UX polish |
-| **Files** | ✅ | ✅ | ✅ live list | **Implemented** | Jailed to `WEBINO_FILES_ROOT` |
-| **Cron** | ✅ | ✅ | ✅ per-user crontab | **Have** (Wave 10) | Typed tasks, script library, failure notify |
-| **Backup** | ✅ schedules + targets | ✅ | ✅ restic + restore | **Have** (Wave 11 UX) | Verify/retention/restore wizard polish |
-| **System** | ✅ | ✅ | ✅ live + panel control | **Have** (Wave 12) | `/settings` hub, `/v1/panel/*` restart/reboot/repair |
-| **Terminal** | ✅ | ✅ xterm.js | ✅ WS + PTY | **Partial** | CheckOrigin allowlist (not open-by-default) |
-| **Git** | ✅ | ✅ | ✅ | **Partial** | Index panel DB; reconcile drift via `panel:reconcile-host` (27.4) |
+| **Dns** | ✅ | ✅ | ✅ list + CRUD | **Have** (Wave 10 + Phase D) | Cloudflare + AliDNS providers; DNS-01; local DNSSEC/slaves/templates |
+| **Ssl** | ✅ | ✅ | ✅ renew/wildcard/custom | **Have** (Wave 14) | Auto-renew + expiry alerts; DNS-01 wildcard; custom upload; panel/mail bind |
+| **Ftp** | ✅ | ✅ | ✅ list + provision | **Have** (Wave 10 + Phase D) | Quota, enable/disable, password, passive/port + log source notes |
+| **Php** | ✅ | ✅ | ✅ settings in conf | **Have** | Pools + php.ini + extensions tabs; agent path jail |
+| **Email** | ✅ | ✅ | ✅ Rspamd/Dovecot | **Have** (Wave 11) | Full mail stack; mailing list member UX |
+| **Files** | ✅ | ✅ | ✅ live list | **Have** (Wave 7) | Search, share, recycle, remote-dl, versions |
+| **Cron** | ✅ | ✅ | ✅ per-user crontab | **Have** (Wave 10 + Phase D) | Typed tasks, script library, failure notify, PATCH edit |
+| **Backup** | ✅ schedules + targets | ✅ | ✅ restic + restore | **Have** (Wave 11) | Verify/retention/restore wizard |
+| **System** | ✅ | ✅ | ✅ live + panel control | **Have** (Wave 12) | `/settings` hub, disk analysis, `/v1/panel/*` restart/reboot/repair |
+| **Terminal** | ✅ | ✅ xterm.js | ✅ WS + PTY | **Have** (Phase D) | Host PTY + optional `container` attach; CheckOrigin allowlist |
+| **Git** | ✅ | ✅ | ✅ | **Have** | Index panel DB; reconcile drift via `panel:reconcile-host` |
 | **Wordpress** | ✅ | ✅ | ✅ wp-cli toolkit | **Have** Wave 8 | Clone/migrate/staging, themes/plugins, integrity |
-| **Runtimes** | ✅ | ✅ | ✅ `/v1/runtimes/*` | **Have** Wave 9 | Node/Python/Go install + PM2-like projects (Java Partial) |
+| **Runtimes** | ✅ | ✅ | ✅ `/v1/runtimes/*` | **Have** Wave 9 + Phase D | Node/Python/Go + Java via Softstore |
 | **Support** | ✅ | ✅ | DB-only | **Implemented** | No external desk/email integration (by design) |
 | **phpMyAdmin** | ✅ embed tickets | ✅ iframe | internal Docker | **Implemented** | — |
 | **phpPgAdmin** | ✅ embed tickets | ✅ iframe | internal Docker | **Implemented** | — |
@@ -209,29 +210,26 @@ Phase 22–23 delivered cookie-only auth, 2FA login OTP/recovery, `/forbidden` U
 | `security_validation.go` (cron) | `curl`/`wget` allowed in cron commands on privileged agent | ~~25.7~~ **Fixed** |
 | `main.go` (`runArgv`) | ~~Global mutex serializes all subprocess calls~~ | **Fixed 27.1** — scoped exec locks (`nginx`, `pdns`, `pureftp`, `mailmaps`, `restic`) |
 
-### Module-specific gaps
+### Module-specific gaps (post Phase D)
 
 | Module | File(s) | Issue |
 |--------|---------|--------|
-| Sites | `SitesPage.tsx` | No delete (no platform delete route) |
-| Apps | `Modules/Apps/` + Softstore | Softstore **Have** Wave 3; Compose depth planned Wave 4 |
-| Monitoring | `Modules/Monitoring/` | Per-site resource graphs and soft/hard limits not implemented |
+| Support | `SupportPage.tsx` | DB-only tickets by design; no external desk integration |
+| Monitoring | `Modules/Monitoring/` | Per-site resource graphs and alert escalation grouping deferred (non-blocking) |
 
-### Missing standard panel features (not started)
+### aaPanel C parity status (Phase A–D complete)
 
-Compared to cPanel, Plesk, DirectAdmin, HestiaCP, CyberPanel:
+Mandatory capability parity vs aaPanel Free+Pro-class (scope **C**) is documented in [AAPANEL_PARITY.md](AAPANEL_PARITY.md). Summary:
 
-- **Web server:** redirect manager, reverse proxy, raw vhost editor, htpasswd, hotlink — nginx + **Apache dual-stack + HTTP/3** ([AAPANEL_PARITY.md](AAPANEL_PARITY.md) Wave 2 **done**)
-- **DNS:** ~~DNSSEC, reverse/PTR, zone templates, secondary DNS, import/export~~ — done in Phase 12 (PTR helper UI; SPF/DKIM via Phase 11 mail auth)
-- **Email:** SPF/DKIM/DMARC automation, antispam, autoresponders, mailing lists, catch-all, mail queue management
-- **SSL:** ~~Auto-renew scheduler, wildcard (DNS-01), custom cert upload, panel/mail service certs~~ — done in Phase 14 (expiry alerts email-only, not Metrics module)
-- **Security:** Firewall, fail2ban, SSH keys, IP blocking, ModSecurity/WAF, malware scan, audit/login log, enforced 2FA per role
-- **Backups:** ~~Restore, offsite (S3/FTP/SFTP/rsync), incremental, verification~~ — done in Phase 15 (restic engine; S3/SFTP/REST targets)
-- **Multi-tenancy:** ~~Hosting packages, customer accounts, suspend/unsuspend, quota enforcement~~ — Phase 16 (customers + plans; resellers deferred)
-- **Databases:** ~~PostgreSQL, standalone DB-user CRUD, import/export, size stats~~ — Phase 17 (PG agent-only; no phpPgAdmin embed)
-- **Applications:** Docker depth **Have** Wave 4; Softstore catalog **Have** Waves 3–4; Runtimes **Have** Wave 9 (Java Partial)
-- **Monitoring:** ~~Service restart UI, log viewer, external uptime, Telegram/Slack/webhook alerts~~ — Phase 19; per-site limits and alert escalation still deferred
-- **API/CLI:** ~~Scoped API tokens, public customer CLI, webhooks, rate limiting, SDK~~ — done in Phase 20
+| Area | Status |
+|------|--------|
+| Website hub, Apache dual-stack, Softstore, Docker depth | **Have** (Waves 1–4) |
+| Home/Monitor Pro, Security Pro, Files advanced, WP Toolkit, Runtimes | **Have** (Waves 5–9) |
+| FTP/DB/DNS/Cron data plane, Mail+Backup polish, Panel Settings | **Have** (Waves 10–12) |
+| Phase D polish (logs groups, Mongo/Redis, AliDNS, container terminal, Java, WAF geo) | **Have** |
+| Reseller hierarchy, AI assistant, load-balance, aaPanel branding, OpenLiteSpeed | **N/A** |
+
+Compared to cPanel/Plesk-class panels, intentional deferrals remain: external helpdesk for Support, deep per-site analytics productization, full Aliyun DNS API (AliDNS MVP stub), and multi-node orchestration until Softstore is stable.
 
 ### Tech debt (resolved in Phase 21)
 
@@ -766,7 +764,7 @@ flowchart LR
 | E2E | Playwright — setup → login → domains; **`playwright-e2e` CI job** |
 | CI | `.github/workflows/panel-ci.yml` — backend, agent, frontend, cli, `openapi-export`, **`compose-smoke`**, **`playwright-e2e` |
 
-**Gaps:** No integration tests against real pdns/postfix/nginx on CI (29.5 deferred). Softstore **Have** (Wave 3). Apache/HTTP-3 **Have** (Wave 2). aaPanel parity SSOT: [AAPANEL_PARITY.md](AAPANEL_PARITY.md).
+**Gaps:** No integration tests against real pdns/postfix/nginx on CI (29.5 deferred). aaPanel parity SSOT: [AAPANEL_PARITY.md](AAPANEL_PARITY.md) — **100% Phase A–D audit complete**.
 
 **Install regression checklist (after Phase 24):**
 

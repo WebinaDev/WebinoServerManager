@@ -18,7 +18,7 @@ export const routePermissions: Record<string, string | null> = {
   "/subdomains": null,
   "/databases": null,
   "/webserver/vhosts": "system.manage",
-  "/apps": null,
+  "/apps": "apps.manage",
   "/softstore": null,
   "/runtimes": null,
   "/monitoring/services": "monitoring.manage",

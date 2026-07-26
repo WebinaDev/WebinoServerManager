@@ -9,4 +9,6 @@ return [
     'enabled' => 'FTP account enabled.',
     'disabled' => 'FTP account disabled.',
     'service_info_failed' => 'Could not load FTP service info.',
+    'password_updated' => 'FTP password updated.',
+    'password_failed' => 'Could not update FTP password.',
 ];

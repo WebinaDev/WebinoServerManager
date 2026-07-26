@@ -116,6 +116,25 @@ class FtpController extends Controller
         ]);
     }
 
+    public function updatePassword(Request $request, FtpAccount $account): JsonResponse
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'max:128'],
+        ]);
+
+        $result = $this->agent->post('/v1/ftp/accounts', [
+            'username' => $account->username,
+            'action' => 'set_password',
+            'password' => $data['password'],
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('ftp.password_failed')], 422);
+        }
+
+        return response()->json(['message' => __('ftp.password_updated')]);
+    }
+
     public function destroy(FtpAccount $account): JsonResponse
     {
         $this->agent->post('/v1/ftp/accounts', [

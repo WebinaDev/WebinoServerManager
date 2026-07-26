@@ -37,6 +37,12 @@ type DbUserRow = {
   database_id: number | null
 }
 
+type RecycledDbRow = DbRow & { deleted_at?: string }
+
+type RootPasswordStatus = {
+  configured: boolean
+}
+
 type RemoteAccess = {
   enabled: boolean
   allowed_ips: string[]
@@ -57,6 +63,9 @@ export default function DatabasesPage() {
   const [remoteIps, setRemoteIps] = useState("")
   const [passwordUser, setPasswordUser] = useState<DbUserRow | null>(null)
   const [passwordValue, setPasswordValue] = useState("")
+  const [engineDb, setEngineDb] = useState<DbRow | null>(null)
+  const [storageEngine, setStorageEngine] = useState("InnoDB")
+  const [rootPassword, setRootPassword] = useState("")
 
   const { data, isLoading } = useQuery({
     queryKey: ["databases"],
@@ -73,6 +82,16 @@ export default function DatabasesPage() {
     queryFn: () => api<{ remote_access: RemoteAccess }>("/api/v1/databases/remote-access"),
   })
 
+  const { data: recycleData, isLoading: recycleLoading } = useQuery({
+    queryKey: ["databases-recycle"],
+    queryFn: () => api<{ databases: RecycledDbRow[] }>("/api/v1/databases/recycle"),
+  })
+
+  const { data: rootPasswordData } = useQuery({
+    queryKey: ["databases-root-password"],
+    queryFn: () => api<RootPasswordStatus>("/api/v1/databases/root-password"),
+  })
+
   useEffect(() => {
     if (!remoteData?.remote_access) {
       return
@@ -87,6 +106,7 @@ export default function DatabasesPage() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["databases"] })
     qc.invalidateQueries({ queryKey: ["database-users"] })
+    qc.invalidateQueries({ queryKey: ["databases-recycle"] })
   }
 
   const create = useMutation({
@@ -113,6 +133,14 @@ export default function DatabasesPage() {
 
   const exportDb = useMutation({
     mutationFn: (id: number) => api(`/api/v1/databases/${id}/export`, { method: "POST" }),
+    onError: toastMutationError,
+  })
+
+  const redisInfo = useMutation({
+    mutationFn: () => api<{ redis: { ping?: string; memory_mb?: number } }>("/api/v1/databases/redis/info"),
+    onSuccess: (res) => {
+      toast.success(`${t("redis_info")}: ${res.redis?.ping ?? "—"} · ${res.redis?.memory_mb ?? 0} MB`)
+    },
     onError: toastMutationError,
   })
 
@@ -176,6 +204,59 @@ export default function DatabasesPage() {
     onError: toastMutationError,
   })
 
+  const restoreRecycle = useMutation({
+    mutationFn: (id: number) =>
+      api(`/api/v1/databases/recycle/${id}/restore`, { method: "POST" }),
+    onSuccess: () => {
+      toast.success(t("restore"))
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const purgeRecycle = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/databases/recycle/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast.success(t("purge"))
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const repairDb = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/databases/${id}/repair`, { method: "POST" }),
+    onSuccess: () => toast.success(t("repair")),
+    onError: toastMutationError,
+  })
+
+  const optimizeDb = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/databases/${id}/optimize`, { method: "POST" }),
+    onSuccess: () => toast.success(t("optimize")),
+    onError: toastMutationError,
+  })
+
+  const changeStorageEngine = useMutation({
+    mutationFn: ({ id, engine }: { id: number; engine: string }) =>
+      api(`/api/v1/databases/${id}/engine`, { method: "POST", json: { engine } }),
+    onSuccess: () => {
+      toast.success(t("engine_updated"))
+      setEngineDb(null)
+    },
+    onError: toastMutationError,
+  })
+
+  const updateRootPassword = useMutation({
+    mutationFn: (password: string) =>
+      api("/api/v1/databases/root-password", { method: "POST", json: { password } }),
+    onSuccess: () => {
+      toast.success(t("root_password_updated"))
+      setRootPassword("")
+      qc.invalidateQueries({ queryKey: ["databases-root-password"] })
+    },
+    onError: toastMutationError,
+  })
+
+  const recycled = recycleData?.databases ?? []
   const remote = remoteData?.remote_access
 
   const databaseColumns: DataTableColumn<DbRow>[] = [
@@ -218,6 +299,26 @@ export default function DatabasesPage() {
             <Button size="sm" variant="outline" onClick={() => exportDb.mutate(d.id)}>
               {t("export")}
             </Button>
+            {(d.engine ?? "mysql") === "mysql" ? (
+              <>
+                <Button size="sm" variant="outline" onClick={() => repairDb.mutate(d.id)}>
+                  {t("repair")}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => optimizeDb.mutate(d.id)}>
+                  {t("optimize")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEngineDb(d)
+                    setStorageEngine("InnoDB")
+                  }}
+                >
+                  {t("storage_engine")}
+                </Button>
+              </>
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -301,8 +402,19 @@ export default function DatabasesPage() {
                   <option value="mysql">MySQL</option>
                   <option value="pgsql">PostgreSQL</option>
                   <option value="redis">{t("engine_redis")}</option>
+                  <option value="mongodb">{t("engine_mongodb")}</option>
                 </select>
               </div>
+              {engine === "redis" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => redisInfo.mutate()}
+                  disabled={redisInfo.isPending}
+                >
+                  {t("redis_info")}
+                </Button>
+              ) : null}
               <Button type="submit" disabled={create.isPending}>
                 {t("create")}
               </Button>
@@ -321,6 +433,90 @@ export default function DatabasesPage() {
             }
             emptyMessage={t("empty")}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("recycle_title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={[
+              {
+                id: "name",
+                header: t("field_name"),
+                sortValue: (row) => row.name,
+                cell: (d) => (
+                  <span dir="ltr">
+                    {d.name}{" "}
+                    <span className="text-muted-foreground">({d.engine ?? "mysql"})</span>
+                  </span>
+                ),
+              },
+              {
+                id: "actions",
+                header: tCommon("actions"),
+                cell: (d) => (
+                  <RequireRouteWrite>
+                    <div className="flex flex-wrap gap-1">
+                      <Button size="sm" variant="outline" onClick={() => restoreRecycle.mutate(d.id)}>
+                        {t("restore")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          if (window.confirm(t("purge_confirm"))) purgeRecycle.mutate(d.id)
+                        }}
+                      >
+                        {t("purge")}
+                      </Button>
+                    </div>
+                  </RequireRouteWrite>
+                ),
+              },
+            ]}
+            data={recycled}
+            rowKey={(row) => row.id}
+            isLoading={recycleLoading}
+            emptyMessage={t("recycle_empty")}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("root_password_title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-muted-foreground text-sm">
+            {rootPasswordData?.configured
+              ? t("root_password_configured")
+              : t("root_password_not_configured")}
+          </p>
+          <RequireRouteWrite>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="root-password">{t("field_password")}</Label>
+                <Input
+                  id="root-password"
+                  type="password"
+                  minLength={12}
+                  value={rootPassword}
+                  onChange={(e) => setRootPassword(e.target.value)}
+                  dir="ltr"
+                />
+              </div>
+              <Button
+                type="button"
+                disabled={rootPassword.length < 12 || updateRootPassword.isPending}
+                onClick={() => updateRootPassword.mutate(rootPassword)}
+              >
+                {t("root_password_save")}
+              </Button>
+            </div>
+          </RequireRouteWrite>
         </CardContent>
       </Card>
 
@@ -441,6 +637,41 @@ export default function DatabasesPage() {
           />
         </CardContent>
       </Card>
+
+      <Dialog open={engineDb !== null} onOpenChange={(open) => !open && setEngineDb(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("storage_engine")}</DialogTitle>
+          </DialogHeader>
+          {engineDb ? (
+            <p className="text-muted-foreground text-sm" dir="ltr">
+              {engineDb.name}
+            </p>
+          ) : null}
+          <div className="space-y-2">
+            <Label htmlFor="storage-engine">{t("field_storage_engine")}</Label>
+            <select
+              id="storage-engine"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={storageEngine}
+              onChange={(e) => setStorageEngine(e.target.value)}
+            >
+              <option value="InnoDB">InnoDB</option>
+              <option value="MyISAM">MyISAM</option>
+            </select>
+          </div>
+          <Button
+            type="button"
+            disabled={!engineDb || changeStorageEngine.isPending}
+            onClick={() => {
+              if (!engineDb) return
+              changeStorageEngine.mutate({ id: engineDb.id, engine: storageEngine })
+            }}
+          >
+            {tCommon("save")}
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={passwordUser !== null} onOpenChange={(open) => !open && setPasswordUser(null)}>
         <DialogContent>

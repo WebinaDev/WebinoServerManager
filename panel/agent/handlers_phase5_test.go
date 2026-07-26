@@ -109,12 +109,12 @@ func TestVerifyTicketRoundTrip(t *testing.T) {
 	sharedToken = "test-secret"
 	ticket := makeTicket("test-secret", 1, time.Now().Add(time.Minute).Unix())
 
-	uid, err := verifyTicket(ticket)
+	payload, err := verifyTicket(ticket)
 	if err != nil {
 		t.Fatalf("verify failed: %v", err)
 	}
-	if uid != 1 {
-		t.Fatalf("expected uid 1, got %d", uid)
+	if payload.UID != 1 {
+		t.Fatalf("expected uid 1, got %d", payload.UID)
 	}
 }
 

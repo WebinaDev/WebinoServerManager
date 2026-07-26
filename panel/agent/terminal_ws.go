@@ -58,8 +58,9 @@ func checkWsOrigin(r *http.Request) bool {
 }
 
 type ticketPayload struct {
-	Exp int64 `json:"exp"`
-	UID int64 `json:"uid"`
+	Exp       int64  `json:"exp"`
+	UID       int64  `json:"uid"`
+	Container string `json:"container,omitempty"`
 }
 
 func startWebSocketServer(addr string) {
@@ -83,12 +84,12 @@ func startWebSocketServer(addr string) {
 
 func handleTerminalWS(w http.ResponseWriter, r *http.Request) {
 	ticket := r.URL.Query().Get("ticket")
-	uid, err := verifyTicket(ticket)
+	payload, err := verifyTicket(ticket)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	_ = uid
+	_ = payload.UID
 
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -96,7 +97,20 @@ func handleTerminalWS(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	cmd := exec.Command("bash", "-l")
+	var cmd *exec.Cmd
+	if payload.Container != "" {
+		if !validContainerName(payload.Container) {
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("invalid container name\r\n"))
+			return
+		}
+		if !dockerContainerRunning(payload.Container) {
+			_ = conn.WriteMessage(websocket.TextMessage, []byte("container not running\r\n"))
+			return
+		}
+		cmd = exec.Command("docker", "exec", "-it", payload.Container, "bash")
+	} else {
+		cmd = exec.Command("bash", "-l")
+	}
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
@@ -154,36 +168,41 @@ func handleTerminalWS(w http.ResponseWriter, r *http.Request) {
 	wg.Wait()
 }
 
-func verifyTicket(ticket string) (int64, error) {
+func verifyTicket(ticket string) (ticketPayload, error) {
 	if ticket == "" {
-		return 0, errInvalidTicket
+		return ticketPayload{}, errInvalidTicket
 	}
 	parts := strings.SplitN(ticket, ".", 2)
 	if len(parts) != 2 {
-		return 0, errInvalidTicket
+		return ticketPayload{}, errInvalidTicket
 	}
 	payloadB64, sigHex := parts[0], parts[1]
 	if sharedToken == "" {
-		return 0, errInvalidTicket
+		return ticketPayload{}, errInvalidTicket
 	}
 	mac := hmac.New(sha256.New, []byte(sharedToken))
 	mac.Write([]byte(payloadB64))
 	expected := hex.EncodeToString(mac.Sum(nil))
 	if !hmac.Equal([]byte(expected), []byte(sigHex)) {
-		return 0, errInvalidTicket
+		return ticketPayload{}, errInvalidTicket
 	}
 	raw, err := base64.StdEncoding.DecodeString(payloadB64)
 	if err != nil {
-		return 0, errInvalidTicket
+		return ticketPayload{}, errInvalidTicket
 	}
 	var payload ticketPayload
 	if json.Unmarshal(raw, &payload) != nil {
-		return 0, errInvalidTicket
+		return ticketPayload{}, errInvalidTicket
 	}
 	if payload.Exp < time.Now().Unix() {
-		return 0, errInvalidTicket
+		return ticketPayload{}, errInvalidTicket
 	}
-	return payload.UID, nil
+	return payload, nil
+}
+
+func dockerContainerRunning(name string) bool {
+	out, err := runArgv([]string{"docker", "inspect", "-f", "{{.State.Running}}", name}, "")
+	return err == nil && strings.TrimSpace(out) == "true"
 }
 
 var errInvalidTicket = invalidTicketError{}

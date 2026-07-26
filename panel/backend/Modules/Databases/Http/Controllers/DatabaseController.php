@@ -26,8 +26,9 @@ class DatabaseController extends Controller
         $agentMysql = $this->agent->get('/v1/databases?engine=mysql');
         $agentPgsql = $this->agent->get('/v1/databases?engine=pgsql');
         $agentRedis = $this->agent->get('/v1/databases?engine=redis');
+        $agentMongo = $this->agent->get('/v1/databases?engine=mongodb');
 
-        foreach ([$agentMysql, $agentPgsql, $agentRedis] as $agentResult) {
+        foreach ([$agentMysql, $agentPgsql, $agentRedis, $agentMongo] as $agentResult) {
             if (! ($agentResult['ok'] ?? false)) {
                 continue;
             }
@@ -89,7 +90,7 @@ class DatabaseController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_]+$/'],
-            'engine' => ['nullable', 'in:mysql,pgsql,redis'],
+            'engine' => ['nullable', 'in:mysql,pgsql,redis,mongodb'],
             'create_user' => ['boolean'],
             'hosting_account_id' => ['nullable', 'exists:hosting_accounts,id'],
         ]);
@@ -288,6 +289,20 @@ class DatabaseController extends Controller
         $database->update(['size_mb' => $size]);
 
         return response()->json(['database' => $database->fresh(), 'size_mb' => $size]);
+    }
+
+    public function redisInfo(): JsonResponse
+    {
+        $result = $this->agent->post('/v1/databases', [
+            'action' => 'redis_info',
+            'engine' => 'redis',
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('databases.redis_info_failed')], 422);
+        }
+
+        return response()->json(['redis' => $this->agentPayload($result)]);
     }
 
     public function remoteAccess(): JsonResponse

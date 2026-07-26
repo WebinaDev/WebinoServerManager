@@ -93,6 +93,10 @@ func runRiskChecks() []map[string]any {
 		"detail": ww,
 	})
 
+	for _, wc := range exposedWeakPathChecks() {
+		checks = append(checks, wc)
+	}
+
 	return checks
 }
 
@@ -419,6 +423,7 @@ func handleSiteAnalytics(w http.ResponseWriter, r *http.Request) {
 		"requests":      total,
 		"status_counts": statusCounts,
 		"bytes_approx":  bytesOut,
+		"top_paths":     parseTopPathsFromAccessLog(logPath, 10),
 		"sampled_at":    time.Now().UTC().Format(time.RFC3339),
 	})
 	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
@@ -468,6 +473,32 @@ func handleSecurityWafDeep(w http.ResponseWriter, r *http.Request) {
 	name := strVal(body["name"])
 	if name == "" || !wafSiteNameRe.MatchString(name) {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid name"})
+		return
+	}
+	action := strVal(body["action"])
+	if action == "geo_deny" {
+		countries := toStringSlice(body["countries"])
+		sitesDir := envOr("WEBINO_NGINX_SITES", "/etc/nginx/sites-available")
+		marker := filepath.Join(sitesDir, name+".waf-geo-deny")
+		if len(countries) == 0 {
+			_ = os.Remove(marker)
+		} else {
+			allowed := map[string]bool{"CN": true, "RU": true, "KP": true, "IR": true, "US": true, "GB": true, "DE": true, "FR": true, "IN": true, "BR": true}
+			lines := []string{}
+			for _, c := range countries {
+				c = strings.ToUpper(strings.TrimSpace(c))
+				if len(c) == 2 && allowed[c] {
+					lines = append(lines, c)
+				}
+			}
+			if len(lines) == 0 {
+				writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "no allowlisted country codes"})
+				return
+			}
+			_ = os.WriteFile(marker, []byte(strings.Join(lines, "\n")+"\n"), 0o644)
+		}
+		data, _ := json.Marshal(map[string]any{"name": name, "countries": countries})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 		return
 	}
 	enabled := body["enabled"] == true

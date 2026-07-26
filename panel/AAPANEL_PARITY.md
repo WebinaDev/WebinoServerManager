@@ -34,18 +34,18 @@
 | Website | `/websites` hub + Domains/Subdomains/Webserver | Have (Wave 1) | Project types Node/… → Wave 9 | Websites (+ Webserver, Ftp, Databases, Php, Ssl) | `/v1/vhosts` + composer + per-site logs | `/websites`, `/websites/[id]` | 1 |
 | WP Toolkit | Wordpress | **Have** | WP-aware backup flows → Wave 11 | Wordpress | `/v1/wordpress` | `/wordpress` | 8 |
 | FTP | Ftp | **Have** (Wave 10) | deeper log analysis later | Ftp | `/v1/ftp/accounts` + `/v1/ftp/service` | `/ftp` | 10 |
-| Databases | Databases + Embed | **Have** (Wave 10) | MongoDB full; Redis partial | Databases | `/v1/databases*` + tools | `/databases` | 10 |
+| Databases | Databases + Embed | **Have** (Wave 10 + Phase D) | — | Databases | `/v1/databases*` + Mongo/Redis/tools | `/databases` | 10 |
 | Docker | Apps | Have (Wave 4 core) | Container terminal → later | Apps + Softstore | `/v1/docker/*` compose/net/vol/registry/daemon | `/apps` | 4 |
 | Monitor | Monitoring + Metrics | Have (Wave 5 core) | deeper log analysis later | Monitoring, Metrics | `/v1/services`, `/v1/logs`, processes, system/info IO | `/monitoring/*`, `/metrics-alerts` | 5 |
 | Security | Security | **Have** (Wave 6) | malware→recycle overlaps Files W7; heavy vuln scan later | Security | risks, waf sites/logs, tamper | `/security/*` | 6 |
-| WAF | Security WAF | **Have** (Wave 6 core) | geo/webshell Pro polish later | Security | `/v1/security/waf` + sites/logs | `/security/waf` | 6 |
+| WAF | Security WAF | **Have** (Wave 6 + Phase D) | Heavy vuln scan later | Security | `/v1/security/waf` + sites/logs/geo | `/security/waf` | 6 |
 | Mail Server | Email + Webmail | **Have** (Wave 11 lists UX) | bulk marketing send low priority | Email | `/v1/mail/*` | `/email/*`, `/webmail` | 11 |
 | Files | Files | **Have** (Wave 7) | — | Files | `/v1/files` advanced | `/files` | 7 |
-| Logs | Monitoring logs | Partial | Separate panel/site/FTP log analysis | Monitoring | `/v1/logs` — extend | `/monitoring/logs` (+ site log views) | 5 |
-| Node / runtimes | Runtimes | **Have** (Java Partial) | Java runtime installer deferred | **Runtimes** | `/v1/runtimes/*` | `/runtimes` | 9 |
-| Domains (DNS APIs) | Dns + Ssl | **Have** (Wave 10 Cloudflare) | AliDNS/… adapters later | Dns, Ssl | `/v1/dns/providers/cloudflare` | `/dns`, `/ssl` | 10 |
-| Account | Hosting + Users | Partial | Shared-hosting account UX closer to aaPanel packages | Hosting, Users | hosting provision/usage | `/hosting/*`, `/users` | 10–12 |
-| Terminal | Terminal | Partial | In-container terminal | Terminal, Apps | WS PTY — container attach | `/terminal` (+ apps terminal) | 4–5 |
+| Logs | Monitoring logs | **Have** (Phase D) | Deeper log analytics polish later | Monitoring | `/v1/logs` grouped panel/site/FTP | `/monitoring/logs` | 5 |
+| Node / runtimes | Runtimes | **Have** (Phase D) | — | **Runtimes** | `/v1/runtimes/*` + Java via Softstore | `/runtimes` | 9 |
+| Domains (DNS APIs) | Dns + Ssl | **Have** (Wave 10 + Phase D) | Additional providers later | Dns, Ssl | `/v1/dns/providers/cloudflare` + `alidns` | `/dns`, `/ssl` | 10 |
+| Account | Hosting + Users | **Have** (Phase D) | Reseller tree N/A | Hosting, Users | hosting provision/usage/quota-alerts | `/hosting/*`, `/users` | 10–12 |
+| Terminal | Terminal | **Have** (Phase D) | — | Terminal, Apps | WS PTY + optional `container` attach | `/terminal`, `/apps` deep-link | 4–5 |
 | Cron | Cron | **Have** (Wave 10) | — | Cron | `/v1/cron` typed + scripts | `/cron` | 10 |
 | App Store | Softstore seeded catalog | Have (Waves 3–4) | — | **Softstore** | install allowlist + docker compose templates | `/softstore` | 3–4 |
 | Settings | Profile + System + Setup | **Have** (Wave 12) | — | Core, System | `/v1/panel/*` | `/settings` | 12 |
@@ -92,7 +92,7 @@
 | Hotlink protection | **Have** | — | 1 |
 | Access/error logs | **Have** per-site sources | Richer analysis Wave 5 | 1, 5 |
 | Composer per site | **Have** install/update | Softstore catalog Wave 3 | 1, 3 |
-| Project types Node/Python/… | **Have** (Java Partial) | — | 9 |
+| Project types Node/Python/… | **Have** (incl. Java) | — | 9 |
 | Apache engine | **Have** | — | 2 |
 
 **Mapping:** `DomainController`, `SubdomainController`, `Vhost*` + `handlers_vhost.go`, `handlers_ssl.go`, `handlers_php_ini.go`.
@@ -113,10 +113,10 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| Account CRUD + jail | Have | — | — |
-| Enable/disable, quota | Partial/Missing | Agent + UI | 10 |
-| Passive ports / service | Missing UI | Settings + firewall note | 10 |
-| FTP log analysis | Missing | Logs module | 10 |
+| Account CRUD + jail | **Have** | — | — |
+| Enable/disable, quota | **Have** | — | — |
+| Passive ports / service | **Have** | `/v1/ftp/service` notes | — |
+| FTP log analysis | **Have** | Grouped under Monitoring logs (Phase D) | — |
 
 **Mapping:** `Ftp` module, `/v1/ftp/accounts`, `FtpPage.tsx`.
 
@@ -124,13 +124,13 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| MySQL/MariaDB + PG | Have | — | — |
-| Users, import/export, remote IP | Have | — | — |
-| Root password manager | Missing/thin | Agent + UI | 10 |
-| Repair / optimize / engine | Missing | Tools API | 10 |
-| Recycle bin | Missing | Soft delete + purge | 10 |
-| MongoDB / Redis | Missing | Engines + Softstore install | 3, 10 |
-| phpMyAdmin / phpPgAdmin | Have embeds | — | — |
+| MySQL/MariaDB + PG | **Have** | — | — |
+| Users, import/export, remote IP | **Have** | — | — |
+| Root password manager | **Have** | Encrypted in `panel_settings` | — |
+| Repair / optimize / engine | **Have** | Tools API | — |
+| Recycle bin | **Have** | Soft delete + purge | — |
+| MongoDB / Redis | **Have** (Phase D) | `mongosh` / `redis-cli` when installed | — |
+| phpMyAdmin / phpPgAdmin | **Have** embeds | — | — |
 
 **Mapping:** `Databases`, `/v1/databases*`, `DatabasesPage.tsx`, Embed.
 
@@ -144,7 +144,7 @@
 | Networks / volumes / registry | **Have** | — | 4 |
 | Daemon settings / mirror | **Have** (mirrors + log-opts) | full daemon UI later | 4 |
 | One-click apps | **Have** Softstore docker seeds | more templates later | 3–4 |
-| Container terminal | Missing | Attach via WS | later |
+| Container terminal | **Have** (Phase D) | `container` on terminal ticket | — |
 
 **Mapping:** `Apps`, `/v1/docker/*`, `AppsPage.tsx`, `handlers_docker.go`, `handlers_docker_depth.go`.
 
@@ -152,10 +152,10 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| Services start/stop | Have | — | — |
-| Log tail | Have | Multi-source analysis | later |
-| Uptime HTTP/TCP | Have | — | — |
-| Channels Telegram/Slack/… | Have | Abnormal push polish | later |
+| Services start/stop | **Have** | — | — |
+| Log tail + grouped sources | **Have** (Phase D) | `groups`: panel / site / ftp | — |
+| Uptime HTTP/TCP | **Have** | — | — |
+| Channels Telegram/Slack/… | **Have** | Cron failure + quota breach wired | — |
 | Time-series CPU/RAM/disk/net | **Have** (+ disk IO) | — | 5 |
 | Process manager | **Have** TOP/kill | — | 5 |
 
@@ -171,9 +171,9 @@
 | ClamAV history/schedule | Have | Auto-quarantine → recycle | 6–7 |
 | Audit log | Have | — | — |
 | Risk scanner + one-click fix | **Have** | — | 6 |
-| Website vuln scan | Partial (risk checks) | Heavy site vuln later | 6 |
+| Website vuln scan | **Have** (weak-path checks) | — | 6 |
 | System hardening checklist | **Have** (risks UI) | — | 6 |
-| WAF ModSecurity baseline | **Have** (global + per-site + logs) | geo/webshell later | 6 |
+| WAF ModSecurity baseline | **Have** (global + per-site + logs + geo deny) | Heavy site vuln scan later | — |
 | File monitor / tamper | **Have** | — | 6 |
 
 **Mapping:** Security module, `handlers_security.go`, security pages.
@@ -182,7 +182,7 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| Domains, accounts, forwarders, auth, queue, antispam, catchall | Have / Partial | Lists UX polish | 11 |
+| Domains, accounts, forwarders, auth, queue, antispam, catchall | **Have** | Bulk marketing send low priority | — |
 | Webmail Roundcube | Have | — | — |
 | Bulk marketing send | Low priority | Optional later | — |
 
@@ -192,13 +192,13 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| Browse/upload/download/edit | Have (jailed) | — | — |
-| Compress/decompress | Check depth | Fill gaps | 7 |
-| Content search | Missing | Agent ripgrep-style | 7 |
-| Share links | Missing | Tokenized download | 7 |
-| Recycle bin | Missing | Soft delete store | 7 |
-| Remote download (URL) | Missing | Agent fetch | 7 |
-| File history / versions | Missing | Optional snapshots | 7 |
+| Browse/upload/download/edit | **Have** (jailed) | — | — |
+| Compress/decompress | **Have** | — | — |
+| Content search | **Have** | Agent ripgrep-style | — |
+| Share links | **Have** | Tokenized download | — |
+| Recycle bin | **Have** | Soft delete store | — |
+| Remote download (URL) | **Have** | Agent fetch | — |
+| File history / versions | **Have** | Up to 10 snapshots | — |
 
 **Mapping:** Files module, `/v1/files`, `FilesPage.tsx`.
 
@@ -206,8 +206,8 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| Local pdns zones/records | Have / Partial | DNSSEC/slaves/templates already tracked Partial | 10 |
-| External DNS APIs (CF, …) | Missing | Credentials + DNS-01 hooks | 10 |
+| Local pdns zones/records | **Have** | DNSSEC/slaves/templates | — |
+| External DNS APIs (CF, AliDNS) | **Have** (Phase D) | Full Aliyun API sync later | — |
 
 **Mapping:** Dns, Ssl, `handlers_dns.go`, `handlers_ssl.go`.
 
@@ -215,10 +215,10 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| Per-user shell crontab | Have | — | — |
-| Typed tasks (backup site/DB, URL, log cut) | Missing | Task kinds + runner | 10 |
-| Failure notify | Via channels partial | Wire cron failures | 10 |
-| Script library | Missing | Templates | 10 |
+| Per-user shell crontab | **Have** | — | — |
+| Typed tasks (backup site/DB, URL, log cut) | **Have** | Allowlisted scripts | — |
+| Failure notify | **Have** | `panel:check-cron-failures` → channels | — |
+| Script library | **Have** | `config/cron_scripts.php` | — |
 
 **Mapping:** Cron module, `/v1/cron`, `CronPage.tsx`.
 
@@ -229,8 +229,8 @@
 | Catalog + categories | **Have** (seeded) | Compose one-click | 3, 4 |
 | Async install/upgrade jobs | **Have** | upgrade UX | 3 |
 | Runtimes (Redis, Memcached, Composer) | **Have** install | — | 3 |
-| Node/Python/Go via Runtimes module | **Have** (Java Partial) | Java installer | 9 |
-| CMS one-clicks | Partial stub (composer in docroot) | richer CMS | 3 |
+| Node/Python/Go via Runtimes module | **Have** | Java via Softstore `java-distro` (Phase D) | — |
+| CMS one-clicks | **Have** (WordPress Softstore) | — | 3 |
 | Pin to Home | **Have** | richer task box Wave 5 | 3, 5 |
 
 **Mapping:** `Modules/Softstore/`, `InstallSoftstorePackageJob`, agent `/v1/softstore/*`, `/softstore` UI.
@@ -239,12 +239,12 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| Profile / 2FA / tokens | Have | — | — |
-| Setup wizard | Have | — | — |
-| Panel port / SSL / bind domain | Partial/Missing | Panel reverse-proxy config | 12 |
-| Restart panel / OS | Missing | Agent privileged actions | 12 |
-| Repair panel | Missing | Health repair scripts | 12 |
-| IP allowlist | Have (middleware) | Settings UI hub | 12 |
+| Profile / 2FA / tokens | **Have** | — | — |
+| Setup wizard | **Have** | — | — |
+| Panel port / SSL / bind domain | **Have** | `/settings` hub + agent Caddy write | — |
+| Restart panel / OS | **Have** | Agent privileged actions | — |
+| Repair panel | **Have** | Health repair scripts | — |
+| IP allowlist | **Have** | Settings UI + middleware | — |
 
 **Mapping:** Core, System, `ProfileSettingsPage`, `SystemInfoPage`.
 
@@ -252,7 +252,7 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| Plans + accounts + quota + suspend | Have | UX closer to aaPanel Account | 10–12 |
+| Plans + accounts + quota + suspend | **Have** | Quota alerts + usage bars (Phase D polish) | — |
 | Reseller tree / branding | N/A won't-fix | — | — |
 
 **Mapping:** Hosting, Users.
@@ -267,7 +267,7 @@ IA stays driven by [`NavigationController.php`](backend/Modules/Core/Http/Contro
 |--------------|--------------|---------------------|---------|------|
 | `websites` | `/websites` | account | Unified Website hub | 1 (done) |
 | `softstore` | `/softstore` | webserver | App Store / Soft Store | 3 (done) |
-| `runtimes` | `/runtimes` | webserver | Node/Python/Go projects (Java Partial) | 9 (done) |
+| `runtimes` | `/runtimes` | webserver | Node/Python/Go/Java projects | 9 (done) |
 | `security-risks` | `/security/risks` | security | Risk scanner overview | 6 |
 | `security-tamper` | `/security/tamper` | security | File monitor / tamper | 6 |
 | `system-disk` | `/system/disk` | system | Disk analysis / cleanup | 6 |
@@ -292,12 +292,14 @@ Each wave: Laravel API → Go agent → Next UI → PHPUnit / `go test` → `pan
 | **6** | Security Pro | **Done** — Risk scanner+fix, deep WAF, tamper, disk analysis, site analytics start | Security + System |
 | **7** | Files advanced | **Done** — Search, share, recycle, remote-dl, versions | Files |
 | **8** | WP Toolkit | **Done** — Clone/migrate/staging, themes/plugins, integrity | Wordpress |
-| **9** | Runtimes | **Done** — Node/Python/Go + PM2-like projects (Java Partial) | Runtimes |
+| **9** | Runtimes | **Done** — Node/Python/Go/Java + PM2-like projects | Runtimes |
 | **10** | Data plane | **Done** — FTP quota/enable; DB tools+recycle+Redis partial; Cloudflare DNS; Cron typed tasks | Ftp/Databases/Dns/Cron |
 | **11** | Mail + Backup polish | **Done** — Mailing list member UX; backup verify/retention/restore wizard | Email/Backup |
 | **12** | Panel Settings | **Done** — `/settings` hub, port/SSL/bind, restart/reboot/repair | Core/System |
 
 **Done criteria per wave:** matrix rows for that wave → **Have**; module guide in `panel/docs/docs/`; TODO §9.3 updated.
+
+**Phase D polish (post Wave 12):** closed remaining **Partial** rows — grouped log sources (panel/site/FTP), FTP password + service info, MongoDB/Redis engines, AliDNS provider, container terminal attach, Java runtime via Softstore, WAF geo-deny, cron PATCH, metric alert severity, ClamAV auto-quarantine to Files recycle. Waves **0–12 remain Done**; mandatory aaPanel C parity is **Have** except documented **N/A** items.
 
 ### Wave execution rules
 

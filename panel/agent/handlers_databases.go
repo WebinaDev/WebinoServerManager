@@ -34,6 +34,8 @@ func handleDatabasesList(w http.ResponseWriter, r *http.Request) {
 		dbs, err = listPgsqlDatabases()
 	case "redis":
 		dbs, err = listRedisDatabases()
+	case "mongodb":
+		dbs, err = listMongoDatabases()
 	default:
 		dbs, err = listMysqlDatabasesWithSize()
 	}
@@ -99,6 +101,8 @@ func handleDatabaseCreate(w http.ResponseWriter, body map[string]any) {
 		}
 	case "redis":
 		_, err = runArgv([]string{"redis-cli", "ping"}, "")
+	case "mongodb":
+		err = mongoCreateDatabase(name)
 	default:
 		sql := "CREATE DATABASE IF NOT EXISTS `" + mysqlEscapeIdent(name) + "`;"
 		if user != "" {
@@ -135,6 +139,8 @@ func handleDatabaseDelete(w http.ResponseWriter, body map[string]any) {
 	switch engine {
 	case "pgsql":
 		_, err = runArgv([]string{"dropdb", "--if-exists", name}, "")
+	case "mongodb":
+		err = mongoDropDatabase(name)
 	default:
 		_, err = runArgv([]string{"mysql", "-e", "DROP DATABASE IF EXISTS `" + mysqlEscapeIdent(name) + "`;"}, "")
 	}

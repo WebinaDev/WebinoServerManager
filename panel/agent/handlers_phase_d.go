@@ -241,3 +241,9 @@ func checkExposedWeakPaths() map[string]any {
 	}
 	return map[string]any{"weak_paths": checks}
 }
+
+func exposedWeakPathChecks() []map[string]any {
+	data := checkExposedWeakPaths()
+	raw, _ := data["weak_paths"].([]map[string]any)
+	return raw
+}

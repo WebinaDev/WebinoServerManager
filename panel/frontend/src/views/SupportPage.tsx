@@ -81,6 +81,9 @@ export default function SupportPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
+      <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+        {t("internal_only_notice")}
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>{t("title")}</CardTitle>

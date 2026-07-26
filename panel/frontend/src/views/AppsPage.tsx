@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+import Link from "next/link"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 
@@ -383,6 +384,11 @@ export default function AppsPage() {
                           onClick={() => setLogsApp(app)}
                         >
                           {t("logs")}
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" asChild>
+                          <Link href={`/terminal?container=${encodeURIComponent(app.name)}`}>
+                            {t("container_terminal")}
+                          </Link>
                         </Button>
                         <RequireRouteWrite>
                           <Button

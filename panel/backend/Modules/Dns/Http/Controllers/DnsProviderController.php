@@ -137,6 +137,65 @@ class DnsProviderController extends Controller
         return response()->json(['message' => __('dns.dns01_created'), 'agent' => $this->decode($result)]);
     }
 
+    public function showAlidns(): JsonResponse
+    {
+        $provider = DnsProvider::query()->where('provider', 'alidns')->first();
+
+        return response()->json([
+            'provider' => $provider ? [
+                'id' => $provider->id,
+                'provider' => $provider->provider,
+                'default_zone_id' => $provider->default_zone_id,
+                'enabled' => $provider->enabled,
+                'has_token' => $provider->has_token,
+            ] : null,
+        ]);
+    }
+
+    public function updateAlidns(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'api_token' => ['nullable', 'string', 'max:512'],
+            'default_zone_id' => ['nullable', 'string', 'max:64'],
+            'enabled' => ['boolean'],
+        ]);
+
+        $provider = DnsProvider::query()->firstOrCreate(['provider' => 'alidns']);
+
+        if (array_key_exists('api_token', $data) && $data['api_token'] !== null && $data['api_token'] !== '') {
+            $provider->api_token = $data['api_token'];
+        }
+        if (array_key_exists('default_zone_id', $data)) {
+            $provider->default_zone_id = $data['default_zone_id'];
+        }
+        if (array_key_exists('enabled', $data)) {
+            $provider->enabled = $data['enabled'];
+        }
+        $provider->save();
+
+        $result = $this->agent->post('/v1/dns/providers/alidns', [
+            'action' => 'configure',
+            'enabled' => $provider->enabled,
+            'api_token' => $data['api_token'] ?? null,
+            'zone_id' => $provider->default_zone_id,
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('dns.provider_configure_failed')], 422);
+        }
+
+        return response()->json([
+            'provider' => [
+                'id' => $provider->id,
+                'provider' => $provider->provider,
+                'default_zone_id' => $provider->default_zone_id,
+                'enabled' => $provider->enabled,
+                'has_token' => $provider->has_token,
+            ],
+            'message' => __('dns.provider_updated'),
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>

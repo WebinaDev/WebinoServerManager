@@ -26,6 +26,19 @@ type FileEntry = {
   mode?: string
 }
 
+type FileShareRow = {
+  id: number
+  path: string
+  token: string
+  expires_at?: string | null
+}
+
+type FileVersionRow = {
+  id?: string
+  name?: string
+  modified?: string
+}
+
 function parentPath(path: string): string {
   const normalized = path.replace(/\/+$/, "") || "/"
   if (normalized === "/") return "/"
@@ -71,6 +84,8 @@ export default function FilesPage() {
   const [chmodTarget, setChmodTarget] = useState<FileEntry | null>(null)
   const [chmodValue, setChmodValue] = useState("644")
   const [newFileName, setNewFileName] = useState("")
+  const [versionsPath, setVersionsPath] = useState<string | null>(null)
+  const [versions, setVersions] = useState<FileVersionRow[]>([])
 
   const [searchQuery, setSearchQuery] = useState("")
   const [remoteUrl, setRemoteUrl] = useState("")
@@ -88,6 +103,11 @@ export default function FilesPage() {
   const recycle = useQuery({
     queryKey: ["files-recycle"],
     queryFn: () => api<{ items: { id: string; original?: string }[] }>("/api/v1/files/recycle"),
+  })
+
+  const shares = useQuery({
+    queryKey: ["files-shares"],
+    queryFn: () => api<{ shares: FileShareRow[] }>("/api/v1/files/shares"),
   })
 
   const invalidate = () => void qc.invalidateQueries({ queryKey: ["files", path] })
@@ -124,6 +144,7 @@ export default function FilesPage() {
     onSuccess: (res) => {
       void navigator.clipboard?.writeText(res.url)
       toast.success(t("share_copied"))
+      void qc.invalidateQueries({ queryKey: ["files-shares"] })
     },
     onError: toastMutationError,
   })
@@ -142,6 +163,61 @@ export default function FilesPage() {
     mutationFn: (id: string) =>
       api("/api/v1/files/recycle/purge", { method: "POST", json: { id } }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["files-recycle"] }),
+    onError: toastMutationError,
+  })
+
+  const loadVersions = useMutation({
+    mutationFn: (filePath: string) =>
+      api<{ versions?: FileVersionRow[]; items?: FileVersionRow[] }>("/api/v1/files/versions", {
+        method: "POST",
+        json: { path: filePath },
+      }),
+    onSuccess: (res, filePath) => {
+      setVersionsPath(filePath)
+      setVersions(res.versions ?? res.items ?? [])
+    },
+    onError: toastMutationError,
+  })
+
+  const restoreVersion = useMutation({
+    mutationFn: ({ filePath, version }: { filePath: string; version: string }) =>
+      api("/api/v1/files/versions/restore", {
+        method: "POST",
+        json: { path: filePath, version },
+      }),
+    onSuccess: () => {
+      toast.success(t("version_restored"))
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const deleteShare = useMutation({
+    mutationFn: (id: number) => api(`/api/v1/files/shares/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      toast.success(t("share_deleted"))
+      void qc.invalidateQueries({ queryKey: ["files-shares"] })
+    },
+    onError: toastMutationError,
+  })
+
+  const compress = useMutation({
+    mutationFn: (filePath: string) =>
+      api("/api/v1/files/compress", { method: "POST", json: { path: filePath } }),
+    onSuccess: () => {
+      toast.success(t("compressed"))
+      invalidate()
+    },
+    onError: toastMutationError,
+  })
+
+  const decompress = useMutation({
+    mutationFn: (filePath: string) =>
+      api("/api/v1/files/decompress", { method: "POST", json: { path: filePath } }),
+    onSuccess: () => {
+      toast.success(t("decompressed"))
+      invalidate()
+    },
     onError: toastMutationError,
   })
 
@@ -348,6 +424,34 @@ export default function FilesPage() {
                 {t("share")}
               </Button>
             ) : null}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => compress.mutate(full)}
+            >
+              {t("compress")}
+            </Button>
+            {!entry.is_dir && /\.(zip|tar|gz|tgz|bz2|xz)$/i.test(entry.name) ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => decompress.mutate(full)}
+              >
+                {t("decompress")}
+              </Button>
+            ) : null}
+            {!entry.is_dir ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => loadVersions.mutate(full)}
+              >
+                {t("versions")}
+              </Button>
+            ) : null}
           </div>
         )
       },
@@ -409,6 +513,24 @@ export default function FilesPage() {
             >
               {t("remote_download")}
             </Button>
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium">{t("shares_title")}</p>
+            <ul className="space-y-1 text-sm">
+              {(shares.data?.shares ?? []).map((item) => (
+                <li key={item.id} className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs" dir="ltr">
+                    {item.path}
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => deleteShare.mutate(item.id)}>
+                    {t("share_delete")}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            {(shares.data?.shares ?? []).length === 0 ? (
+              <p className="text-muted-foreground text-sm">{t("shares_empty")}</p>
+            ) : null}
           </div>
           <div>
             <p className="mb-2 text-sm font-medium">{t("recycle_title")}</p>
@@ -550,6 +672,47 @@ export default function FilesPage() {
           />
         </CardContent>
       </Card>
+
+      <Dialog open={versionsPath !== null} onOpenChange={(open) => !open && setVersionsPath(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("versions_title")}</DialogTitle>
+          </DialogHeader>
+          {versionsPath ? (
+            <p className="text-muted-foreground font-mono text-xs" dir="ltr">
+              {versionsPath}
+            </p>
+          ) : null}
+          {versions.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{t("versions_empty")}</p>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {versions.map((v) => {
+                const versionId = v.id ?? v.name ?? ""
+                return (
+                  <li key={versionId} className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs" dir="ltr">
+                      {versionId}
+                      {v.modified ? ` · ${v.modified}` : ""}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!versionsPath || !versionId || restoreVersion.isPending}
+                      onClick={() => {
+                        if (!versionsPath || !versionId) return
+                        restoreVersion.mutate({ filePath: versionsPath, version: versionId })
+                      }}
+                    >
+                      {t("version_restore")}
+                    </Button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={editorPath !== null} onOpenChange={(open) => !open && setEditorPath(null)}>
         <DialogContent className="max-w-3xl">

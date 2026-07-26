@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,18 +10,27 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/lib/api"
 
+type LogGroups = {
+  panel?: string[]
+  site?: string[]
+  ftp?: string[]
+}
+
 export default function LogsPage() {
   const t = useTranslations("monitoring")
   const tCommon = useTranslations("common")
+  const [tab, setTab] = useState<"panel" | "site" | "ftp">("panel")
   const [source, setSource] = useState("")
   const [lines, setLines] = useState(200)
 
   const { data: sourcesData } = useQuery({
     queryKey: ["monitoring-log-sources"],
-    queryFn: () => api<{ sources: string[] }>("/api/v1/monitoring/logs/sources"),
+    queryFn: () =>
+      api<{ sources: string[]; groups?: LogGroups }>("/api/v1/monitoring/logs/sources"),
   })
 
-  const sources = sourcesData?.sources ?? []
+  const groups = sourcesData?.groups ?? {}
+  const tabSources = useMemo(() => groups[tab] ?? sourcesData?.sources ?? [], [groups, tab, sourcesData?.sources])
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["monitoring-logs", source, lines],
@@ -39,6 +48,23 @@ export default function LogsPage() {
           <CardTitle>{t("logs_title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {(["panel", "site", "ftp"] as const).map((key) => (
+              <Button
+                key={key}
+                type="button"
+                size="sm"
+                variant={tab === key ? "default" : "outline"}
+                onClick={() => {
+                  setTab(key)
+                  setSource("")
+                }}
+              >
+                {t(`log_tab_${key}`)}
+              </Button>
+            ))}
+          </div>
+
           <div className="grid gap-3 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="log-source">{t("log_source")}</Label>
@@ -49,7 +75,7 @@ export default function LogsPage() {
                 onChange={(e) => setSource(e.target.value)}
               >
                 <option value="">{t("select_source")}</option>
-                {sources.map((s) => (
+                {tabSources.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>

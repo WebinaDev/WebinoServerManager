@@ -280,6 +280,38 @@ class FilesController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function compress(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['required', 'string', 'max:1024'],
+            'dest' => ['nullable', 'string', 'max:1024'],
+        ]);
+
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'compress',
+            'path' => $data['path'],
+            'dest' => $data['dest'] ?? '',
+        ]);
+
+        return response()->json($this->agentPayload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
+    public function decompress(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['required', 'string', 'max:1024'],
+            'dest' => ['nullable', 'string', 'max:1024'],
+        ]);
+
+        $result = $this->agent->post('/v1/files', [
+            'action' => 'decompress',
+            'path' => $data['path'],
+            'dest' => $data['dest'] ?? '',
+        ]);
+
+        return response()->json($this->agentPayload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
     /**
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>

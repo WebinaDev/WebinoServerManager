@@ -72,12 +72,17 @@ class CollectMetricsCommand extends Command
             }
 
             $subject = __('metrics.alert_subject', ['metric' => $alert->metric]);
+            $severity = $alert->severity ?? 'soft';
             $body = __('metrics.alert_body', [
                 'metric' => $alert->metric,
                 'value' => round($value, 2),
                 'threshold' => $alert->threshold,
                 'comparison' => $alert->comparison,
+                'severity' => $severity,
             ]);
+            if ($severity === 'hard') {
+                $subject = '[HARD] '.$subject;
+            }
 
             $channelTypes = match ($alert->channel) {
                 'all' => null,

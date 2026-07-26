@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Terminal } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
 import "@xterm/xterm/css/xterm.css"
@@ -20,6 +21,8 @@ type TicketResponse = {
 export default function TerminalPage() {
   const t = useTranslations("terminal")
   const tCommon = useTranslations("common")
+  const searchParams = useSearchParams()
+  const container = searchParams.get("container")
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -42,6 +45,7 @@ export default function TerminalPage() {
     try {
       const ticketRes = await api<TicketResponse>("/api/v1/terminal/ticket", {
         method: "POST",
+        json: container ? { container } : {},
       })
       const ticket = ticketRes.data.ticket
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
@@ -69,7 +73,7 @@ export default function TerminalPage() {
     } catch {
       setStatus("error")
     }
-  }, [sendResize])
+  }, [sendResize, container])
 
   useEffect(() => {
     if (!containerRef.current) return

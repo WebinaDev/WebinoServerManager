@@ -1,7 +1,9 @@
 "use client"
 
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
@@ -33,6 +35,8 @@ export default function FtpPage() {
   const t = useTranslations("ftp")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
+  const [passwordAccount, setPasswordAccount] = useState<FtpRow | null>(null)
+  const [newPassword, setNewPassword] = useState("")
   const { data, isLoading } = useQuery({
     queryKey: ["ftp-accounts"],
     queryFn: () => api<{ accounts: FtpRow[] }>("/api/v1/ftp/accounts"),
@@ -74,6 +78,17 @@ export default function FtpPage() {
     mutationFn: ({ id, quota_mb }: { id: number; quota_mb: number }) =>
       api(`/api/v1/ftp/accounts/${id}/quota`, { method: "PATCH", json: { quota_mb } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ftp-accounts"] }),
+    onError: toastMutationError,
+  })
+
+  const changePassword = useMutation({
+    mutationFn: ({ id, password }: { id: number; password: string }) =>
+      api(`/api/v1/ftp/accounts/${id}/password`, { method: "PATCH", json: { password } }),
+    onSuccess: () => {
+      toast.success(t("password_updated"))
+      setPasswordAccount(null)
+      setNewPassword("")
+    },
     onError: toastMutationError,
   })
 
@@ -143,14 +158,24 @@ export default function FtpPage() {
       header: tCommon("actions"),
       cell: (a) => (
         <RequireRouteWrite>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => remove.mutate(a.id)}
-          >
-            {t("delete")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPasswordAccount(a)}
+            >
+              {t("change_password")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => remove.mutate(a.id)}
+            >
+              {t("delete")}
+            </Button>
+          </div>
         </RequireRouteWrite>
       ),
     },
@@ -170,6 +195,9 @@ export default function FtpPage() {
             <p>{t("passive_ports")}: {service.passive_port_range}</p>
             <p>{t("control_port")}: {service.control_port}</p>
             <p>{t("log_source")}: {service.log_source}</p>
+            <Button type="button" variant="link" className="h-auto p-0" asChild>
+              <Link href="/monitoring/logs">{t("view_transfer_logs")}</Link>
+            </Button>
           </CardContent>
         </Card>
       ) : null}
@@ -237,6 +265,30 @@ export default function FtpPage() {
           />
         </CardContent>
       </Card>
+      {passwordAccount ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("change_password")} — {passwordAccount.username}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder={t("field_password")}
+            />
+            <Button
+              type="button"
+              disabled={newPassword.length < 8 || changePassword.isPending}
+              onClick={() =>
+                changePassword.mutate({ id: passwordAccount.id, password: newPassword })
+              }
+            >
+              {t("change_password")}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   )
 }

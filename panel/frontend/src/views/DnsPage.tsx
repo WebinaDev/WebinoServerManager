@@ -57,6 +57,12 @@ export default function DnsPage() {
   const [cfToken, setCfToken] = useState("")
   const [cfZoneId, setCfZoneId] = useState("")
   const [cfEnabled, setCfEnabled] = useState(false)
+  const [dns01Domain, setDns01Domain] = useState("")
+  const [dns01Name, setDns01Name] = useState("")
+  const [dns01Value, setDns01Value] = useState("")
+  const [aliToken, setAliToken] = useState("")
+  const [aliZoneId, setAliZoneId] = useState("")
+  const [aliEnabled, setAliEnabled] = useState(false)
 
   const { data: cfData } = useQuery({
     queryKey: ["dns-cloudflare"],
@@ -87,6 +93,64 @@ export default function DnsPage() {
       toast.success(t("cloudflare_save"))
       setCfToken("")
       qc.invalidateQueries({ queryKey: ["dns-cloudflare"] })
+    },
+    onError: toastMutationError,
+  })
+
+  const syncCloudflare = useMutation({
+    mutationFn: (body: {
+      domain: string
+      zone_id?: string
+      records: { type: string; name: string; content: string; proxied?: boolean }[]
+    }) => api("/api/v1/dns/providers/cloudflare/sync", { method: "POST", json: body }),
+    onSuccess: () => toast.success(t("cloudflare_sync_ok")),
+    onError: toastMutationError,
+  })
+
+  const createDns01 = useMutation({
+    mutationFn: (body: {
+      domain: string
+      record_name: string
+      record_value: string
+      zone_id?: string
+    }) => api("/api/v1/dns/providers/cloudflare/dns01", { method: "POST", json: body }),
+    onSuccess: () => {
+      toast.success(t("dns01_ok"))
+      setDns01Name("")
+      setDns01Value("")
+    },
+    onError: toastMutationError,
+  })
+
+  const { data: aliData } = useQuery({
+    queryKey: ["dns-alidns"],
+    queryFn: () =>
+      api<{ provider: { default_zone_id?: string; enabled?: boolean; has_token?: boolean } | null }>(
+        "/api/v1/dns/providers/alidns",
+      ),
+  })
+
+  useEffect(() => {
+    const p = aliData?.provider
+    if (!p) return
+    setAliZoneId(p.default_zone_id ?? "")
+    setAliEnabled(!!p.enabled)
+  }, [aliData])
+
+  const saveAlidns = useMutation({
+    mutationFn: () =>
+      api("/api/v1/dns/providers/alidns", {
+        method: "PATCH",
+        json: {
+          api_token: aliToken || undefined,
+          default_zone_id: aliZoneId || null,
+          enabled: aliEnabled,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(t("alidns_save"))
+      setAliToken("")
+      qc.invalidateQueries({ queryKey: ["dns-alidns"] })
     },
     onError: toastMutationError,
   })
@@ -334,6 +398,111 @@ export default function DnsPage() {
                 {t("cloudflare_save")}
               </Button>
             </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>{t("cloudflare_sync")}</Label>
+              <p className="text-muted-foreground text-xs">{t("cloudflare_sync_hint")}</p>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!selectedZone || syncCloudflare.isPending}
+                onClick={() => {
+                  if (!selectedZone) return
+                  syncCloudflare.mutate({
+                    domain: selectedZone.domain,
+                    zone_id: cfZoneId || undefined,
+                    records: records.map((r) => ({
+                      type: r.type,
+                      name: r.name,
+                      content: r.content,
+                      proxied: false,
+                    })),
+                  })
+                }}
+              >
+                {t("cloudflare_sync")}
+              </Button>
+            </div>
+            <div className="grid gap-3 md:col-span-2 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="dns01_domain">{t("field_domain")}</Label>
+                <Input
+                  id="dns01_domain"
+                  value={dns01Domain}
+                  onChange={(e) => setDns01Domain(e.target.value)}
+                  placeholder={selectedZone?.domain ?? "example.com"}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dns01_name">{t("dns01_record_name")}</Label>
+                <Input
+                  id="dns01_name"
+                  value={dns01Name}
+                  onChange={(e) => setDns01Name(e.target.value)}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dns01_value">{t("dns01_record_value")}</Label>
+                <Input
+                  id="dns01_value"
+                  value={dns01Value}
+                  onChange={(e) => setDns01Value(e.target.value)}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <div className="flex items-end md:col-span-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!dns01Domain || !dns01Name || !dns01Value || createDns01.isPending}
+                onClick={() =>
+                  createDns01.mutate({
+                    domain: dns01Domain || selectedZone?.domain || "",
+                    record_name: dns01Name,
+                    record_value: dns01Value,
+                    zone_id: cfZoneId || undefined,
+                  })
+                }
+              >
+                {t("dns01_submit")}
+              </Button>
+            </div>
+          </RequireRouteWrite>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("alidns_title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2">
+          <p className="text-muted-foreground text-sm md:col-span-2">{t("alidns_desc")}</p>
+          <RequireRouteWrite>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="ali_token">{t("alidns_token")}</Label>
+              <Input
+                id="ali_token"
+                type="password"
+                value={aliToken}
+                onChange={(e) => setAliToken(e.target.value)}
+                placeholder={aliData?.provider?.has_token ? "••••••••" : ""}
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ali_zone">{t("alidns_zone_id")}</Label>
+              <Input id="ali_zone" value={aliZoneId} onChange={(e) => setAliZoneId(e.target.value)} dir="ltr" />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={aliEnabled} onChange={(e) => setAliEnabled(e.target.checked)} />
+              {t("alidns_enabled")}
+            </label>
+            <div className="flex items-end">
+              <Button type="button" onClick={() => saveAlidns.mutate()} disabled={saveAlidns.isPending}>
+                {t("alidns_save")}
+              </Button>
+            </div>
           </RequireRouteWrite>
         </CardContent>
       </Card>
@@ -399,7 +568,10 @@ export default function DnsPage() {
                   <button
                     type="button"
                     className="text-start font-medium hover:underline"
-                    onClick={() => setSelectedZoneId(z.id)}
+                    onClick={() => {
+                      setSelectedZoneId(z.id)
+                      setDns01Domain(z.domain)
+                    }}
                   >
                     {z.domain}
                     {z.zone_kind === "slave" ? (

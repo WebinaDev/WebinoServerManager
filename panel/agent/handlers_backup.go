@@ -97,8 +97,32 @@ func handleBackupCreate(w http.ResponseWriter, body map[string]any) {
 		if err == nil {
 			filename = filesName + "," + dbName
 		}
+	case "wordpress":
+		wpPath := strVal(body["wp_path"])
+		wpDB := strVal(body["wp_db"])
+		if wpPath == "" || wpDB == "" {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "wp_path and wp_db required for wordpress backup"})
+			return
+		}
+		absWP, pathErr := safeFilePath(wpPath)
+		if pathErr != nil {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: pathErr.Error()})
+			return
+		}
+		filesName := fmt.Sprintf("wordpress-%s-%s-files.tar.gz", safeTarget, ts)
+		dbName := fmt.Sprintf("wordpress-%s-%s-db.sql.gz", safeTarget, ts)
+		filesDest := filepath.Join(backupDir, filesName)
+		dbDest := filepath.Join(backupDir, dbName)
+		_, err = runArgv([]string{"tar", "-czf", filesDest, "-C", absWP, "."}, "")
+		if err == nil {
+			_, err = runArgv([]string{"sh", "-c", fmt.Sprintf("mysqldump %s | gzip > %s", shellQuote(wpDB), shellQuote(dbDest))}, "")
+		}
+		if err == nil {
+			filename = filesName + "," + dbName
+			btype = "wordpress"
+		}
 	default:
-		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "type must be files, db, or full"})
+		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "type must be files, db, full, or wordpress"})
 		return
 	}
 	if err != nil {

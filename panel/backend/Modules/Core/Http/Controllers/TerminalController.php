@@ -17,9 +17,14 @@ class TerminalController extends Controller
             return response()->json(['message' => __('terminal.token_not_configured')], 503);
         }
 
+        $data = $request->validate([
+            'container' => ['nullable', 'string', 'max:128', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/'],
+        ]);
+
         $payload = json_encode([
             'exp' => now()->addSeconds(30)->timestamp,
             'uid' => $user->id,
+            'container' => $data['container'] ?? null,
         ], JSON_THROW_ON_ERROR);
 
         $payloadB64 = base64_encode($payload);

@@ -22,6 +22,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/files/recycle/purge', [FilesController::class, 'recyclePurge']);
         Route::post('/files/versions', [FilesController::class, 'versions']);
         Route::post('/files/versions/restore', [FilesController::class, 'restoreVersion']);
+        Route::post('/files/compress', [FilesController::class, 'compress']);
+        Route::post('/files/decompress', [FilesController::class, 'decompress']);
         Route::get('/files/shares', [FilesController::class, 'listShares']);
         Route::post('/files/shares', [FilesController::class, 'createShare']);
         Route::delete('/files/shares/{share}', [FilesController::class, 'destroyShare']);

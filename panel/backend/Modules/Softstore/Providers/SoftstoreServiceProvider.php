@@ -43,12 +43,12 @@ class SoftstoreServiceProvider extends ServiceProvider
                 'pinable' => true,
             ],
             [
-                'slug' => 'cms-stub',
-                'name' => 'CMS Composer stub',
+                'slug' => 'wordpress-cms',
+                'name' => 'WordPress (one-click)',
                 'category' => 'cms',
-                'description' => 'Run composer install in a selected website document root (no remote download)',
-                'version_label' => 'stub',
-                'agent_script_id' => 'cms_composer_stub',
+                'description' => 'Install WordPress in a website document root via webina wordpress install',
+                'version_label' => 'latest',
+                'agent_script_id' => 'install_wordpress_cms',
                 'pinable' => true,
             ],
             [

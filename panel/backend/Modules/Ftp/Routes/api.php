@@ -10,6 +10,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:system.manage')->group(function () {
         Route::post('/ftp/accounts', [FtpController::class, 'store']);
         Route::patch('/ftp/accounts/{account}/quota', [FtpController::class, 'updateQuota']);
+        Route::patch('/ftp/accounts/{account}/password', [FtpController::class, 'updatePassword']);
         Route::patch('/ftp/accounts/{account}/enabled', [FtpController::class, 'setEnabled']);
         Route::delete('/ftp/accounts/{account}', [FtpController::class, 'destroy']);
     });

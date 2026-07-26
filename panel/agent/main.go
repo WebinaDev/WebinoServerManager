@@ -82,6 +82,7 @@ func main() {
 	mux.HandleFunc("/v1/cron", handleCron)
 	mux.HandleFunc("/v1/cron/failures", handleCronFailures)
 	mux.HandleFunc("/v1/dns/providers/cloudflare", handleDnsCloudflareProvider)
+	mux.HandleFunc("/v1/dns/providers/alidns", handleDnsAlidnsProvider)
 	mux.HandleFunc("/v1/panel/settings", handlePanelSettings)
 	mux.HandleFunc("/v1/panel/restart", handlePanelRestart)
 	mux.HandleFunc("/v1/panel/reboot", handlePanelReboot)

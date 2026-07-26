@@ -18,6 +18,7 @@ var runtimesScriptIDs = map[string]bool{
 	"install_node_nodesource": true,
 	"install_python_distro":   true,
 	"install_go_distro":       true,
+	"install_java_distro":     true,
 }
 
 var runtimeProjectNameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$`)
@@ -44,6 +45,7 @@ func handleRuntimesStatus(w http.ResponseWriter, r *http.Request) {
 			"node":   probeRuntime("node", "node"),
 			"python": probeRuntime("python3", "python3"),
 			"go":     probeRuntime("go", "go"),
+			"java":   probeRuntime("java", "java"),
 		},
 	})
 	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
@@ -127,6 +129,11 @@ func runRuntimesInstallScript(scriptID string) (string, error) {
 		return runArgv([]string{"apt-get", "install", "-y", "python3", "python3-venv", "python3-pip"}, "")
 	case "install_go_distro":
 		return runArgv([]string{"apt-get", "install", "-y", "golang-go"}, "")
+	case "install_java_distro":
+		if path, err := exec.LookPath("java"); err == nil {
+			return "java already present: " + path, nil
+		}
+		return runArgv([]string{"apt-get", "install", "-y", "openjdk-17-jdk"}, "")
 	default:
 		return "", fmt.Errorf("unknown script")
 	}
