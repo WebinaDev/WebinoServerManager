@@ -11,6 +11,10 @@ class MetricSample extends Model
         'mem_percent',
         'disk_percent',
         'load1',
+        'net_rx_bps',
+        'net_tx_bps',
+        'disk_read_bps',
+        'disk_write_bps',
         'collected_at',
     ];
 
@@ -21,6 +25,10 @@ class MetricSample extends Model
             'mem_percent' => 'float',
             'disk_percent' => 'float',
             'load1' => 'float',
+            'net_rx_bps' => 'float',
+            'net_tx_bps' => 'float',
+            'disk_read_bps' => 'float',
+            'disk_write_bps' => 'float',
             'collected_at' => 'datetime',
         ];
     }

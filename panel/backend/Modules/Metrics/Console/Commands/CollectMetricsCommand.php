@@ -35,6 +35,10 @@ class CollectMetricsCommand extends Command
             'mem_percent' => (float) ($info['mem_percent'] ?? 0),
             'disk_percent' => (float) ($info['disk_percent'] ?? 0),
             'load1' => (float) ($info['load1'] ?? 0),
+            'net_rx_bps' => isset($info['nic']['rx_bps']) ? (float) $info['nic']['rx_bps'] : null,
+            'net_tx_bps' => isset($info['nic']['tx_bps']) ? (float) $info['nic']['tx_bps'] : null,
+            'disk_read_bps' => isset($info['disk_io']['read_bps']) ? (float) $info['disk_io']['read_bps'] : null,
+            'disk_write_bps' => isset($info['disk_io']['write_bps']) ? (float) $info['disk_io']['write_bps'] : null,
             'collected_at' => $collectedAt,
         ]);
 

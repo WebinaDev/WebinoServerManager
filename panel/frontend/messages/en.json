@@ -130,6 +130,7 @@
     "softstore": "Soft Store",
     "section_monitoring": "Monitoring",
     "monitoring_services": "Services",
+    "monitoring_processes": "Processes",
     "monitoring_logs": "Logs",
     "monitoring_uptime": "Uptime",
     "monitoring_channels": "Notifications"
@@ -377,6 +378,10 @@
   },
   "monitoring": {
     "services_title": "System services",
+    "processes_title": "Processes",
+    "kill_term": "TERM",
+    "kill_kill": "KILL",
+    "kill_confirm": "Send SIGKILL to this process?",
     "service_confirm": "Run {{action}} on {{service}}?",
     "start": "Start",
     "stop": "Stop",
@@ -840,7 +845,13 @@
     "selected_date_label": "Selected",
     "softstore_pins_title": "Soft Store pins",
     "softstore_open": "Open Soft Store",
-    "softstore_active_installs": "{count} active installs"
+    "softstore_active_installs": "{count} active installs",
+    "task_box_title": "Install tasks",
+    "risk_title": "Security signals",
+    "top_processes_title": "TOP processes",
+    "top_processes_open": "Process manager",
+    "nic_title": "Network I/O",
+    "disk_io_title": "Disk I/O"
   },
   "tokens": {
     "create_title": "Create API token",

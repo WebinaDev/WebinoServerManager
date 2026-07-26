@@ -77,7 +77,7 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | **Webserver** | ✅ | ✅ | ✅ nginx + Apache | **Have** (Wave 2) | dual-stack `engine`, HTTP/3 nginx; raw editor/redirects/proxy; see [AAPANEL_PARITY.md](AAPANEL_PARITY.md) |
 | **Databases** | ✅ | ✅ | ✅ MySQL + PostgreSQL | **Implemented** | User CRUD, import/export, phpPgAdmin embed, remote IP UI; quota when `hosting_account_id` set |
 | **Hosting** | ✅ plans + accounts | ✅ | ✅ provision/suspend/usage | **Implemented** | Plans (incl. `max_apps`), accounts with OS provision/deprovision, quota, bandwidth metering, quota alerts; **reseller won't-fix** |
-| **Apps** (Docker containers) | ✅ | ✅ | ✅ docker.sock | **Partial** | Run/stop/logs/images + Softstore catalog **Have** (Wave 3); Compose depth planned Wave 4 |
+| **Apps** (Docker containers) | ✅ | ✅ | ✅ docker.sock | **Have** (Wave 4) | Containers/images + Compose/networks/volumes/registry/daemon + Softstore docker one-click |
 | **Monitoring** (services, logs, uptime, channels) | ✅ | ✅ | ✅ systemctl/journalctl | **Partial** | Service control, log tail, HTTP/TCP uptime, Telegram/Slack/webhook/email; hosting quota breach alerts |
 | **Webhooks** (domain events, signed delivery) | ✅ | ✅ | — | **Implemented** | `backup.completed`, `ssl.expiring`, `alert.fired`, `user.created` |
 | **Automation** (API tokens, CLI, SDKs) | ✅ | ✅ | — | **Implemented** | Scoped Sanctum tokens; `wpanel` CLI with 2FA + write commands; TS/Python SDKs; OpenAPI export in CI |
@@ -228,7 +228,7 @@ Compared to cPanel, Plesk, DirectAdmin, HestiaCP, CyberPanel:
 - **Backups:** ~~Restore, offsite (S3/FTP/SFTP/rsync), incremental, verification~~ — done in Phase 15 (restic engine; S3/SFTP/REST targets)
 - **Multi-tenancy:** ~~Hosting packages, customer accounts, suspend/unsuspend, quota enforcement~~ — Phase 16 (customers + plans; resellers deferred)
 - **Databases:** ~~PostgreSQL, standalone DB-user CRUD, import/export, size stats~~ — Phase 17 (PG agent-only; no phpPgAdmin embed)
-- **Applications:** Docker UI Phase 18; Softstore catalog **Have** Wave 3; Compose depth, Node/Python runtimes planned — Waves 4, 9
+- **Applications:** Docker depth **Have** Wave 4; Softstore catalog **Have** Waves 3–4; Node/Python runtimes planned — Wave 9
 - **Monitoring:** ~~Service restart UI, log viewer, external uptime, Telegram/Slack/webhook alerts~~ — Phase 19; per-site limits and alert escalation still deferred
 - **API/CLI:** ~~Scoped API tokens, public customer CLI, webhooks, rate limiting, SDK~~ — done in Phase 20
 
@@ -568,7 +568,7 @@ flowchart LR
 - Optional nginx proxy vhost on create; `HostingQuota` `apps` resource; `apps.manage` permission
 - Frontend: `AppsPage` — containers, create form, logs sheet, images card; nav + i18n
 
-**Note:** Softstore catalog **Have** Wave 3; Compose depth and runtimes planned — Waves 4, 9.
+**Note:** Softstore + Docker Compose depth **Have** Waves 3–4; runtimes planned — Wave 9.
 
 **Key files:** `agent/handlers_docker.go`, `Modules/Apps/`, `frontend/src/pages/AppsPage.tsx`
 

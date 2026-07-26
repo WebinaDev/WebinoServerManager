@@ -20,6 +20,21 @@ type Summary = {
   cpu_percent?: number
   mem_percent?: number
   disk_percent?: number
+  net_rx_bps?: number | null
+  net_tx_bps?: number | null
+  disk_read_bps?: number | null
+  disk_write_bps?: number | null
+  top_processes?: Array<{
+    pid: number
+    user: string
+    cpu: number
+    mem: number
+    command: string
+  }>
+  security_risk?: {
+    level: string
+    items: Array<{ key: string; label: string; href: string; severity: string }>
+  }
   softstore_pins?: Array<{
     package_id: number
     slug?: string | null
@@ -27,6 +42,19 @@ type Summary = {
     category?: string | null
   }>
   softstore_active_installs?: number
+  softstore_recent_installs?: Array<{
+    id: number
+    status: string
+    package?: string | null
+    log?: string | null
+  }>
+}
+
+function formatBps(n?: number | null): string {
+  if (n == null || Number.isNaN(n)) return "—"
+  if (n < 1024) return `${Math.round(n)} B/s`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB/s`
+  return `${(n / (1024 * 1024)).toFixed(2)} MB/s`
 }
 
 type Props = {
@@ -142,7 +170,8 @@ export default function DashboardHome({ initialSummary = null }: Props) {
         </div>
       </div>
       {(summary?.softstore_pins?.length ?? 0) > 0 ||
-      (summary?.softstore_active_installs ?? 0) > 0 ? (
+      (summary?.softstore_active_installs ?? 0) > 0 ||
+      (summary?.softstore_recent_installs?.length ?? 0) > 0 ? (
         <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm font-medium">{t("softstore_pins_title")}</div>
@@ -169,8 +198,90 @@ export default function DashboardHome({ initialSummary = null }: Props) {
               </li>
             ))}
           </ul>
+          {(summary?.softstore_recent_installs?.length ?? 0) > 0 ? (
+            <div className="mt-4">
+              <div className="mb-2 text-sm font-medium">{t("task_box_title")}</div>
+              <ul className="divide-y rounded-md border text-sm">
+                {(summary?.softstore_recent_installs ?? []).map((job) => (
+                  <li key={job.id} className="px-3 py-2">
+                    <div className="flex justify-between gap-2">
+                      <span>{job.package ?? `#${job.id}`}</span>
+                      <span className="text-muted-foreground">{job.status}</span>
+                    </div>
+                    {job.log ? (
+                      <p className="text-muted-foreground mt-1 truncate text-xs" dir="ltr">
+                        {job.log}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       ) : null}
+
+      {summary?.security_risk ? (
+        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-medium">{t("risk_title")}</div>
+            <span className="text-muted-foreground text-xs">{summary.security_risk.level}</span>
+          </div>
+          <ul className="space-y-1 text-sm">
+            {summary.security_risk.items.map((item) => (
+              <li key={item.key}>
+                <Link href={item.href} className="text-primary hover:underline">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {(summary?.top_processes?.length ?? 0) > 0 ? (
+        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-medium">{t("top_processes_title")}</div>
+            <Link
+              href="/monitoring/processes"
+              className="text-primary text-sm hover:underline"
+            >
+              {t("top_processes_open")}
+            </Link>
+          </div>
+          <ul className="divide-y rounded-md border text-sm">
+            {(summary?.top_processes ?? []).map((p) => (
+              <li key={p.pid} className="flex justify-between gap-2 px-3 py-2 font-mono text-xs" dir="ltr">
+                <span>
+                  {p.pid} {p.command}
+                </span>
+                <span className="text-muted-foreground">
+                  {p.cpu}% / {p.mem}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {summary ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border bg-card p-4 shadow">
+            <div className="text-muted-foreground mb-2 text-sm">{t("nic_title")}</div>
+            <p className="text-sm" dir="ltr">
+              RX {formatBps(summary.net_rx_bps)} · TX {formatBps(summary.net_tx_bps)}
+            </p>
+          </div>
+          <div className="rounded-xl border bg-card p-4 shadow">
+            <div className="text-muted-foreground mb-2 text-sm">{t("disk_io_title")}</div>
+            <p className="text-sm" dir="ltr">
+              R {formatBps(summary.disk_read_bps)} · W {formatBps(summary.disk_write_bps)}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       {summary ? (
         <div className="rounded-xl border bg-card p-4 shadow">
           <AccentBarChart

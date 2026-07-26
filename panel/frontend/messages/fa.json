@@ -130,6 +130,7 @@
     "softstore": "Soft Store",
     "section_monitoring": "مانیتورینگ",
     "monitoring_services": "سرویس‌ها",
+    "monitoring_processes": "فرآیندها",
     "monitoring_logs": "لاگ‌ها",
     "monitoring_uptime": "آپتایم",
     "monitoring_channels": "اعلان‌ها"
@@ -377,6 +378,10 @@
   },
   "monitoring": {
     "services_title": "سرویس‌های سیستم",
+    "processes_title": "فرآیندها",
+    "kill_term": "TERM",
+    "kill_kill": "KILL",
+    "kill_confirm": "SIGKILL به این فرآیند ارسال شود؟",
     "service_confirm": "{{action}} روی {{service}} اجرا شود؟",
     "start": "شروع",
     "stop": "توقف",
@@ -840,7 +845,13 @@
     "selected_date_label": "تاریخ انتخاب‌شده",
     "softstore_pins_title": "پین‌های Soft Store",
     "softstore_open": "باز کردن Soft Store",
-    "softstore_active_installs": "{count} نصب فعال"
+    "softstore_active_installs": "{count} نصب فعال",
+    "task_box_title": "وظایف نصب",
+    "risk_title": "سیگنال‌های امنیتی",
+    "top_processes_title": "فرآیندهای TOP",
+    "top_processes_open": "مدیر فرآیند",
+    "nic_title": "I/O شبکه",
+    "disk_io_title": "I/O دیسک"
   },
   "tokens": {
     "create_title": "ایجاد توکن API",

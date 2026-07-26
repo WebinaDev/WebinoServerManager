@@ -64,6 +64,7 @@ func main() {
 	mux.HandleFunc("/v1/domains", handleDomains)
 	mux.HandleFunc("/v1/databases", handleDatabases)
 	mux.HandleFunc("/v1/system/info", handleSystemInfo)
+	mux.HandleFunc("/v1/system/processes", handleSystemProcesses)
 	mux.HandleFunc("/v1/dns/zones", handleDnsZonesExtended)
 	mux.HandleFunc("/v1/dns/records", handleDnsRecordsExtended)
 	mux.HandleFunc("/v1/dns/records/counts", handleDnsRecordCounts)

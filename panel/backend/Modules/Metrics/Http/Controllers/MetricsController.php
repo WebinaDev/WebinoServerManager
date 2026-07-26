@@ -44,7 +44,17 @@ class MetricsController extends Controller
         $samples = MetricSample::query()
             ->where('collected_at', '>=', $since)
             ->orderBy('collected_at')
-            ->get(['cpu_percent', 'mem_percent', 'disk_percent', 'load1', 'collected_at']);
+            ->get([
+                'cpu_percent',
+                'mem_percent',
+                'disk_percent',
+                'load1',
+                'net_rx_bps',
+                'net_tx_bps',
+                'disk_read_bps',
+                'disk_write_bps',
+                'collected_at',
+            ]);
 
         return response()->json(['samples' => $samples, 'range' => $range]);
     }

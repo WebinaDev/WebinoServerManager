@@ -38,7 +38,7 @@ func collectSystemInfo() map[string]any {
 		uptimeSeconds, _ = strconv.ParseFloat(parts[0], 64)
 	}
 
-	return map[string]any{
+	info := map[string]any{
 		"hostname":       hostname,
 		"kernel":         strings.TrimSpace(kernel),
 		"os":             strings.TrimSpace(osRelease),
@@ -56,6 +56,8 @@ func collectSystemInfo() map[string]any {
 		"disk":           strings.TrimSpace(diskOutHuman),
 		"collected_at":   time.Now().UTC().Format(time.RFC3339),
 	}
+	enrichSystemInfoIO(info)
+	return info
 }
 
 func readFirstLine(path string) string {

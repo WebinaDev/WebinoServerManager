@@ -70,6 +70,7 @@ class NavigationController extends Controller
                 'label_key' => 'section_monitoring',
                 'items' => [
                     ['slug' => 'monitoring-services', 'path' => '/monitoring/services', 'label_key' => 'monitoring_services', 'permission' => 'monitoring.manage'],
+                    ['slug' => 'monitoring-processes', 'path' => '/monitoring/processes', 'label_key' => 'monitoring_processes', 'permission' => 'monitoring.manage'],
                     ['slug' => 'monitoring-logs', 'path' => '/monitoring/logs', 'label_key' => 'monitoring_logs', 'permission' => 'monitoring.manage'],
                     ['slug' => 'monitoring-uptime', 'path' => '/monitoring/uptime', 'label_key' => 'monitoring_uptime', 'permission' => 'monitoring.manage'],
                     ['slug' => 'monitoring-channels', 'path' => '/monitoring/channels', 'label_key' => 'monitoring_channels', 'permission' => 'monitoring.manage'],

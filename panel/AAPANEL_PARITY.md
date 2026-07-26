@@ -30,12 +30,12 @@
 
 | aaPanel | SM equivalent (today) | Status | Primary gap | Target module(s) | Agent surface (today / needed) | UI path (today / planned) | Wave |
 |---------|----------------------|--------|-------------|------------------|-------------------------------|---------------------------|------|
-| Home | Dashboard `/` | Partial | TOP5, live NIC/Disk IO, security-risk widget, install task box, software pins | Core, Metrics, Monitoring, Security, Softstore | `/v1/system/info` (partial) → process/IO/NIC endpoints | `/` | 5 |
+| Home | Dashboard `/` | Have (Wave 5 core) | richer Pro polish later | Core, Metrics, Monitoring, Security, Softstore | `/v1/system/info` + processes | `/` | 5 |
 | Website | `/websites` hub + Domains/Subdomains/Webserver | Have (Wave 1) | Project types Node/… → Wave 9 | Websites (+ Webserver, Ftp, Databases, Php, Ssl) | `/v1/vhosts` + composer + per-site logs | `/websites`, `/websites/[id]` | 1 |
 | WP Toolkit | Wordpress | Partial | Clone/migrate/staging; themes/plugins bulk; integrity; security tools | Wordpress | `/v1/wordpress` — extend | `/wordpress` | 8 |
 | FTP | Ftp | Partial | Quota, enable/disable, passive/port UI, log analysis | Ftp | `/v1/ftp/accounts` — extend | `/ftp` | 10 |
 | Databases | Databases + Embed | Partial | Root PW mgr, repair/optimize/engine, recycle; MongoDB/Redis | Databases | `/v1/databases*` — extend engines | `/databases`, phpMyAdmin, phpPgAdmin | 10 |
-| Docker | Apps | Partial | Compose, networks, volumes, registry, daemon settings, one-click | Apps + Softstore | `/v1/docker/containers`, `/images` — extend | `/apps` (+ Softstore) | 4 |
+| Docker | Apps | Have (Wave 4 core) | Container terminal → later | Apps + Softstore | `/v1/docker/*` compose/net/vol/registry/daemon | `/apps` | 4 |
 | Monitor | Monitoring + Metrics | Partial | Rich time-series, process manager, abnormal push | Monitoring, Metrics | `/v1/services`, `/v1/logs`, system/info — extend | `/monitoring/*`, `/metrics-alerts` | 5 |
 | Security | Security | Partial | Risk scanner + one-click fix, malware→recycle, vuln scan, hardening | Security | firewall, fail2ban, clamav, sshkeys, waf — extend | `/security/*` + `/security/risks` (planned) | 6 |
 | WAF | Security WAF | Partial | Per-site rules, geo, webshell, deep logs (Pro-class) | Security | `/v1/security/waf` — deepen | `/security/waf` | 6 |
@@ -47,7 +47,7 @@
 | Account | Hosting + Users | Partial | Shared-hosting account UX closer to aaPanel packages | Hosting, Users | hosting provision/usage | `/hosting/*`, `/users` | 10–12 |
 | Terminal | Terminal | Partial | In-container terminal | Terminal, Apps | WS PTY — container attach | `/terminal` (+ apps terminal) | 4–5 |
 | Cron | Cron | Partial | Typed tasks (backup/URL/log-cut), notify, script library | Cron | `/v1/cron` — extend | `/cron` | 10 |
-| App Store | Softstore seeded catalog | Have (Wave 3 core) | Compose one-click → Wave 4 | **Softstore** | install allowlist + status | `/softstore` | 3 |
+| App Store | Softstore seeded catalog | Have (Waves 3–4) | — | **Softstore** | install allowlist + docker compose templates | `/softstore` | 3–4 |
 | Settings | Profile + System + Setup | Partial | Panel port/SSL/bind domain, restart panel/OS, repair | Core, System | system/info — panel control endpoints | `/settings` hub (planned) | 12 |
 | Apache / OLS | Webserver dual-stack | Have (Wave 2; OLS out of scope) | — | Webserver | `/v1/vhosts` Apache + HTTP/3 nginx | `/webserver/vhosts`, `/websites` | 2 |
 | Disk analysis | — | Missing | Analyze / clean disk (Pro-class) | System | new disk-analysis agent | `/system/disk` (planned) | 6 |
@@ -139,13 +139,13 @@
 |------------|----------|-----|------|
 | Containers run/stop/logs/images | Have | — | — |
 | Optional nginx proxy | Have | — | — |
-| Compose stacks + yaml/.env | Missing | Agent compose API | 4 |
-| Networks / volumes / registry | Missing | Agent + UI tabs | 4 |
-| Daemon settings / mirror | Missing | Agent | 4 |
-| One-click apps | Missing | Softstore → Docker | 3–4 |
-| Container terminal | Missing | Attach via WS | 4 |
+| Compose stacks + yaml/.env | **Have** | — | 4 |
+| Networks / volumes / registry | **Have** | — | 4 |
+| Daemon settings / mirror | **Have** (mirrors + log-opts) | full daemon UI later | 4 |
+| One-click apps | **Have** Softstore docker seeds | more templates later | 3–4 |
+| Container terminal | Missing | Attach via WS | later |
 
-**Mapping:** `Apps`, `/v1/docker/*`, `AppsPage.tsx`, `handlers_docker.go`.
+**Mapping:** `Apps`, `/v1/docker/*`, `AppsPage.tsx`, `handlers_docker.go`, `handlers_docker_depth.go`.
 
 ### 2.7 Monitor + Logs
 
@@ -285,7 +285,7 @@ Each wave: Laravel API → Go agent → Next UI → PHPUnit / `go test` → `pan
 | **1** | Website hub | Unified site API/UI; create+FTP/DB; rewrite; traffic/deny; site logs; Composer hook | **Done** |
 | **2** | Webserver dual-stack | **Done** — Apache templates (+ optional HTTP/3 nginx); per-vhost engine | Wave 1 |
 | **3** | Soft Store | **Done** — Catalog, async installer, Home pins, runtime packages | Core queue/worker |
-| **4** | Docker depth | Compose, network, volume, registry, daemon; Softstore one-click | Apps + Wave 3 |
+| **4** | Docker depth | **Done** — Compose, network, volume, registry, daemon; Softstore one-click | Apps + Wave 3 |
 | **5** | Home + Monitor Pro | TOP5, NIC/Disk IO, risk widget, task box, process view, richer series | Metrics/Monitoring/Security |
 | **6** | Security Pro | Risk scanner+fix, deep WAF, tamper, disk analysis, site analytics start | Security + System |
 | **7** | Files advanced | Search, share, recycle, remote-dl, versions | Files |

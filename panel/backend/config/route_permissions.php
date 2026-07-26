@@ -23,6 +23,7 @@ return [
     '/apps' => null,
     '/softstore' => null,
     '/monitoring/services' => 'monitoring.manage',
+    '/monitoring/processes' => 'monitoring.manage',
     '/monitoring/logs' => 'monitoring.manage',
     '/monitoring/uptime' => 'monitoring.manage',
     '/monitoring/channels' => 'monitoring.manage',
