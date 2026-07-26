@@ -56,6 +56,8 @@ return [
         'api/v1/webserver' => 'system.manage',
         'api/v1/softstore' => 'system.manage',
         'api/v1/runtimes' => 'system.manage',
+        'api/v1/panel' => 'system.manage',
+        'api/v1/vhosts' => 'system.manage',
         'api/v1/embeds/phppgadmin' => 'embed.phppgadmin',
         'api/v1/embeds/phpmyadmin' => 'embed.phpmyadmin',
         'api/v1/embeds/webmail' => 'embed.webmail',

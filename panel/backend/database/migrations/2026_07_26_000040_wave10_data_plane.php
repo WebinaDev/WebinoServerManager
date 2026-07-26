@@ -8,45 +8,77 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('ftp_accounts', function (Blueprint $table) {
-            $table->unsignedInteger('quota_mb')->nullable()->after('domain');
-            $table->boolean('enabled')->default(true)->after('quota_mb');
-        });
+        if (Schema::hasTable('ftp_accounts')) {
+            Schema::table('ftp_accounts', function (Blueprint $table) {
+                if (! Schema::hasColumn('ftp_accounts', 'quota_mb')) {
+                    $table->unsignedInteger('quota_mb')->nullable()->after('domain');
+                }
+                if (! Schema::hasColumn('ftp_accounts', 'enabled')) {
+                    $table->boolean('enabled')->default(true)->after('quota_mb');
+                }
+            });
+        }
 
-        Schema::table('hosting_databases', function (Blueprint $table) {
-            $table->softDeletes();
-        });
+        if (Schema::hasTable('hosting_databases') && ! Schema::hasColumn('hosting_databases', 'deleted_at')) {
+            Schema::table('hosting_databases', function (Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
 
-        Schema::table('cron_jobs', function (Blueprint $table) {
-            $table->string('task_type', 32)->default('shell')->after('command');
-            $table->json('task_config')->nullable()->after('task_type');
-            $table->boolean('notify_on_failure')->default(false)->after('task_config');
-        });
+        if (Schema::hasTable('cron_jobs')) {
+            Schema::table('cron_jobs', function (Blueprint $table) {
+                if (! Schema::hasColumn('cron_jobs', 'task_type')) {
+                    $table->string('task_type', 32)->default('shell')->after('command');
+                }
+                if (! Schema::hasColumn('cron_jobs', 'task_config')) {
+                    $table->json('task_config')->nullable()->after('task_type');
+                }
+                if (! Schema::hasColumn('cron_jobs', 'notify_on_failure')) {
+                    $table->boolean('notify_on_failure')->default(false)->after('task_config');
+                }
+            });
+        }
 
-        Schema::create('dns_providers', function (Blueprint $table) {
-            $table->id();
-            $table->string('provider', 32);
-            $table->text('api_token_encrypted')->nullable();
-            $table->string('default_zone_id', 64)->nullable();
-            $table->boolean('enabled')->default(false);
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('dns_providers')) {
+            Schema::create('dns_providers', function (Blueprint $table) {
+                $table->id();
+                $table->string('provider', 32);
+                $table->text('api_token_encrypted')->nullable();
+                $table->string('default_zone_id', 64)->nullable();
+                $table->boolean('enabled')->default(false);
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void
     {
         Schema::dropIfExists('dns_providers');
 
-        Schema::table('cron_jobs', function (Blueprint $table) {
-            $table->dropColumn(['task_type', 'task_config', 'notify_on_failure']);
-        });
+        if (Schema::hasTable('cron_jobs')) {
+            Schema::table('cron_jobs', function (Blueprint $table) {
+                foreach (['notify_on_failure', 'task_config', 'task_type'] as $col) {
+                    if (Schema::hasColumn('cron_jobs', $col)) {
+                        $table->dropColumn($col);
+                    }
+                }
+            });
+        }
 
-        Schema::table('hosting_databases', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-        });
+        if (Schema::hasTable('hosting_databases') && Schema::hasColumn('hosting_databases', 'deleted_at')) {
+            Schema::table('hosting_databases', function (Blueprint $table) {
+                $table->dropSoftDeletes();
+            });
+        }
 
-        Schema::table('ftp_accounts', function (Blueprint $table) {
-            $table->dropColumn(['quota_mb', 'enabled']);
-        });
+        if (Schema::hasTable('ftp_accounts')) {
+            Schema::table('ftp_accounts', function (Blueprint $table) {
+                foreach (['enabled', 'quota_mb'] as $col) {
+                    if (Schema::hasColumn('ftp_accounts', $col)) {
+                        $table->dropColumn($col);
+                    }
+                }
+            });
+        }
     }
 };

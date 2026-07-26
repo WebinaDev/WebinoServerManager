@@ -18,6 +18,7 @@ class OpenApiRouteCatalog
         '/auth/reset-password',
         '/mail/status',
         '/openapi.json',
+        '/files/share/{token}',
     ];
 
     /**
@@ -82,11 +83,15 @@ class OpenApiRouteCatalog
 
     private function apiPath(Route $route): ?string
     {
-        $uri = $route->uri();
-        if (! str_starts_with($uri, 'api/v1')) {
+        $uri = ltrim($route->uri(), '/');
+        // Module routes register as v1/...; some legacy routes as api/v1/...
+        if (str_starts_with($uri, 'api/v1')) {
+            $suffix = substr($uri, strlen('api/v1'));
+        } elseif (str_starts_with($uri, 'v1/') || $uri === 'v1') {
+            $suffix = $uri === 'v1' ? '' : substr($uri, strlen('v1'));
+        } else {
             return null;
         }
-        $suffix = substr($uri, strlen('api/v1'));
         if ($suffix === '' || $suffix === '/') {
             return '/';
         }

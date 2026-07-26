@@ -267,8 +267,12 @@ func handleWordpress(w http.ResponseWriter, r *http.Request) {
 }
 
 func safeGitPath(p string) (string, error) {
+	if strings.Contains(p, "..") {
+		return "", fmt.Errorf("path outside git jail")
+	}
 	clean := filepath.Clean("/" + strings.TrimPrefix(p, "/"))
-	abs := filepath.Join(gitRoot, clean)
+	rel := strings.TrimPrefix(clean, "/")
+	abs := filepath.Join(gitRoot, rel)
 	rootAbs, err := filepath.Abs(gitRoot)
 	if err != nil {
 		return "", err

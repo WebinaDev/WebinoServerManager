@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -21,6 +22,13 @@ var allowedLogSources = map[string]logSource{
 	"auth":         {Kind: "journal", Ref: "ssh"},
 	"php-fpm":      {Kind: "journal", Ref: "php8.2-fpm"},
 	"panel":        {Kind: "journal", Ref: "nginx"},
+	"ftp":          {Kind: "file", Ref: "/var/log/pure-ftpd/transfer.log"},
+}
+
+var logSourceGroups = map[string][]string{
+	"panel": {"nginx-error", "nginx-access", "mail", "auth", "php-fpm", "panel"},
+	"site":  {}, // filled dynamically with vhost-* sources
+	"ftp":   {"ftp"},
 }
 
 func resolveLogSource(source string) (logSource, bool) {
@@ -60,7 +68,19 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 		for k := range allowedLogSources {
 			names = append(names, k)
 		}
-		data, _ := json.Marshal(map[string]any{"sources": names})
+		for _, s := range listVhostLogSources() {
+			names = append(names, s)
+		}
+		groups := map[string][]string{
+			"panel": append([]string{}, logSourceGroups["panel"]...),
+			"site":  listVhostLogSources(),
+			"ftp":   append([]string{}, logSourceGroups["ftp"]...),
+		}
+		// Fallback ftp log path when pure-ftpd log missing
+		if _, err := os.Stat("/var/log/pure-ftpd/transfer.log"); err != nil {
+			groups["ftp"] = []string{"auth"}
+		}
+		data, _ := json.Marshal(map[string]any{"sources": names, "groups": groups})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 		return
 	}
@@ -97,4 +117,22 @@ func tailLogSource(src logSource, lines int) (string, error) {
 func isAllowedLogSource(name string) bool {
 	_, ok := resolveLogSource(name)
 	return ok
+}
+
+func listVhostLogSources() []string {
+	sitesDir := envOr("WEBINO_NGINX_SITES", "/etc/nginx/sites-available")
+	entries, err := os.ReadDir(sitesDir)
+	if err != nil {
+		return nil
+	}
+	out := []string{}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := strings.TrimSuffix(e.Name(), ".conf")
+		safe := strings.ReplaceAll(name, ".", "_")
+		out = append(out, "vhost-access:"+safe, "vhost-error:"+safe)
+	}
+	return out
 }

@@ -4,8 +4,10 @@ namespace Modules\Files\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\Agent\AgentClient;
+use App\Services\Security\OutboundUrlGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 class FilesController extends Controller
 {
@@ -174,8 +176,10 @@ class FilesController extends Controller
             'url' => ['required', 'url', 'max:2048'],
         ]);
 
-        if (! str_starts_with($data['url'], 'http://') && ! str_starts_with($data['url'], 'https://')) {
-            return response()->json(['message' => 'url must be http(s)'], 422);
+        try {
+            OutboundUrlGuard::assertSafeHttpUrl($data['url']);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
 
         $result = $this->agent->post('/v1/files', [

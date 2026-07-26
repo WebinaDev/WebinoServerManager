@@ -359,8 +359,12 @@ func handleCron(w http.ResponseWriter, r *http.Request) {
 }
 
 func safeFilePath(p string) (string, error) {
+	if strings.Contains(p, "..") {
+		return "", fmt.Errorf("path outside jail")
+	}
 	clean := filepath.Clean("/" + strings.TrimPrefix(p, "/"))
-	abs := filepath.Join(filesRoot, clean)
+	rel := strings.TrimPrefix(clean, "/")
+	abs := filepath.Join(filesRoot, rel)
 
 	rootReal, err := resolveJailRoot(filesRoot)
 	if err != nil {

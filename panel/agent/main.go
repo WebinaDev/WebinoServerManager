@@ -72,6 +72,8 @@ func main() {
 	mux.HandleFunc("/v1/ftp/accounts", handleFtpAccounts)
 	mux.HandleFunc("/v1/ftp/service", handleFtpService)
 	mux.HandleFunc("/v1/php/pools", handlePhpPools)
+	mux.HandleFunc("/v1/php/ini", handlePhpIni)
+	mux.HandleFunc("/v1/php/extensions", handlePhpExtensions)
 	mux.HandleFunc("/v1/mail/accounts", handleMailAccounts)
 	mux.HandleFunc("/v1/mail/forwarders", handleMailForwarders)
 	mux.HandleFunc("/v1/mail/domains", handleMailDomains)
