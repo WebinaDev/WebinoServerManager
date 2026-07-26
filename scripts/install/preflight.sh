@@ -67,21 +67,21 @@ preflight_check_docker() {
   if ! have docker; then
     preflight_add_issue \
       "Docker is required but not installed" \
-      "curl -fsSL https://get.docker.com | sh && systemctl enable --now docker"
+      "apt-get install -y docker.io docker-compose-v2 && systemctl enable --now docker  (or re-run ./install.sh — installer prefers distro packages; WEBINO_DOCKER_CE=1 for get.docker.com)"
     return
   fi
 
   if ! webina_compose_available; then
     preflight_add_issue \
       "Docker Compose is required but not installed" \
-      "apt install -y docker-compose-plugin   or   curl -fsSL https://get.docker.com | sh"
+      "apt-get install -y docker-compose-v2   or   install Compose v2 plugin binary (see docs/TROUBLESHOOTING.md)"
     return
   fi
 
   if ! webina_compose_verify; then
     preflight_add_issue \
       "Docker Compose is installed but not working" \
-      "apt install -y docker-compose-plugin   or   curl -fsSL https://get.docker.com | sh"
+      "apt-get install -y docker-compose-v2   or   see docs/TROUBLESHOOTING.md Compose binary fallback"
     return
   fi
 

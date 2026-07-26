@@ -64,8 +64,9 @@ webina_compose() {
   else
     webina_compose_diagnose
     die "Docker Compose is not installed.
-  Fix: apt install -y docker-compose-plugin
-  Fix: curl -fsSL https://get.docker.com | sh && systemctl enable --now docker"
+  Fix: apt-get install -y docker.io docker-compose-v2 && systemctl enable --now docker
+  Fix (Compose binary): mkdir -p /usr/local/lib/docker/cli-plugins && curl -fSL https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-\$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+  Optional Docker CE: WEBINO_DOCKER_CE=1 ./install.sh --server --yes"
   fi
 }
 

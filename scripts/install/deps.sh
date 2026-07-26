@@ -2,9 +2,19 @@
 # System dependency detection and optional auto-install for server bootstrap.
 
 WEBINO_INSTALL_DOCKER="${WEBINO_INSTALL_DOCKER:-}"
+WEBINO_DOCKER_CE="${WEBINO_DOCKER_CE:-0}"
 WEBINO_SKIP_DEPS="${WEBINO_SKIP_DEPS:-0}"
 WEBINO_COMPOSE_VERSION="${WEBINO_COMPOSE_VERSION:-v2.32.4}"
 _DEPS_APT_UPDATED=0
+
+# Shared fix text for Docker/Compose install failures (avoid pointing only at get.docker.com).
+deps_docker_fix_hint() {
+  cat <<'EOF'
+  Fix: apt-get install -y docker.io docker-compose-v2 && systemctl enable --now docker
+  Fix (Compose binary): see docs/TROUBLESHOOTING.md — GitHub docker-compose plugin
+  Optional Docker CE (needs download.docker.com): WEBINO_DOCKER_CE=1 ./install.sh --server --yes
+EOF
+}
 
 deps_pkg_manager() {
   if have apt-get; then echo apt
@@ -17,8 +27,94 @@ deps_pkg_manager() {
 
 deps_apt_update_once() {
   [[ "$_DEPS_APT_UPDATED" == "1" ]] && return 0
-  apt-get update -qq
+  if ! apt-get update -qq; then
+    warn "apt-get update failed — will retry after cleaning broken Docker apt sources if needed"
+    return 1
+  fi
   _DEPS_APT_UPDATED=1
+  return 0
+}
+
+# Disable leftover Docker Inc. apt lists that 403 on many networks (e.g. download.docker.com).
+deps_cleanup_broken_docker_apt() {
+  local pm f changed=0
+  pm=$(deps_pkg_manager)
+  [[ "$pm" == apt ]] || return 0
+
+  shopt -s nullglob
+  for f in /etc/apt/sources.list.d/*docker* /etc/apt/sources.list.d/*Docker*; do
+    [[ -f "$f" ]] || continue
+    if grep -qE 'download\.docker\.com|download\.docker\.com/linux' "$f" 2>/dev/null; then
+      log "Disabling broken Docker apt source: $f"
+      mv -f "$f" "${f}.webina-disabled" 2>/dev/null || rm -f "$f"
+      changed=1
+    fi
+  done
+  shopt -u nullglob
+
+  if [[ "$changed" == "1" ]]; then
+    _DEPS_APT_UPDATED=0
+    apt-get update -qq || warn "apt-get update still failing after Docker apt cleanup"
+    _DEPS_APT_UPDATED=1
+  fi
+}
+
+deps_install_docker_via_distro() {
+  [[ "$WEBINO_SKIP_DEPS" == "1" ]] && return 1
+  local pm
+  pm=$(deps_pkg_manager)
+
+  log "Installing Docker from distro packages (docker.io)..."
+  case "$pm" in
+    apt)
+      deps_cleanup_broken_docker_apt
+      _DEPS_APT_UPDATED=0
+      deps_apt_update_once || {
+        deps_cleanup_broken_docker_apt
+        _DEPS_APT_UPDATED=0
+        deps_apt_update_once || return 1
+      }
+      if ! apt-get install -y docker.io; then
+        warn "apt install docker.io failed"
+        return 1
+      fi
+      ;;
+    dnf|yum)
+      if ! deps_install_pkg docker; then
+        deps_install_pkg docker-ce || return 1
+      fi
+      ;;
+    pacman)
+      deps_install_pkg docker || return 1
+      ;;
+    *)
+      warn "Unknown package manager — cannot install Docker via distro packages"
+      return 1
+      ;;
+  esac
+
+  have docker || return 1
+  deps_start_docker
+  return 0
+}
+
+deps_install_docker_via_getdocker() {
+  [[ "$WEBINO_SKIP_DEPS" == "1" ]] && return 1
+  have curl || return 1
+
+  log "Installing Docker CE via get.docker.com..."
+  if ! curl -fsSL https://get.docker.com | sh; then
+    warn "get.docker.com install failed (often 403 on download.docker.com)"
+    deps_cleanup_broken_docker_apt
+    return 1
+  fi
+  if ! have docker; then
+    warn "get.docker.com finished but docker binary still missing"
+    deps_cleanup_broken_docker_apt
+    return 1
+  fi
+  deps_start_docker
+  return 0
 }
 
 deps_install_pkg() {
@@ -126,8 +222,13 @@ deps_install_compose_via_apt() {
   [[ "$pm" == apt ]] || return 1
   [[ "$WEBINO_SKIP_DEPS" == "1" ]] && return 1
 
-  deps_apt_update_once
-  local -a pkgs=(docker-compose-plugin docker-compose-v2 docker-compose)
+  deps_apt_update_once || {
+    deps_cleanup_broken_docker_apt
+    _DEPS_APT_UPDATED=0
+    deps_apt_update_once || return 1
+  }
+  # Prefer distro compose (docker-compose-v2) over Docker Inc. plugin (needs download.docker.com).
+  local -a pkgs=(docker-compose-v2 docker-compose-plugin docker-compose)
   local pkg
   for pkg in "${pkgs[@]}"; do
     log "Trying apt package: ${pkg}..."
@@ -166,6 +267,9 @@ deps_install_compose() {
   pm=$(deps_pkg_manager)
   case "$pm" in
     apt)
+      # Prefer Ubuntu/Debian compose packages (docker-compose-v2) before Docker Inc. plugin.
+      deps_cleanup_broken_docker_apt
+      _DEPS_APT_UPDATED=0
       deps_install_compose_via_apt || true
       ;;
     dnf|yum)
@@ -183,7 +287,8 @@ deps_install_compose() {
     deps_install_compose_plugin_binary || true
   fi
 
-  if ! webina_compose_verify; then
+  # Last resort only when CE is explicitly requested (download.docker.com often 403).
+  if ! webina_compose_verify && [[ "${WEBINO_DOCKER_CE:-0}" == "1" ]]; then
     deps_install_compose_via_getdocker || true
   fi
 
@@ -196,13 +301,24 @@ deps_install_compose() {
 
 deps_install_docker() {
   local install_docker="${WEBINO_INSTALL_DOCKER:-1}"
+  local prefer_ce="${WEBINO_DOCKER_CE:-0}"
 
   if ! have docker; then
-    if [[ "$install_docker" == "1" ]]; then
-      log "Installing Docker via get.docker.com..."
-      curl -fsSL https://get.docker.com | sh
+    if [[ "$install_docker" == "0" ]]; then
+      warn "WEBINO_INSTALL_DOCKER=0 — skipping Docker auto-install"
+      have docker || return 1
+    elif [[ "$prefer_ce" == "1" ]]; then
+      deps_install_docker_via_getdocker || deps_install_docker_via_distro || true
     else
-      deps_install_pkg docker.io || deps_install_pkg docker-ce || true
+      # Default: distro packages first (works when download.docker.com is blocked).
+      if ! deps_install_docker_via_distro; then
+        warn "Distro Docker install failed — trying get.docker.com as fallback..."
+        deps_install_docker_via_getdocker || true
+        if ! have docker; then
+          deps_cleanup_broken_docker_apt
+          deps_install_docker_via_distro || true
+        fi
+      fi
     fi
     deps_start_docker
   fi
@@ -254,8 +370,7 @@ ensure_system_deps() {
   if ! deps_install_docker; then
     webina_compose_diagnose
     die "Docker + Compose are required but not installed.
-  Fix: apt install -y docker-compose-plugin
-  Fix: curl -fsSL https://get.docker.com | sh && systemctl enable --now docker"
+$(deps_docker_fix_hint)"
   fi
 
   deps_ensure_docker_running || die "Docker daemon is not running.
@@ -264,8 +379,7 @@ ensure_system_deps() {
   webina_compose_verify || {
     webina_compose_diagnose
     die "Docker Compose is not working.
-  Fix: apt install -y docker-compose-plugin
-  Fix: curl -fsSL https://get.docker.com | sh && systemctl enable --now docker"
+$(deps_docker_fix_hint)"
   }
 
   deps_warn_docker_group

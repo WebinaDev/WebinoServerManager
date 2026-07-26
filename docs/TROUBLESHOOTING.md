@@ -7,10 +7,11 @@ English reference for common errors during bootstrap, platform setup, site manag
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `PHP 8.3+ is required for local mode` | Old installer used local headless on curl pipe | Pull latest code; bootstrap uses `--server --yes` then opens control panel |
-| `Docker is required but not installed` | Docker auto-install failed | `curl -fsSL https://get.docker.com \| sh && systemctl enable --now docker` then re-run bootstrap |
-| `unknown shorthand flag: 'f' in -f` | Docker installed without Compose v2 plugin | Installer auto-installs `docker-compose-plugin`; manual: `apt install -y docker-compose-plugin` or re-run `./install.sh --panel` |
-| `Docker Compose is not working` | `docker.io` without compose plugin | `apt install -y docker-compose-plugin` or `curl -fsSL https://get.docker.com \| sh` |
-| `Docker Compose command check failed` | Broken `docker-compose` v1 shim on PATH, or plugin missing on pre-installed `docker.io` | Installer tries apt (`docker-compose-plugin`, `docker-compose-v2`), then GitHub plugin binary, then `get.docker.com`. Manual diagnose: `docker compose version`; `docker-compose version`; `ls /usr/local/lib/docker/cli-plugins/`. Binary fallback: `mkdir -p /usr/local/lib/docker/cli-plugins && curl -fSL https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose` |
+| `Docker is required but not installed` | Docker auto-install failed (or old installer only used `get.docker.com`) | Installer prefers **distro** packages: `apt-get install -y docker.io docker-compose-v2 && systemctl enable --now docker` then re-run bootstrap. If `download.docker.com` returns **403**, do **not** use `get.docker.com` — that path is blocked. Optional CE only when reachable: `WEBINO_DOCKER_CE=1 ./install.sh --server --yes` |
+| `403 Forbidden` / `InRelease` on `download.docker.com` | Docker Inc. apt repo blocked (common on restricted networks) | Latest installer falls back to `docker.io`. Manual: disable broken lists under `/etc/apt/sources.list.d/*docker*` then `apt-get update && apt-get install -y docker.io docker-compose-v2` |
+| `unknown shorthand flag: 'f' in -f` | Docker installed without Compose v2 plugin | Installer auto-installs `docker-compose-v2` / plugin / GitHub binary; manual: `apt-get install -y docker-compose-v2` or re-run `./install.sh --panel` |
+| `Docker Compose is not working` | `docker.io` without compose v2 | `apt-get install -y docker-compose-v2` (preferred) or GitHub Compose plugin binary (see row below) |
+| `Docker Compose command check failed` | Broken `docker-compose` v1 shim on PATH, or plugin missing on pre-installed `docker.io` | Installer tries apt (`docker-compose-v2`, `docker-compose-plugin`), then GitHub plugin binary (`WEBINO_COMPOSE_VERSION`). Manual diagnose: `docker compose version`; `docker-compose version`; `ls /usr/local/lib/docker/cli-plugins/`. Binary fallback: `mkdir -p /usr/local/lib/docker/cli-plugins && curl -fSL https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose` |
 | `Preflight checks failed` | Missing deps after auto-install | Read `Fix:` lines printed below each issue |
 | `git is required` / git install failed | Minimal OS, no package manager | `apt install -y git` (Debian/Ubuntu) |
 | `Target path exists but is not a git repo` | `./WebinoServerManager` exists as file/folder | `rm -rf WebinoServerManager` or `WEBINO_INSTALL_DIR=/opt/webinoserver curl ... \| bash` |
@@ -259,7 +260,8 @@ If the wizard does not appear, run `webina` over SSH — it detects first run an
 | `WEBINO_REPO` | derived | Git clone URL |
 | `WEBINO_BOOTSTRAP_URL` | derived | Raw bootstrap.sh URL |
 | `WEBINO_BOOTSTRAP_MODE` | — | Set to `full` for platform + panel (same as `--full` flag) |
-| `WEBINO_INSTALL_DOCKER=0` | — | Disable Docker auto-install (default: auto-install ON) |
+| `WEBINO_INSTALL_DOCKER=0` | — | Disable Docker auto-install (check only; default: auto-install ON via distro packages) |
+| `WEBINO_DOCKER_CE=1` | — | Prefer Docker CE via `get.docker.com` (needs reachable `download.docker.com`; default is distro `docker.io` first) |
 | `WEBINO_SKIP_DEPS=1` | — | Skip apt package installs (check only) |
 | `WEBINO_SKIP_UPDATE=1` | — | Skip sync on existing install (use as-is; no hard reset) |
 | `WEBINO_FORCE_REBUILD=1` | — | Force rebuild platform Docker images on init |
@@ -328,13 +330,27 @@ WEBINO_SKIP_UPDATE=1 bash <(curl -fsSL https://raw.githubusercontent.com/WebinaD
 If the one-liner fails completely:
 
 ```bash
-curl -fsSL https://get.docker.com | sh
+# Prefer distro packages (works when download.docker.com returns 403):
+apt-get update
+apt-get install -y docker.io docker-compose-v2
 systemctl enable --now docker
+
+# If a failed get.docker.com left a broken apt source:
+#   ls /etc/apt/sources.list.d/*docker*
+#   mv /etc/apt/sources.list.d/docker*.list /etc/apt/sources.list.d/docker.list.webina-disabled
+#   apt-get update
+
 git clone https://github.com/WebinaDev/WebinoServerManager.git
 cd WebinoServerManager
 ./install.sh --server --yes
 # Control panel opens automatically; if not:
 webina
+```
+
+Optional Docker CE only when `download.docker.com` is reachable:
+
+```bash
+WEBINO_DOCKER_CE=1 ./install.sh --server --yes
 ```
 
 All site creation and management should be done inside the control panel — not via separate shell commands.

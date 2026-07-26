@@ -25,12 +25,12 @@ bash <(curl -fsSL https://raw.githubusercontent.com/WebinaDev/WebinoServerManage
 What happens with `--full`:
 
 1. Downloads **WebinoServerManager** (this repo) — not a product
-2. Installs Docker, python3, gettext, dialog (if missing)
+2. Installs Docker + Compose (prefers distro `docker.io` / `docker-compose-v2`; falls back if needed), python3, gettext, dialog (if missing)
 3. Initializes platform stack (Caddy + Redis + shared network)
 4. Registers the `webina` CLI
 5. Starts the **web panel** at `http://<server-ip>:2090`
 
-If Docker Hub is blocked in your region, panel/platform image pulls auto-configure `mirror.gcr.io` on failure (see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#docker-hub--image-pull)).
+If **`download.docker.com` is blocked** (403 on Docker CE apt), the installer uses Ubuntu/Debian `docker.io` instead of `get.docker.com`. If **Docker Hub image pulls** are blocked, panel/platform pulls auto-configure `mirror.gcr.io` on failure (see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#docker-hub--image-pull)).
 
 ## Install modes
 
