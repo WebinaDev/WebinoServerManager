@@ -1,12 +1,17 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+COPY frontend/package.json frontend/package-lock.json ./
+COPY packages/webina-ui /packages/webina-ui
+# Materialize file: dep inside node_modules so webpack resolves peers (recharts) from /app
+RUN npm ci \
+  && rm -rf node_modules/@webina/ui \
+  && mkdir -p node_modules/@webina \
+  && cp -a /packages/webina-ui node_modules/@webina/ui
 
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY frontend/ ./
 ARG API_PROXY_TARGET=http://panel-api:8080
 ARG AGENT_WS_TARGET=http://panel-agent:9091
 ARG PHPMYADMIN_PROXY_TARGET=http://panel-phpmyadmin:80

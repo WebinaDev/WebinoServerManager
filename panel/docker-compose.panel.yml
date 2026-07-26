@@ -79,8 +79,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: ../docker/next/Dockerfile
+      context: .
+      dockerfile: docker/next/Dockerfile
       args:
         API_PROXY_TARGET: http://backend:8080
         AGENT_WS_TARGET: http://agent:9091
