@@ -27,5 +27,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::patch('/dns/providers/alidns', [DnsProviderController::class, 'updateAlidns']);
         Route::post('/dns/providers/cloudflare/sync', [DnsProviderController::class, 'syncSiteRecords']);
         Route::post('/dns/providers/cloudflare/dns01', [DnsProviderController::class, 'dns01Challenge']);
+        Route::post('/dns/providers/alidns/sync', [DnsProviderController::class, 'syncAlidnsSiteRecords']);
+        Route::post('/dns/providers/alidns/dns01', [DnsProviderController::class, 'dns01AlidnsChallenge']);
     });
 });

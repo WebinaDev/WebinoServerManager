@@ -43,4 +43,4 @@ Optional Soft Store seeds (`category=runtime`): `node-nvm`, `python-distro` — 
 
 ## Java
 
-Not implemented in Wave 9 — parity matrix marks Java as **Partial** (Node + Python + Go covered).
+**Have** — Softstore package `java-distro` (`install_java_distro` → OpenJDK 17), agent status probe, and project start via `java` / `java -jar` in `runtimeBuildArgv`. Create projects with runtime `java` from `/runtimes`.

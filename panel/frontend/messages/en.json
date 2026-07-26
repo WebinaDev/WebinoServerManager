@@ -269,6 +269,8 @@
     "root_password_save": "Set root password",
     "root_password_title": "MySQL root password",
     "root_password_updated": "Root password updated",
+    "refresh_size": "Refresh size",
+    "size_refreshed": "Database size updated",
     "search": "Search databases…",
     "search_users": "Search database users…",
     "storage_engine": "Storage engine",
@@ -280,12 +282,17 @@
     "add_record": "Add record",
     "add_slave_zone": "Add slave zone",
     "add_zone": "Add zone",
-    "alidns_desc": "Access key for AliDNS record management.",
+    "alidns_desc": "AccessKeyId:AccessKeySecret for Aliyun DNS (AliDNS) record management.",
     "alidns_enabled": "Enabled",
     "alidns_save": "Save AliDNS",
     "alidns_title": "AliDNS provider",
-    "alidns_token": "Access key secret",
+    "alidns_token": "AccessKeyId:AccessKeySecret",
     "alidns_zone_id": "Default domain / zone",
+    "alidns_sync": "Sync zone to AliDNS",
+    "alidns_sync_hint": "Pushes the selected zone records to Aliyun DNS using the configured access key.",
+    "alidns_sync_ok": "AliDNS sync completed",
+    "alidns_dns01_submit": "Create AliDNS DNS-01 TXT",
+    "alidns_dns01_ok": "AliDNS DNS-01 record created",
     "apply_template": "Apply template",
     "cloudflare_desc": "API token for DNS-01 and syncing site records.",
     "cloudflare_enabled": "Enabled",
@@ -974,7 +981,7 @@
     "subtitle": "Seeded runtime and tool packages. Installs run asynchronously on the panel worker.",
     "title": "Soft Store",
     "unpin": "Unpin",
-    "website_for_cms": "Website (required for CMS stub)",
+    "website_for_cms": "Website (required for WordPress CMS)",
     "website_none": "None"
   },
   "ssl": {
@@ -1049,7 +1056,8 @@
     "memory": "Memory",
     "os": "Operating system",
     "title": "System Information",
-    "uptime": "Uptime (seconds)"
+    "uptime": "Uptime (seconds)",
+    "platform_status_title": "Platform status"
   },
   "terminal": {
     "connected": "Connected",

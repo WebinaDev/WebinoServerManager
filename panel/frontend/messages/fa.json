@@ -269,6 +269,8 @@
     "root_password_save": "تنظیم رمز root",
     "root_password_title": "رمز root MySQL",
     "root_password_updated": "رمز root به‌روز شد",
+    "refresh_size": "بروزرسانی اندازه",
+    "size_refreshed": "اندازه پایگاه‌داده به‌روز شد",
     "search": "جستجوی پایگاه‌داده‌ها…",
     "search_users": "جستجوی کاربران…",
     "storage_engine": "موتور ذخیره‌سازی",
@@ -280,12 +282,17 @@
     "add_record": "افزودن رکورد",
     "add_slave_zone": "افزودن زون slave",
     "add_zone": "افزودن زون",
-    "alidns_desc": "کلید دسترسی برای مدیریت رکوردهای AliDNS.",
+    "alidns_desc": "AccessKeyId:AccessKeySecret برای مدیریت رکوردهای Aliyun DNS (AliDNS).",
     "alidns_enabled": "فعال",
     "alidns_save": "ذخیره AliDNS",
     "alidns_title": "ارائه‌دهنده AliDNS",
-    "alidns_token": "رمز کلید دسترسی",
+    "alidns_token": "AccessKeyId:AccessKeySecret",
     "alidns_zone_id": "دامنه / زون پیش‌فرض",
+    "alidns_sync": "همگام‌سازی زون با AliDNS",
+    "alidns_sync_hint": "رکوردهای زون انتخاب‌شده را با کلید دسترسی پیکربندی‌شده به Aliyun DNS می‌فرستد.",
+    "alidns_sync_ok": "همگام‌سازی AliDNS انجام شد",
+    "alidns_dns01_submit": "ایجاد TXT برای DNS-01 در AliDNS",
+    "alidns_dns01_ok": "رکورد DNS-01 در AliDNS ایجاد شد",
     "apply_template": "اعمال قالب",
     "cloudflare_desc": "توکن API برای DNS-01 و همگام‌سازی رکوردهای سایت.",
     "cloudflare_enabled": "فعال",
@@ -974,7 +981,7 @@
     "subtitle": "بسته‌های runtime و ابزار seeded. نصب به‌صورت async روی worker پنل اجرا می‌شود.",
     "title": "Soft Store",
     "unpin": "برداشتن پین",
-    "website_for_cms": "وب‌سایت (برای CMS stub لازم است)",
+    "website_for_cms": "وب‌سایت (برای WordPress CMS لازم است)",
     "website_none": "هیچ‌کدام"
   },
   "ssl": {
@@ -1049,7 +1056,8 @@
     "memory": "حافظه",
     "os": "سیستم‌عامل",
     "title": "اطلاعات سیستم",
-    "uptime": "آپتایم (ثانیه)"
+    "uptime": "آپتایم (ثانیه)",
+    "platform_status_title": "وضعیت پلتفرم"
   },
   "terminal": {
     "connected": "متصل",

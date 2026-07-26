@@ -68,10 +68,10 @@ export default function SecurityTamperPage() {
           </p>
           <RequireRouteWrite>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" disabled={baseline.isPending} onClick={() => baseline.mutate()}>
+              <Button size="sm" variant="outline" disabled={baseline.isPending} onClick={() => baseline.mutate(undefined)}>
                 {t("tamper_create_baseline")}
               </Button>
-              <Button size="sm" disabled={scan.isPending} onClick={() => scan.mutate()}>
+              <Button size="sm" disabled={scan.isPending} onClick={() => scan.mutate(undefined)}>
                 {t("tamper_scan")}
               </Button>
             </div>
@@ -91,7 +91,7 @@ export default function SecurityTamperPage() {
                 onChange={(e) => setPath(e.target.value)}
                 placeholder="/var/www/..."
               />
-              <Button size="sm" disabled={!path || add.isPending} onClick={() => add.mutate()}>
+              <Button size="sm" disabled={!path || add.isPending} onClick={() => add.mutate(undefined)}>
                 {t("tamper_add_watch")}
               </Button>
             </div>

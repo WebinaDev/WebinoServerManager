@@ -80,6 +80,12 @@ export default function SystemInfoPage() {
     refetchInterval: 60_000,
   })
 
+  const { data: platformData, isLoading: platformLoading } = useQuery({
+    queryKey: ["platform-status"],
+    queryFn: () => api<Record<string, unknown>>("/api/v1/platform/status"),
+    refetchInterval: 60_000,
+  })
+
   const info = data?.info ?? {}
   const cpuHistory = (history?.samples ?? []).map((s) => s.cpu_percent)
 
@@ -141,6 +147,20 @@ export default function SystemInfoPage() {
                 </div>
               </div>
             </>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("platform_status_title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {platformLoading ? (
+            <p>{tCommon("loading")}</p>
+          ) : (
+            <pre className="overflow-auto rounded-md border p-3 text-xs" dir="ltr">
+              {JSON.stringify(platformData ?? {}, null, 2)}
+            </pre>
           )}
         </CardContent>
       </Card>

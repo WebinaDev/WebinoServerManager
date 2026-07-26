@@ -196,6 +196,72 @@ class DnsProviderController extends Controller
         ]);
     }
 
+    public function syncAlidnsSiteRecords(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'domain' => ['required', 'string', 'max:253'],
+            'zone_id' => ['nullable', 'string', 'max:64'],
+            'records' => ['required', 'array', 'min:1'],
+            'records.*.type' => ['required', 'string', 'max:16'],
+            'records.*.name' => ['required', 'string', 'max:253'],
+            'records.*.content' => ['required', 'string', 'max:512'],
+            'records.*.proxied' => ['boolean'],
+        ]);
+
+        $provider = DnsProvider::query()->where('provider', 'alidns')->where('enabled', true)->first();
+        if ($provider === null || ! $provider->has_token) {
+            return response()->json(['message' => __('dns.provider_not_configured')], 422);
+        }
+
+        $token = decrypt($provider->getAttributes()['api_token_encrypted']);
+
+        $result = $this->agent->post('/v1/dns/providers/alidns', [
+            'action' => 'sync_records',
+            'domain' => strtolower($data['domain']),
+            'zone_id' => $data['zone_id'] ?? $provider->default_zone_id,
+            'api_token' => $token,
+            'records' => $data['records'],
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('dns.sync_failed')], 422);
+        }
+
+        return response()->json(['message' => __('dns.sync_started'), 'agent' => $this->decode($result)]);
+    }
+
+    public function dns01AlidnsChallenge(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'domain' => ['required', 'string', 'max:253'],
+            'record_name' => ['required', 'string', 'max:253'],
+            'record_value' => ['required', 'string', 'max:512'],
+            'zone_id' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $provider = DnsProvider::query()->where('provider', 'alidns')->where('enabled', true)->first();
+        if ($provider === null || ! $provider->has_token) {
+            return response()->json(['message' => __('dns.provider_not_configured')], 422);
+        }
+
+        $token = decrypt($provider->getAttributes()['api_token_encrypted']);
+
+        $result = $this->agent->post('/v1/dns/providers/alidns', [
+            'action' => 'dns01',
+            'domain' => strtolower($data['domain']),
+            'zone_id' => $data['zone_id'] ?? $provider->default_zone_id,
+            'api_token' => $token,
+            'record_name' => $data['record_name'],
+            'record_value' => $data['record_value'],
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('dns.dns01_failed')], 422);
+        }
+
+        return response()->json(['message' => __('dns.dns01_created'), 'agent' => $this->decode($result)]);
+    }
+
     /**
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>

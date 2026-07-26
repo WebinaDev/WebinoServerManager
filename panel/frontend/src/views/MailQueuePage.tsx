@@ -146,7 +146,7 @@ export default function MailQueuePage() {
             disabled={flush.isPending}
             onClick={() => {
               if (window.confirm(t("queue_flush_confirm"))) {
-                flush.mutate()
+                flush.mutate(undefined)
               }
             }}
           >

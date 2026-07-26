@@ -321,7 +321,7 @@ export default function WebsiteDetailPage() {
               )
             })()}
             <RequireRouteWrite>
-              <Button disabled={save.isPending} onClick={() => save.mutate()}>
+              <Button disabled={save.isPending} onClick={() => save.mutate(undefined)}>
                 {t("save")}
               </Button>
             </RequireRouteWrite>
@@ -351,7 +351,7 @@ export default function WebsiteDetailPage() {
             <RequireRouteWrite>
               <Button
                 disabled={!htUser || !htPass || htpasswd.isPending}
-                onClick={() => htpasswd.mutate()}
+                onClick={() => htpasswd.mutate(undefined)}
               >
                 {t("set_htpasswd")}
               </Button>
@@ -383,7 +383,7 @@ export default function WebsiteDetailPage() {
               </Button>
               <Button
                 size="sm"
-                onClick={() => loadLogs.mutate()}
+                onClick={() => loadLogs.mutate(undefined)}
                 disabled={loadLogs.isPending}
               >
                 {t("load_logs")}

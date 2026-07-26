@@ -647,7 +647,7 @@ export default function HostingAccountsPage() {
               </div>
             </div>
             <Button
-              onClick={() => create.mutate()}
+              onClick={() => create.mutate(undefined)}
               disabled={create.isPending || !username || !planId}
             >
               {t("create_account")}

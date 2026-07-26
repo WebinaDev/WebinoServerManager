@@ -79,7 +79,7 @@ class SetupController extends Controller
                 PanelSetting::set('smtp_port', $data['smtp_port'] ?? 587);
                 PanelSetting::set('smtp_username', $data['smtp_username'] ?? '');
                 if (! empty($data['smtp_password'])) {
-                    PanelSetting::set('smtp_password', $data['smtp_password']);
+                    PanelSetting::setEncrypted('smtp_password', $data['smtp_password']);
                 }
                 PanelSetting::set('smtp_encryption', $data['smtp_encryption'] ?? 'tls');
                 if (! empty($data['smtp_from_address'])) {

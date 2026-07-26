@@ -9,7 +9,15 @@ Seeded catalog of allowlisted host packages (not aaPanel commercial downloads). 
 | `redis` | runtime | `install_redis` |
 | `memcached` | runtime | `install_memcached` |
 | `composer` | tool | `ensure_composer` |
-| `cms-stub` | cms | `cms_composer_stub` (requires `website_id` → `composer install` in docroot) |
+| `wordpress-cms` | cms | `install_wordpress_cms` (requires `website_id` → docroot) |
+| `docker-redis` | docker | `compose_up_redis` |
+| `docker-nginx` | docker | `compose_up_nginx` |
+| `node-nvm` | runtime | `install_node_nvm` |
+| `python-distro` | runtime | `install_python_distro` |
+| `go-distro` | runtime | `install_go_distro` |
+| `java-distro` | runtime | `install_java_distro` |
+
+Catalog rows are seeded on migrate and re-seeded idempotently from `SoftstoreServiceProvider::boot()`.
 
 ## Tables
 

@@ -229,7 +229,7 @@ Mandatory capability parity vs aaPanel Free+Pro-class (scope **C**) is documente
 | Phase D polish (logs groups, Mongo/Redis, AliDNS, container terminal, Java, WAF geo) | **Have** |
 | Reseller hierarchy, AI assistant, load-balance, aaPanel branding, OpenLiteSpeed | **N/A** |
 
-Compared to cPanel/Plesk-class panels, intentional deferrals remain: external helpdesk for Support, deep per-site analytics productization, full Aliyun DNS API (AliDNS MVP stub), and multi-node orchestration until Softstore is stable.
+Compared to cPanel/Plesk-class panels, intentional deferrals remain: external helpdesk for Support (internal tickets only), deep per-site analytics productization, and multi-node orchestration.
 
 ### Tech debt (resolved in Phase 21)
 
@@ -567,9 +567,9 @@ flowchart LR
 - Optional nginx proxy vhost on create; `HostingQuota` `apps` resource; `apps.manage` permission
 - Frontend: `AppsPage` — containers, create form, logs sheet, images card; nav + i18n
 
-**Note:** Softstore + Docker Compose depth **Have** Waves 3–4; Runtimes module **Have** Wave 9 (Node/Python/Go projects; Java Partial).
+**Note:** Softstore + Docker Compose depth **Have** Waves 3–4; Runtimes module **Have** Wave 9 + Phase D (Node/Python/Go/Java).
 
-**Key files:** `agent/handlers_docker.go`, `Modules/Apps/`, `frontend/src/pages/AppsPage.tsx`
+**Key files:** `agent/handlers_docker.go`, `Modules/Apps/`, `frontend/src/views/AppsPage.tsx`
 
 ---
 

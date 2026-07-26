@@ -90,7 +90,7 @@ export default function VhostEditorPage() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
-          <Button type="button" disabled={save.isPending} onClick={() => save.mutate()}>
+          <Button type="button" disabled={save.isPending} onClick={() => save.mutate(undefined)}>
             {t("save_reload")}
           </Button>
         </CardContent>
@@ -109,7 +109,7 @@ export default function VhostEditorPage() {
             <Label>{t("redirect_to")}</Label>
             <Input value={redirectTo} onChange={(e) => setRedirectTo(e.target.value)} dir="ltr" />
           </div>
-          <Button type="button" disabled={addRedirect.isPending} onClick={() => addRedirect.mutate()}>
+          <Button type="button" disabled={addRedirect.isPending} onClick={() => addRedirect.mutate(undefined)}>
             {t("add_redirect")}
           </Button>
         </CardContent>
@@ -124,7 +124,7 @@ export default function VhostEditorPage() {
             <Label>{t("proxy_target")}</Label>
             <Input value={proxyTarget} onChange={(e) => setProxyTarget(e.target.value)} dir="ltr" />
           </div>
-          <Button type="button" disabled={addProxy.isPending} onClick={() => addProxy.mutate()}>
+          <Button type="button" disabled={addProxy.isPending} onClick={() => addProxy.mutate(undefined)}>
             {t("add_proxy")}
           </Button>
         </CardContent>

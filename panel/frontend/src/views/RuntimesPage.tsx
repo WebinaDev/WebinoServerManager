@@ -178,6 +178,7 @@ export default function RuntimesPage() {
                   <option value="node">Node.js</option>
                   <option value="python">Python</option>
                   <option value="go">Go</option>
+                  <option value="java">Java</option>
                 </select>
               </div>
               <div className="space-y-2 md:col-span-2">

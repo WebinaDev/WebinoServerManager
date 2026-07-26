@@ -12,14 +12,21 @@ Wave 10 extends FTP, Databases, DNS providers, and Cron typed tasks.
 
 - Soft-delete recycle bin on `hosting_databases.deleted_at`
 - Tools: repair, optimize, storage engine, encrypted MySQL root password in `panel_settings`
-- Redis engine (Partial): panel tracks + agent `redis-cli ping`
-- API: `/api/v1/databases/recycle`, `/repair`, `/optimize`, `/engine`, `/root-password`
+- Redis engine (**Have**): panel tracks + agent `redis_info` / `redis-cli` probe
+- API: `/api/v1/databases/recycle`, `/repair`, `/optimize`, `/engine`, `/root-password`, `GET .../databases/{id}/size`
 
 ## DNS Cloudflare
 
 - Table: `dns_providers` (token encrypted)
 - API: `GET/PATCH /api/v1/dns/providers/cloudflare`, `POST .../sync`, `POST .../dns01`
 - Agent: `/v1/dns/providers/cloudflare`
+
+## DNS AliDNS
+
+- Same `dns_providers` row with `provider=alidns`
+- Token format: `AccessKeyId:AccessKeySecret` (or `|`)
+- API: `GET/PATCH /api/v1/dns/providers/alidns`, `POST .../sync`, `POST .../dns01`
+- Agent: `/v1/dns/providers/alidns` — signed Aliyun Alidns OpenAPI (`AddDomainRecord` / `UpdateDomainRecord`)
 
 ## Cron typed tasks
 

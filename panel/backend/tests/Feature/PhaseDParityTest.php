@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Database\Seeders\RolesPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Modules\Cron\Entities\CronJob;
@@ -19,13 +20,9 @@ class PhaseDParityTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(RolesPermissionsSeeder::class);
         $this->admin = User::factory()->create();
-        $this->admin->givePermissionTo([
-            'system.manage',
-            'databases.manage',
-            'hosting.manage',
-            'monitoring.manage',
-        ]);
+        $this->admin->assignRole('admin');
         Sanctum::actingAs($this->admin);
     }
 

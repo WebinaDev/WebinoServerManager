@@ -475,7 +475,7 @@ export default function FilesPage() {
             <Button
               size="sm"
               disabled={!searchQuery || search.isPending}
-              onClick={() => search.mutate()}
+              onClick={() => search.mutate(undefined)}
             >
               {t("search")}
             </Button>
@@ -509,7 +509,7 @@ export default function FilesPage() {
             <Button
               size="sm"
               disabled={!remoteUrl || remoteDl.isPending}
-              onClick={() => remoteDl.mutate()}
+              onClick={() => remoteDl.mutate(undefined)}
             >
               {t("remote_download")}
             </Button>

@@ -2,6 +2,7 @@
 
 namespace Modules\Softstore\Providers;
 
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Modules\Core\Support\ModuleRoutes;
 use Modules\Softstore\Entities\SoftstorePackage;
@@ -11,6 +12,14 @@ class SoftstoreServiceProvider extends ServiceProvider
     public function boot(): void
     {
         ModuleRoutes::load('Softstore');
+
+        try {
+            if (! $this->app->runningUnitTests() && Schema::hasTable('softstore_packages')) {
+                static::seedCatalog();
+            }
+        } catch (\Throwable) {
+            // Database may be unavailable during early boot / package discovery.
+        }
     }
 
     public static function seedCatalog(): void
@@ -86,6 +95,24 @@ class SoftstoreServiceProvider extends ServiceProvider
                 'description' => 'Install Python 3 via apt — see also /runtimes for project management',
                 'version_label' => '3',
                 'agent_script_id' => 'install_python_distro',
+                'pinable' => true,
+            ],
+            [
+                'slug' => 'go-distro',
+                'name' => 'Go (distro)',
+                'category' => 'runtime',
+                'description' => 'Install Go via apt — see also /runtimes for project management',
+                'version_label' => 'distro',
+                'agent_script_id' => 'install_go_distro',
+                'pinable' => true,
+            ],
+            [
+                'slug' => 'java-distro',
+                'name' => 'OpenJDK 17',
+                'category' => 'runtime',
+                'description' => 'Install OpenJDK 17 via apt — see also /runtimes for project management',
+                'version_label' => '17',
+                'agent_script_id' => 'install_java_distro',
                 'pinable' => true,
             ],
         ];

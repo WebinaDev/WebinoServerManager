@@ -55,8 +55,8 @@ export default function MailingListsPage() {
 
   const addMember = useMutation({
     mutationFn: ({ id, email }: { id: number; email: string }) =>
-      api(`/api/v1/email/lists/${id}/members`, { method: "POST", json: { email } }),
-    onSuccess: (list: { list: MailingList }) => {
+      api<{ list: MailingList }>(`/api/v1/email/lists/${id}/members`, { method: "POST", json: { email } }),
+    onSuccess: (list) => {
       setEditing(list.list)
       qc.invalidateQueries({ queryKey: ["email-lists"] })
       setMemberEmail("")
@@ -66,8 +66,8 @@ export default function MailingListsPage() {
 
   const removeMember = useMutation({
     mutationFn: ({ id, email }: { id: number; email: string }) =>
-      api(`/api/v1/email/lists/${id}/members`, { method: "DELETE", json: { email } }),
-    onSuccess: (list: { list: MailingList }) => {
+      api<{ list: MailingList }>(`/api/v1/email/lists/${id}/members`, { method: "DELETE", json: { email } }),
+    onSuccess: (list) => {
       setEditing(list.list)
       qc.invalidateQueries({ queryKey: ["email-lists"] })
     },

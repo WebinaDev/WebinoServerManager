@@ -24,7 +24,22 @@ class DatabaseDestroyTest extends TestCase
         $this->admin->assignRole('admin');
     }
 
-    public function test_destroy_drops_mysql_user_and_database(): void
+    public function test_destroy_soft_recycles_without_dropping_on_host(): void
+    {
+        $db = HostingDatabase::query()->create([
+            'name' => 'app_db',
+            'db_user' => 'u_test',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->deleteJson('/api/v1/databases/'.$db->id)
+            ->assertOk();
+
+        $this->assertSoftDeleted('hosting_databases', ['id' => $db->id, 'name' => 'app_db']);
+    }
+
+    public function test_purge_recycle_drops_mysql_user_and_database(): void
     {
         $this->mock(AgentClient::class, function (MockInterface $mock): void {
             $mock->shouldReceive('post')
@@ -48,9 +63,10 @@ class DatabaseDestroyTest extends TestCase
             'db_user' => 'u_test',
             'status' => 'active',
         ]);
+        $db->delete();
 
         $this->actingAs($this->admin, 'sanctum')
-            ->deleteJson('/api/v1/databases/'.$db->id)
+            ->deleteJson('/api/v1/databases/recycle/'.$db->id)
             ->assertOk();
 
         $this->assertDatabaseMissing('hosting_databases', ['id' => $db->id]);

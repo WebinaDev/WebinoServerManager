@@ -64,7 +64,7 @@ export default function WebmailPage() {
                 ))}
               </select>
             </div>
-            <Button type="button" disabled={open.isPending} onClick={() => open.mutate()}>
+            <Button type="button" disabled={open.isPending} onClick={() => open.mutate(undefined)}>
               {t("open")}
             </Button>
           </div>

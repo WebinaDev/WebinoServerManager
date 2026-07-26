@@ -161,7 +161,7 @@ export default function SettingsPage() {
               {t("ssl_enabled")}
             </label>
             <div className="md:col-span-2">
-              <Button type="button" onClick={() => saveNetwork.mutate()} disabled={saveNetwork.isPending}>
+              <Button type="button" onClick={() => saveNetwork.mutate(undefined)} disabled={saveNetwork.isPending}>
                 {tCommon("save")}
               </Button>
             </div>
@@ -177,7 +177,7 @@ export default function SettingsPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => restartPanel.mutate()}
+                onClick={() => restartPanel.mutate(undefined)}
                 disabled={restartPanel.isPending}
               >
                 {t("restart_panel")}
@@ -185,7 +185,7 @@ export default function SettingsPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => requestReboot.mutate()}
+                onClick={() => requestReboot.mutate(undefined)}
                 disabled={requestReboot.isPending}
               >
                 {t("request_reboot_token")}
@@ -193,12 +193,12 @@ export default function SettingsPage() {
               <Button
                 type="button"
                 variant="destructive"
-                onClick={() => rebootOs.mutate()}
+                onClick={() => rebootOs.mutate(undefined)}
                 disabled={!rebootToken || rebootOs.isPending}
               >
                 {t("reboot_os")}
               </Button>
-              <Button type="button" onClick={() => repair.mutate()} disabled={repair.isPending}>
+              <Button type="button" onClick={() => repair.mutate(undefined)} disabled={repair.isPending}>
                 {t("repair_panel")}
               </Button>
             </div>

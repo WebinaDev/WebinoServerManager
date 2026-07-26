@@ -32,7 +32,7 @@ class PanelMailConfigurator
         Config::set('mail.mailers.smtp.host', $host);
         Config::set('mail.mailers.smtp.port', (int) (PanelSetting::get('smtp_port', 587)));
         Config::set('mail.mailers.smtp.username', PanelSetting::get('smtp_username'));
-        Config::set('mail.mailers.smtp.password', PanelSetting::get('smtp_password'));
+        Config::set('mail.mailers.smtp.password', PanelSetting::getEncrypted('smtp_password') ?? PanelSetting::get('smtp_password'));
         Config::set('mail.mailers.smtp.encryption', PanelSetting::get('smtp_encryption', 'tls'));
         Config::set('mail.from.address', PanelSetting::get('smtp_from_address', 'panel@localhost'));
         Config::set('mail.from.name', PanelSetting::get('smtp_from_name', 'WebinoServer'));

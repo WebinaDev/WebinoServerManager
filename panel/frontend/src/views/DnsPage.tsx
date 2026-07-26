@@ -63,6 +63,9 @@ export default function DnsPage() {
   const [aliToken, setAliToken] = useState("")
   const [aliZoneId, setAliZoneId] = useState("")
   const [aliEnabled, setAliEnabled] = useState(false)
+  const [aliDns01Domain, setAliDns01Domain] = useState("")
+  const [aliDns01Name, setAliDns01Name] = useState("")
+  const [aliDns01Value, setAliDns01Value] = useState("")
 
   const { data: cfData } = useQuery({
     queryKey: ["dns-cloudflare"],
@@ -151,6 +154,31 @@ export default function DnsPage() {
       toast.success(t("alidns_save"))
       setAliToken("")
       qc.invalidateQueries({ queryKey: ["dns-alidns"] })
+    },
+    onError: toastMutationError,
+  })
+
+  const syncAlidns = useMutation({
+    mutationFn: (body: {
+      domain: string
+      zone_id?: string
+      records: { type: string; name: string; content: string; proxied?: boolean }[]
+    }) => api("/api/v1/dns/providers/alidns/sync", { method: "POST", json: body }),
+    onSuccess: () => toast.success(t("alidns_sync_ok")),
+    onError: toastMutationError,
+  })
+
+  const createAliDns01 = useMutation({
+    mutationFn: (body: {
+      domain: string
+      record_name: string
+      record_value: string
+      zone_id?: string
+    }) => api("/api/v1/dns/providers/alidns/dns01", { method: "POST", json: body }),
+    onSuccess: () => {
+      toast.success(t("alidns_dns01_ok"))
+      setAliDns01Name("")
+      setAliDns01Value("")
     },
     onError: toastMutationError,
   })
@@ -394,7 +422,7 @@ export default function DnsPage() {
               {t("cloudflare_enabled")}
             </label>
             <div className="flex items-end">
-              <Button type="button" onClick={() => saveCloudflare.mutate()} disabled={saveCloudflare.isPending}>
+              <Button type="button" onClick={() => saveCloudflare.mutate(undefined)} disabled={saveCloudflare.isPending}>
                 {t("cloudflare_save")}
               </Button>
             </div>
@@ -499,8 +527,79 @@ export default function DnsPage() {
               {t("alidns_enabled")}
             </label>
             <div className="flex items-end">
-              <Button type="button" onClick={() => saveAlidns.mutate()} disabled={saveAlidns.isPending}>
+              <Button type="button" onClick={() => saveAlidns.mutate(undefined)} disabled={saveAlidns.isPending}>
                 {t("alidns_save")}
+              </Button>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>{t("alidns_sync")}</Label>
+              <p className="text-muted-foreground text-xs">{t("alidns_sync_hint")}</p>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!selectedZone || syncAlidns.isPending}
+                onClick={() => {
+                  if (!selectedZone) return
+                  syncAlidns.mutate({
+                    domain: selectedZone.domain,
+                    zone_id: aliZoneId || undefined,
+                    records: records.map((r) => ({
+                      type: r.type,
+                      name: r.name,
+                      content: r.content,
+                      proxied: false,
+                    })),
+                  })
+                }}
+              >
+                {t("alidns_sync")}
+              </Button>
+            </div>
+            <div className="grid gap-3 md:col-span-2 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="ali_dns01_domain">{t("field_domain")}</Label>
+                <Input
+                  id="ali_dns01_domain"
+                  value={aliDns01Domain}
+                  onChange={(e) => setAliDns01Domain(e.target.value)}
+                  placeholder={selectedZone?.domain ?? "example.com"}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ali_dns01_name">{t("dns01_record_name")}</Label>
+                <Input
+                  id="ali_dns01_name"
+                  value={aliDns01Name}
+                  onChange={(e) => setAliDns01Name(e.target.value)}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ali_dns01_value">{t("dns01_record_value")}</Label>
+                <Input
+                  id="ali_dns01_value"
+                  value={aliDns01Value}
+                  onChange={(e) => setAliDns01Value(e.target.value)}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <div className="flex items-end md:col-span-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!aliDns01Domain || !aliDns01Name || !aliDns01Value || createAliDns01.isPending}
+                onClick={() =>
+                  createAliDns01.mutate({
+                    domain: aliDns01Domain || selectedZone?.domain || "",
+                    record_name: aliDns01Name,
+                    record_value: aliDns01Value,
+                    zone_id: aliZoneId || undefined,
+                  })
+                }
+              >
+                {t("alidns_dns01_submit")}
               </Button>
             </div>
           </RequireRouteWrite>

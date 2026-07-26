@@ -14,14 +14,14 @@ var softstoreScriptIDs = map[string]bool{
 	"install_redis":           true,
 	"install_memcached":       true,
 	"ensure_composer":         true,
-	"cms_composer_stub":       true,
 	"install_wordpress_cms":   true,
 	"compose_up_redis":        true,
 	"compose_up_nginx":        true,
 	"install_node_nvm":        true,
 	"install_node_nodesource": true,
 	"install_python_distro":   true,
-	"install_go_distro":         true,
+	"install_go_distro":       true,
+	"install_java_distro":     true,
 }
 
 func handleSoftstoreStatus(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +70,16 @@ func probeSoftstorePackage(name string) map[string]any {
 	case "docker-nginx":
 		installed = softstoreComposeProjectExists("softstore-nginx")
 		detail = "compose project softstore-nginx"
+	case "node-nvm", "node":
+		installed, detail = softstoreProbeBins("node")
+	case "python-distro", "python":
+		installed, detail = softstoreProbeBins("python3")
+	case "go-distro", "go":
+		installed, detail = softstoreProbeBins("go")
+	case "java-distro", "java":
+		installed, detail = softstoreProbeBins("java")
+	case "wordpress-cms":
+		detail = "install via website document root"
 	default:
 		detail = "unknown package"
 	}
@@ -135,16 +145,6 @@ func runSoftstoreScript(scriptID string, options map[string]any) (string, error)
 			return "composer already present: " + path, nil
 		}
 		return runArgv([]string{"apt-get", "install", "-y", "composer"}, "")
-	case "cms_composer_stub":
-		docRoot := strVal(options["document_root"])
-		if docRoot == "" {
-			return "", errSoftstore("document_root required for cms_composer_stub")
-		}
-		absRoot, err := safeFilePath(docRoot)
-		if err != nil {
-			return "", err
-		}
-		return runArgv([]string{"composer", "install", "--no-interaction", "--working-dir=" + absRoot}, "")
 	case "install_wordpress_cms":
 		docRoot := strVal(options["document_root"])
 		domain := strVal(options["domain"])
@@ -169,7 +169,7 @@ func runSoftstoreScript(scriptID string, options map[string]any) (string, error)
 		return runSoftstoreComposeUp("compose_up_redis", "softstore-redis")
 	case "compose_up_nginx":
 		return runSoftstoreComposeUp("compose_up_nginx", "softstore-nginx")
-	case "install_node_nvm", "install_node_nodesource", "install_python_distro", "install_go_distro":
+	case "install_node_nvm", "install_node_nodesource", "install_python_distro", "install_go_distro", "install_java_distro":
 		return runRuntimesInstallScript(scriptID)
 	default:
 		return "", errSoftstore("unknown script")

@@ -1,14 +1,20 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 var nginxAccessPathRe = regexp.MustCompile(`"([A-Z]+)\s+([^\s?"]+)`)
@@ -92,6 +98,7 @@ func handleDnsAlidnsProvider(w http.ResponseWriter, r *http.Request) {
 	case "configure":
 		data, _ := json.Marshal(map[string]any{"configured": strVal(body["enabled"]) == "true" || body["enabled"] == true})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return
 	case "sync_records", "dns01":
 		if token == "" {
 			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "api_token required"})
@@ -101,21 +108,206 @@ func handleDnsAlidnsProvider(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "zone_id required for AliDNS"})
 			return
 		}
-		// MVP stub: validate token shape and acknowledge — full Aliyun API in later wave.
-		if len(token) < 8 {
-			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid api_token"})
+		accessKeyID, accessKeySecret, err := parseAlidnsCredentials(token)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: err.Error()})
 			return
 		}
-		data, _ := json.Marshal(map[string]any{
-			"provider": "alidns",
-			"zone_id":  zoneID,
-			"action":   action,
-			"status":   "queued",
-		})
+		if action == "dns01" {
+			recordName := strVal(body["record_name"])
+			recordValue := strVal(body["record_value"])
+			if err := alidnsUpsertRecord(accessKeyID, accessKeySecret, zoneID, map[string]any{
+				"type":    "TXT",
+				"name":    recordName,
+				"content": recordValue,
+			}); err != nil {
+				writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+				return
+			}
+			data, _ := json.Marshal(map[string]string{"record_name": recordName, "action": "dns01"})
+			writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+			return
+		}
+		records, ok := body["records"].([]any)
+		if !ok || len(records) == 0 {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "records required"})
+			return
+		}
+		synced := 0
+		for _, item := range records {
+			row, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if err := alidnsUpsertRecord(accessKeyID, accessKeySecret, zoneID, row); err == nil {
+				synced++
+			}
+		}
+		data, _ := json.Marshal(map[string]any{"synced": synced, "domain": strVal(body["domain"])})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 	default:
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "unknown action"})
 	}
+}
+
+// parseAlidnsCredentials accepts "AccessKeyId:AccessKeySecret" or "AccessKeyId|AccessKeySecret".
+func parseAlidnsCredentials(token string) (string, string, error) {
+	token = strings.TrimSpace(token)
+	sep := ""
+	if strings.Contains(token, "|") {
+		sep = "|"
+	} else if strings.Contains(token, ":") {
+		sep = ":"
+	} else {
+		return "", "", fmt.Errorf("api_token must be AccessKeyId:AccessKeySecret")
+	}
+	parts := strings.SplitN(token, sep, 2)
+	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
+		return "", "", fmt.Errorf("api_token must be AccessKeyId:AccessKeySecret")
+	}
+	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), nil
+}
+
+func alidnsRR(domain, name string) string {
+	domain = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(domain)), ".")
+	name = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(name)), ".")
+	if name == "" || name == "@" || name == domain {
+		return "@"
+	}
+	suffix := "." + domain
+	if strings.HasSuffix(name, suffix) {
+		rr := strings.TrimSuffix(name, suffix)
+		if rr == "" {
+			return "@"
+		}
+		return rr
+	}
+	return name
+}
+
+func alidnsUpsertRecord(accessKeyID, accessKeySecret, domain string, row map[string]any) error {
+	rr := alidnsRR(domain, strVal(row["name"]))
+	recType := strings.ToUpper(strVal(row["type"]))
+	value := strVal(row["content"])
+	if recType == "" || value == "" {
+		return fmt.Errorf("type and content required")
+	}
+	recordID, err := alidnsFindRecordID(accessKeyID, accessKeySecret, domain, rr, recType)
+	if err != nil {
+		return err
+	}
+	params := map[string]string{
+		"DomainName": domain,
+		"RR":         rr,
+		"Type":       recType,
+		"Value":      value,
+		"TTL":        "600",
+	}
+	if recordID != "" {
+		params["Action"] = "UpdateDomainRecord"
+		params["RecordId"] = recordID
+		delete(params, "DomainName")
+	} else {
+		params["Action"] = "AddDomainRecord"
+	}
+	_, err = alidnsRPC(accessKeyID, accessKeySecret, params)
+	return err
+}
+
+func alidnsFindRecordID(accessKeyID, accessKeySecret, domain, rr, recType string) (string, error) {
+	raw, err := alidnsRPC(accessKeyID, accessKeySecret, map[string]string{
+		"Action":     "DescribeDomainRecords",
+		"DomainName": domain,
+		"RRKeyWord":  rr,
+		"Type":       recType,
+		"PageSize":   "50",
+	})
+	if err != nil {
+		return "", err
+	}
+	var parsed struct {
+		DomainRecords struct {
+			Record []struct {
+				RecordID string `json:"RecordId"`
+				RR       string `json:"RR"`
+				Type     string `json:"Type"`
+			} `json:"Record"`
+		} `json:"DomainRecords"`
+	}
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		return "", err
+	}
+	for _, rec := range parsed.DomainRecords.Record {
+		if strings.EqualFold(rec.RR, rr) && strings.EqualFold(rec.Type, recType) {
+			return rec.RecordID, nil
+		}
+	}
+	return "", nil
+}
+
+func alidnsRPC(accessKeyID, accessKeySecret string, params map[string]string) ([]byte, error) {
+	params = cloneStringMap(params)
+	params["Format"] = "JSON"
+	params["Version"] = "2015-01-09"
+	params["AccessKeyId"] = accessKeyID
+	params["SignatureMethod"] = "HMAC-SHA1"
+	params["SignatureVersion"] = "1.0"
+	params["SignatureNonce"] = fmt.Sprintf("%d", time.Now().UnixNano())
+	params["Timestamp"] = time.Now().UTC().Format("2006-01-02T15:04:05Z")
+
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	canonical := make([]string, 0, len(keys))
+	for _, k := range keys {
+		canonical = append(canonical, alidnsPercentEncode(k)+"="+alidnsPercentEncode(params[k]))
+	}
+	stringToSign := "GET&" + alidnsPercentEncode("/") + "&" + alidnsPercentEncode(strings.Join(canonical, "&"))
+	mac := hmac.New(sha1.New, []byte(accessKeySecret+"&"))
+	_, _ = mac.Write([]byte(stringToSign))
+	params["Signature"] = base64.StdEncoding.EncodeToString(mac.Sum(nil))
+
+	q := url.Values{}
+	for k, v := range params {
+		q.Set(k, v)
+	}
+	endpoint := "https://alidns.aliyuncs.com/?" + q.Encode()
+	resp, err := http.DefaultClient.Get(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("alidns api %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	var errCheck struct {
+		Code    string `json:"Code"`
+		Message string `json:"Message"`
+	}
+	_ = json.Unmarshal(body, &errCheck)
+	if errCheck.Code != "" && !strings.EqualFold(errCheck.Code, "OK") {
+		return nil, fmt.Errorf("alidns %s: %s", errCheck.Code, errCheck.Message)
+	}
+	return body, nil
+}
+
+func alidnsPercentEncode(s string) string {
+	encoded := url.QueryEscape(s)
+	encoded = strings.ReplaceAll(encoded, "+", "%20")
+	encoded = strings.ReplaceAll(encoded, "*", "%2A")
+	encoded = strings.ReplaceAll(encoded, "%7E", "~")
+	return encoded
+}
+
+func cloneStringMap(in map[string]string) map[string]string {
+	out := make(map[string]string, len(in)+8)
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }
 
 func quarantineInfectedFiles(infected []string) []map[string]string {

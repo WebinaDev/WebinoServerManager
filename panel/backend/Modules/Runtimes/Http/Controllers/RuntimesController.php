@@ -85,7 +85,7 @@ class RuntimesController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:64', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/', 'unique:runtimes_projects,name'],
-            'runtime' => ['required', 'string', 'in:node,python,go'],
+            'runtime' => ['required', 'string', 'in:node,python,go,java'],
             'runtime_version_id' => ['nullable', 'exists:runtimes_versions,id'],
             'work_dir' => ['required', 'string', 'max:255'],
             'entry_script' => ['nullable', 'string', 'max:128'],

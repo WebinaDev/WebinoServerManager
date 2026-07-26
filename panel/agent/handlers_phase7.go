@@ -34,6 +34,7 @@ func initPhase7Env() {
 	apacheEnabled = envOr("WEBINO_APACHE_ENABLED", "/etc/apache2/sites-enabled")
 }
 
+// Deprecated: unused — prefer handleDnsZonesExtended (registered in main).
 func handleDnsZones(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		zones, err := listPdnsZones()
@@ -86,6 +87,7 @@ func handleDnsZones(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 }
 
+// Deprecated: unused — prefer handleDnsRecordsExtended (registered in main).
 func handleDnsRecords(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeMethod(w)

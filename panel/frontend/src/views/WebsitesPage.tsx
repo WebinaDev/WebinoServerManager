@@ -444,7 +444,7 @@ export default function WebsitesPage() {
             <Button
               className="w-full"
               disabled={!form.fqdn.trim() || create.isPending}
-              onClick={() => create.mutate()}
+              onClick={() => create.mutate(undefined)}
             >
               {t("add")}
             </Button>

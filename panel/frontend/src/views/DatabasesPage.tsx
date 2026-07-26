@@ -256,6 +256,16 @@ export default function DatabasesPage() {
     onError: toastMutationError,
   })
 
+  const refreshSize = useMutation({
+    mutationFn: (id: number) =>
+      api<{ size_mb: number }>(`/api/v1/databases/${id}/size`),
+    onSuccess: () => {
+      toast.success(t("size_refreshed"))
+      qc.invalidateQueries({ queryKey: ["databases"] })
+    },
+    onError: toastMutationError,
+  })
+
   const recycled = recycleData?.databases ?? []
   const remote = remoteData?.remote_access
 
@@ -286,6 +296,14 @@ export default function DatabasesPage() {
       header: tCommon("actions"),
       cell: (d) => (
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => refreshSize.mutate(d.id)}
+            disabled={refreshSize.isPending}
+          >
+            {t("refresh_size")}
+          </Button>
           {d.engine === "pgsql" ? (
             <Button size="sm" variant="outline" asChild>
               <Link href={`/phppgadmin?db=${d.id}`}>{t("open_phppgadmin")}</Link>
@@ -409,7 +427,7 @@ export default function DatabasesPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => redisInfo.mutate()}
+                  onClick={() => redisInfo.mutate(undefined)}
                   disabled={redisInfo.isPending}
                 >
                   {t("redis_info")}
@@ -559,7 +577,7 @@ export default function DatabasesPage() {
                   disabled={!remoteEnabled}
                 />
               </div>
-              <Button onClick={() => saveRemoteAccess.mutate()} disabled={saveRemoteAccess.isPending}>
+              <Button onClick={() => saveRemoteAccess.mutate(undefined)} disabled={saveRemoteAccess.isPending}>
                 {t("remote_access_save")}
               </Button>
             </div>
@@ -581,7 +599,7 @@ export default function DatabasesPage() {
               <Label>{t("field_file")}</Label>
               <Input value={importFile} onChange={(e) => setImportFile(e.target.value)} />
             </div>
-            <Button onClick={() => importDb.mutate()} disabled={importDb.isPending}>
+            <Button onClick={() => importDb.mutate(undefined)} disabled={importDb.isPending}>
               {t("import")}
             </Button>
           </RequireRouteWrite>
@@ -618,7 +636,7 @@ export default function DatabasesPage() {
                 />
               </div>
             </div>
-            <Button onClick={() => createUser.mutate()} disabled={createUser.isPending}>
+            <Button onClick={() => createUser.mutate(undefined)} disabled={createUser.isPending}>
               {t("create_user")}
             </Button>
           </RequireRouteWrite>

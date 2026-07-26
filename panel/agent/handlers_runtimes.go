@@ -244,6 +244,17 @@ func runtimeBuildArgv(runtime, entryScript, npmScript string) ([]string, error) 
 			return nil, fmt.Errorf("invalid entry script")
 		}
 		return []string{"go", "run", entryScript}, nil
+	case "java":
+		if entryScript == "" {
+			entryScript = "Main.java"
+		}
+		if !wpEntryNameRe.MatchString(entryScript) {
+			return nil, fmt.Errorf("invalid entry script")
+		}
+		if strings.HasSuffix(strings.ToLower(entryScript), ".jar") {
+			return []string{"java", "-jar", entryScript}, nil
+		}
+		return []string{"java", entryScript}, nil
 	default:
 		return nil, fmt.Errorf("unsupported runtime")
 	}

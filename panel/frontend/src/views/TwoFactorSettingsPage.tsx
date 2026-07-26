@@ -90,7 +90,7 @@ export default function TwoFactorSettingsPage() {
               </p>
 
               {!enabled && !otpauthUrl && (
-                <Button type="button" onClick={() => enable.mutate()} disabled={enable.isPending}>
+                <Button type="button" onClick={() => enable.mutate(undefined)} disabled={enable.isPending}>
                   {t("2fa_enable")}
                 </Button>
               )}
