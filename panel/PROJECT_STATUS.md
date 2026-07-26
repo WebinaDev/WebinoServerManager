@@ -82,8 +82,8 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | **Monitoring** (services, logs, uptime, channels) | ✅ | ✅ | ✅ systemctl/journalctl | **Have** (Wave 5 + Phase D) | Grouped log sources; service control; uptime; Telegram/Slack/webhook/email; process manager |
 | **Webhooks** (domain events, signed delivery) | ✅ | ✅ | — | **Implemented** | `backup.completed`, `ssl.expiring`, `alert.fired`, `user.created` |
 | **Automation** (API tokens, CLI, SDKs) | ✅ | ✅ | — | **Implemented** | Scoped Sanctum tokens; `wpanel` CLI with 2FA + write commands; TS/Python SDKs; OpenAPI export in CI |
-| **Platform / Sites** | ✅ | ✅ | ✅ via webina | **Implemented** | List/create/delete UI + `DELETE /api/v1/sites/{slug}` |
-| **Products** | ✅ | ✅ | ✅ via webina | **Implemented** | Webino platform products, not hosting plans |
+| **Platform / Sites** | ✅ | ✅ | ✅ via webina | **Implemented** | Structured platform status + init on System Info; Sites create with channel/aliases/env; list/delete |
+| **Products** | ✅ | ✅ | ✅ via webina | **Implemented** | Install feedback (ok/error/log) + list invalidate; Webino platform products, not hosting plans |
 | **Dns** | ✅ | ✅ | ✅ list + CRUD | **Have** (Wave 10 + Phase D) | Cloudflare + AliDNS providers; DNS-01; local DNSSEC/slaves/templates |
 | **Ssl** | ✅ | ✅ | ✅ renew/wildcard/custom | **Have** (Wave 14) | Auto-renew + expiry alerts; DNS-01 wildcard; custom upload; panel/mail bind |
 | **Ftp** | ✅ | ✅ | ✅ list + provision | **Have** (Wave 10 + Phase D) | Quota, enable/disable, password, passive/port + log source notes |
@@ -97,7 +97,7 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | **Git** | ✅ | ✅ | ✅ | **Have** | Index panel DB; reconcile drift via `panel:reconcile-host` |
 | **Wordpress** | ✅ | ✅ | ✅ wp-cli toolkit | **Have** Wave 8 | Clone/migrate/staging, themes/plugins, integrity |
 | **Runtimes** | ✅ | ✅ | ✅ `/v1/runtimes/*` | **Have** Wave 9 + Phase D | Node/Python/Go + Java via Softstore |
-| **Support** | ✅ | ✅ | DB-only | **Implemented** | No external desk/email integration (by design) |
+| **Support** | ✅ | ✅ | DB-only | **Implemented** | Internal tickets only: filter status/priority, reopen closed; no external desk/email (by design) |
 | **phpMyAdmin** | ✅ embed tickets | ✅ iframe | internal Docker | **Implemented** | — |
 | **phpPgAdmin** | ✅ embed tickets | ✅ iframe | internal Docker | **Implemented** | — |
 | **Webmail** | ✅ embed tickets | ✅ iframe | internal Roundcube | **Implemented** | — |
@@ -177,7 +177,7 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | Hosting | New `Modules/Hosting/` — `hosting_plans`, `hosting_accounts`, `hosting.manage` permission |
 | Hosting | Suspend/unsuspend via agent (`handlers_hosting.go` — nginx symlink, FTP, cron) |
 | Hosting | `HostingQuota` service + `hosting_account_id` FK on quota-bearing tables |
-| Hosting | `panel:collect-hosting-usage` hourly; usage bars on `HostingAccountsPage` |
+| Hosting | `panel:collect-hosting-usage` hourly; usage bars + deep-links on `HostingAccountsPage` |
 | Databases | MySQL user CRUD (grant/revoke/passwd) via `/v1/databases/users` |
 | Databases | PostgreSQL create/drop/list via agent (`engine: pgsql`) |
 | Databases | Import/export (`mysqldump`/`pg_dump`); per-DB size in index + agent sync |
@@ -214,7 +214,7 @@ Phase 22–23 delivered cookie-only auth, 2FA login OTP/recovery, `/forbidden` U
 
 | Module | File(s) | Issue |
 |--------|---------|--------|
-| Support | `SupportPage.tsx` | DB-only tickets by design; no external desk integration |
+| Support | `SupportPage.tsx` | Internal tickets: status/priority filters + reopen; no external desk |
 | Monitoring | `Modules/Monitoring/` | Per-site resource graphs and alert escalation grouping deferred (non-blocking) |
 
 ### aaPanel C parity status (Phase A–D complete)

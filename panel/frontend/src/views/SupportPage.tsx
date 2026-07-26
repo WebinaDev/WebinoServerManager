@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
 import { useLocale } from "@/hooks/useLocale"
 import { api } from "@/lib/api"
+import { toast, toastMutationError } from "@/lib/toast"
 
 type TicketRow = {
   id: number
@@ -39,10 +40,18 @@ export default function SupportPage() {
   const { formatDateTime } = useLocale()
   const qc = useQueryClient()
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>("")
+  const [priorityFilter, setPriorityFilter] = useState<string>("")
 
   const { data, isLoading } = useQuery({
-    queryKey: ["support-tickets"],
-    queryFn: () => api<{ tickets: TicketRow[] }>("/api/v1/support/tickets"),
+    queryKey: ["support-tickets", statusFilter, priorityFilter],
+    queryFn: () => {
+      const qs = new URLSearchParams()
+      if (statusFilter) qs.set("status", statusFilter)
+      if (priorityFilter) qs.set("priority", priorityFilter)
+      const q = qs.toString()
+      return api<{ tickets: TicketRow[] }>(`/api/v1/support/tickets${q ? `?${q}` : ""}`)
+    },
   })
 
   const { data: detail } = useQuery({
@@ -55,26 +64,43 @@ export default function SupportPage() {
     mutationFn: (body: { subject: string; body: string; priority?: string }) =>
       api("/api/v1/support/tickets", { method: "POST", json: body }),
     onSuccess: () => {
+      toast.success(t("created_ok"))
       qc.invalidateQueries({ queryKey: ["support-tickets"] })
     },
+    onError: toastMutationError,
   })
 
   const reply = useMutation({
     mutationFn: ({ id, body }: { id: number; body: string }) =>
       api(`/api/v1/support/tickets/${id}/replies`, { method: "POST", json: { body } }),
     onSuccess: (_, vars) => {
+      toast.success(t("reply_ok"))
       qc.invalidateQueries({ queryKey: ["support-tickets"] })
       qc.invalidateQueries({ queryKey: ["support-ticket", vars.id] })
     },
+    onError: toastMutationError,
   })
 
   const close = useMutation({
     mutationFn: (id: number) =>
       api(`/api/v1/support/tickets/${id}/close`, { method: "POST" }),
     onSuccess: (_, id) => {
+      toast.success(t("closed_ok"))
       qc.invalidateQueries({ queryKey: ["support-tickets"] })
       qc.invalidateQueries({ queryKey: ["support-ticket", id] })
     },
+    onError: toastMutationError,
+  })
+
+  const reopen = useMutation({
+    mutationFn: (id: number) =>
+      api(`/api/v1/support/tickets/${id}/reopen`, { method: "POST" }),
+    onSuccess: (_, id) => {
+      toast.success(t("reopened_ok"))
+      qc.invalidateQueries({ queryKey: ["support-tickets"] })
+      qc.invalidateQueries({ queryKey: ["support-ticket", id] })
+    },
+    onError: toastMutationError,
   })
 
   const ticket = detail?.ticket
@@ -131,8 +157,41 @@ export default function SupportPage() {
             </form>
           </RequireRouteWrite>
 
+          <div className="flex flex-wrap gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="filter_status">{t("filter_status")}</Label>
+              <select
+                id="filter_status"
+                className="border-input bg-background flex h-9 min-w-[8rem] rounded-md border px-3 text-sm"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">{t("filter_all")}</option>
+                <option value="open">{t("status_open")}</option>
+                <option value="closed">{t("status_closed")}</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="filter_priority">{t("filter_priority")}</Label>
+              <select
+                id="filter_priority"
+                className="border-input bg-background flex h-9 min-w-[8rem] rounded-md border px-3 text-sm"
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+              >
+                <option value="">{t("filter_all")}</option>
+                <option value="low">{t("priority_low")}</option>
+                <option value="normal">{t("priority_normal")}</option>
+                <option value="high">{t("priority_high")}</option>
+                <option value="urgent">{t("priority_urgent")}</option>
+              </select>
+            </div>
+          </div>
+
           {isLoading ? (
             <p>{tCommon("loading")}</p>
+          ) : (data?.tickets ?? []).length === 0 ? (
+            <p className="text-muted-foreground text-sm">{t("empty")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
               {(data?.tickets ?? []).map((tk) => (
@@ -150,13 +209,15 @@ export default function SupportPage() {
                   </button>
                   {selectedId === tk.id && ticket ? (
                     <div className="space-y-3 border-t px-4 py-3">
-                      <p className="text-muted-foreground text-sm whitespace-pre-wrap">{ticket.body}</p>
+                      <p className="text-muted-foreground whitespace-pre-wrap text-sm">{ticket.body}</p>
                       <ul className="space-y-2">
                         {ticket.replies.map((r) => (
                           <li key={r.id} className="bg-muted/40 rounded-md p-3 text-sm">
                             <div className="flex flex-wrap items-baseline justify-between gap-2">
                               <p className="font-medium">{r.author}</p>
-                              <p className="text-muted-foreground text-xs">{formatDateTime(r.created_at)}</p>
+                              <p className="text-muted-foreground text-xs">
+                                {formatDateTime(r.created_at)}
+                              </p>
                             </div>
                             <p className="whitespace-pre-wrap">{r.body}</p>
                           </li>
@@ -193,7 +254,20 @@ export default function SupportPage() {
                           </form>
                         </RequireRouteWrite>
                       ) : (
-                        <p className="text-muted-foreground text-sm">{t("closed_label")}</p>
+                        <RequireRouteWrite>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-muted-foreground text-sm">{t("closed_label")}</p>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={reopen.isPending}
+                              onClick={() => reopen.mutate(ticket.id)}
+                            >
+                              {t("reopen")}
+                            </Button>
+                          </div>
+                        </RequireRouteWrite>
                       )}
                     </div>
                   ) : null}

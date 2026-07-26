@@ -11,5 +11,6 @@ Route::prefix('v1/support')->middleware('auth:sanctum')->group(function () {
         Route::post('/tickets', [SupportController::class, 'store']);
         Route::post('/tickets/{ticket}/replies', [SupportController::class, 'reply']);
         Route::post('/tickets/{ticket}/close', [SupportController::class, 'close']);
+        Route::post('/tickets/{ticket}/reopen', [SupportController::class, 'reopen']);
     });
 });

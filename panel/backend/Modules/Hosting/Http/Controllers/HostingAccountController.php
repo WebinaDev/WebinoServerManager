@@ -39,8 +39,11 @@ class HostingAccountController extends Controller
                 'databases_count' => $databases,
                 'links' => [
                     'websites' => '/websites?account='.$account->id,
+                    'domains' => '/domains?account='.$account->id,
                     'ftp' => '/ftp?username='.urlencode($account->username),
                     'databases' => '/databases?account='.$account->id,
+                    'files' => '/files?account='.$account->username,
+                    'email' => '/email/accounts?account='.$account->id,
                     'usage' => '/hosting/accounts?highlight='.$account->id,
                 ],
             ],

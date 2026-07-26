@@ -91,9 +91,18 @@ function AccountDetailPanel({ accountId }: { accountId: number }) {
   }
 
   const s = data.summary
+  const account = data.account
+  const plan = account.plan
+  const diskLimit = plan?.disk_mb ?? 0
+  const diskPct =
+    diskLimit > 0 ? Math.min(100, Math.round((account.disk_used_mb / diskLimit) * 100)) : null
+  const inodeLimit = plan?.inodes ?? 0
+  const inodePct =
+    inodeLimit > 0 ? Math.min(100, Math.round((account.inodes_used / inodeLimit) * 100)) : null
+
   return (
-    <div className="bg-muted/40 space-y-2 rounded-md border p-3 text-sm">
-      <p className="font-medium">{t("account_detail_title", { username: data.account.username })}</p>
+    <div className="bg-muted/40 space-y-3 rounded-md border p-3 text-sm">
+      <p className="font-medium">{t("account_detail_title", { username: account.username })}</p>
       <p className="text-muted-foreground">
         {t("account_counts", {
           websites: s.websites_count,
@@ -101,15 +110,54 @@ function AccountDetailPanel({ accountId }: { accountId: number }) {
           databases: s.databases_count,
         })}
       </p>
+      {(diskPct != null || inodePct != null) && (
+        <div className="grid gap-2 md:grid-cols-2">
+          {diskPct != null ? (
+            <div>
+              <div className="mb-1 flex justify-between text-xs">
+                <span>{t("usage_disk")}</span>
+                <span className="font-mono" dir="ltr">
+                  {account.disk_used_mb}/{diskLimit} MB ({diskPct}%)
+                </span>
+              </div>
+              <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                <div className="bg-primary h-full" style={{ width: `${diskPct}%` }} />
+              </div>
+            </div>
+          ) : null}
+          {inodePct != null ? (
+            <div>
+              <div className="mb-1 flex justify-between text-xs">
+                <span>{t("usage_inodes")}</span>
+                <span className="font-mono" dir="ltr">
+                  {account.inodes_used}/{inodeLimit} ({inodePct}%)
+                </span>
+              </div>
+              <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                <div className="bg-primary h-full" style={{ width: `${inodePct}%` }} />
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" asChild>
           <Link href={s.links.websites}>{t("link_websites")}</Link>
+        </Button>
+        <Button type="button" size="sm" variant="outline" asChild>
+          <Link href={s.links.domains ?? "/domains"}>{t("link_domains")}</Link>
         </Button>
         <Button type="button" size="sm" variant="outline" asChild>
           <Link href={s.links.ftp}>{t("link_ftp")}</Link>
         </Button>
         <Button type="button" size="sm" variant="outline" asChild>
           <Link href={s.links.databases}>{t("link_databases")}</Link>
+        </Button>
+        <Button type="button" size="sm" variant="outline" asChild>
+          <Link href={s.links.files ?? "/files"}>{t("link_files")}</Link>
+        </Button>
+        <Button type="button" size="sm" variant="outline" asChild>
+          <Link href={s.links.email ?? "/email/accounts"}>{t("link_email")}</Link>
         </Button>
       </div>
     </div>

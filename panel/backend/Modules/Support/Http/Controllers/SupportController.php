@@ -10,14 +10,25 @@ use Modules\Support\Entities\SupportTicketReply;
 
 class SupportController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $tickets = SupportTicket::query()
-            ->withCount('replies')
-            ->orderByDesc('id')
-            ->get();
+        $data = $request->validate([
+            'status' => ['nullable', 'in:open,closed'],
+            'priority' => ['nullable', 'in:low,normal,high,urgent'],
+        ]);
 
-        return response()->json(['tickets' => $tickets]);
+        $query = SupportTicket::query()
+            ->withCount('replies')
+            ->orderByDesc('id');
+
+        if (! empty($data['status'])) {
+            $query->where('status', $data['status']);
+        }
+        if (! empty($data['priority'])) {
+            $query->where('priority', $data['priority']);
+        }
+
+        return response()->json(['tickets' => $query->get()]);
     }
 
     public function store(Request $request): JsonResponse
@@ -72,5 +83,16 @@ class SupportController extends Controller
         $ticket->update(['status' => 'closed']);
 
         return response()->json(['ticket' => $ticket->fresh(), 'message' => __('support.closed')]);
+    }
+
+    public function reopen(SupportTicket $ticket): JsonResponse
+    {
+        if ($ticket->status !== 'closed') {
+            return response()->json(['message' => __('support.already_open')], 422);
+        }
+
+        $ticket->update(['status' => 'open']);
+
+        return response()->json(['ticket' => $ticket->fresh(), 'message' => __('support.reopened')]);
     }
 }

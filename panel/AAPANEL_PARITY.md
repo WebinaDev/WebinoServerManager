@@ -32,10 +32,10 @@
 |---------|----------------------|--------|-------------|------------------|-------------------------------|---------------------------|------|
 | Home | Dashboard `/` | Have (Wave 5 core) | richer Pro polish later | Core, Metrics, Monitoring, Security, Softstore | `/v1/system/info` + processes | `/` | 5 |
 | Website | `/websites` hub + Domains/Subdomains/Webserver | Have (Wave 1) | Project types Node/… → Wave 9 | Websites (+ Webserver, Ftp, Databases, Php, Ssl) | `/v1/vhosts` + composer + per-site logs | `/websites`, `/websites/[id]` | 1 |
-| WP Toolkit | Wordpress | **Have** | WP-aware backup flows → Wave 11 | Wordpress | `/v1/wordpress` | `/wordpress` | 8 |
+| WP Toolkit | Wordpress | **Have** | — | Wordpress | `/v1/wordpress` | `/wordpress` | 8 |
 | FTP | Ftp | **Have** (Wave 10) | deeper log analysis later | Ftp | `/v1/ftp/accounts` + `/v1/ftp/service` | `/ftp` | 10 |
 | Databases | Databases + Embed | **Have** (Wave 10 + Phase D) | — | Databases | `/v1/databases*` + Mongo/Redis/tools | `/databases` | 10 |
-| Docker | Apps | Have (Wave 4 core) | Container terminal → later | Apps + Softstore | `/v1/docker/*` compose/net/vol/registry/daemon | `/apps` | 4 |
+| Docker | Apps | Have (Wave 4 + Phase D) | — | Apps + Softstore | `/v1/docker/*` compose/net/vol/registry/daemon + container terminal | `/apps`, `/terminal` | 4 |
 | Monitor | Monitoring + Metrics | Have (Wave 5 core) | deeper log analysis later | Monitoring, Metrics | `/v1/services`, `/v1/logs`, processes, system/info IO | `/monitoring/*`, `/metrics-alerts` | 5 |
 | Security | Security | **Have** (Wave 6) | malware→recycle overlaps Files W7; heavy vuln scan later | Security | risks, waf sites/logs, tamper | `/security/*` | 6 |
 | WAF | Security WAF | **Have** (Wave 6 + Phase D) | Heavy vuln scan later | Security | `/v1/security/waf` + sites/logs/geo | `/security/waf` | 6 |
@@ -105,7 +105,7 @@
 | Themes / plugins manage | **Have** | Per-item update UI later | 8 |
 | Clone / migrate / staging | **Have** | — | 8 |
 | Integrity / security tools | **Have** checksum verify | Hardening tools later | 8 |
-| Backup/restore WP | Via Backup generic | WP-aware flows | 11 |
+| Backup/restore WP | Via Backup module (Wave 11) | — | 11 |
 
 **Mapping:** `Wordpress` module, `/v1/wordpress`, `WordpressPage.tsx`.
 
@@ -144,7 +144,7 @@
 | Networks / volumes / registry | **Have** | — | 4 |
 | Daemon settings / mirror | **Have** (mirrors + log-opts) | full daemon UI later | 4 |
 | One-click apps | **Have** Softstore docker seeds | more templates later | 3–4 |
-| Container terminal | **Have** (Phase D) | `container` on terminal ticket | — |
+| Container terminal | **Have** (Phase D) | — | — |
 
 **Mapping:** `Apps`, `/v1/docker/*`, `AppsPage.tsx`, `handlers_docker.go`, `handlers_docker_depth.go`.
 
@@ -207,7 +207,7 @@
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
 | Local pdns zones/records | **Have** | DNSSEC/slaves/templates | — |
-| External DNS APIs (CF, AliDNS) | **Have** (Phase D) | Full Aliyun API sync later | — |
+| External DNS APIs (CF, AliDNS) | **Have** (Phase D) | — | — |
 
 **Mapping:** Dns, Ssl, `handlers_dns.go`, `handlers_ssl.go`.
 

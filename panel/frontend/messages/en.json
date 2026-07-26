@@ -529,8 +529,13 @@
     "field_price": "Price",
     "field_username": "Username",
     "link_databases": "Databases",
+    "link_domains": "Domains",
+    "link_email": "Email",
+    "link_files": "Files",
     "link_ftp": "FTP",
     "link_websites": "Websites",
+    "usage_disk": "Disk usage",
+    "usage_inodes": "Inode usage",
     "plan_deleted": "Plan deleted",
     "plan_saved": "Plan saved",
     "plans_title": "Hosting plans",
@@ -788,9 +793,15 @@
     "title": "phpPgAdmin"
   },
   "products": {
+    "empty": "No products listed yet.",
     "field_channel": "Channel",
     "field_product": "Product",
     "install": "Install product",
+    "install_failed": "Product install failed",
+    "install_ok": "Product install finished",
+    "installing": "Installing…",
+    "last_result": "Last install result",
+    "subtitle": "Install Webino product images onto this platform host.",
     "title": "Products"
   },
   "profile": {
@@ -991,12 +1002,20 @@
     "teams_heading": "Teams"
   },
   "sites": {
+    "aliases_placeholder": "www.example.com, app.example.com",
     "create": "Create site",
+    "create_ok": "Site created",
     "delete": "Delete",
     "delete_confirm": "Delete this site?",
+    "delete_ok": "Site deleted",
+    "field_aliases": "Aliases (comma-separated)",
+    "field_channel": "Channel",
     "field_domain": "Domain",
+    "field_env_key": "Env key (optional)",
+    "field_env_value": "Env value",
     "field_product": "Product (optional)",
     "field_slug": "Slug",
+    "product_none": "None",
     "title": "Sites"
   },
   "softstore": {
@@ -1058,17 +1077,28 @@
   "support": {
     "close": "Close ticket",
     "closed_label": "This ticket is closed.",
+    "closed_ok": "Ticket closed",
     "create": "Create ticket",
+    "created_ok": "Ticket created",
+    "empty": "No tickets match these filters.",
     "field_body": "Message",
     "field_priority": "Priority",
     "field_subject": "Subject",
+    "filter_all": "All",
+    "filter_priority": "Priority filter",
+    "filter_status": "Status filter",
     "internal_only_notice": "Internal tickets only — this panel does not connect to an external helpdesk.",
     "priority_high": "High",
     "priority_low": "Low",
     "priority_normal": "Normal",
     "priority_urgent": "Urgent",
+    "reopen": "Reopen ticket",
+    "reopened_ok": "Ticket reopened",
     "reply": "Reply",
+    "reply_ok": "Reply sent",
     "reply_placeholder": "Write a reply…",
+    "status_closed": "Closed",
+    "status_open": "Open",
     "title": "Support Center"
   },
   "system": {
@@ -1084,7 +1114,11 @@
     "os": "Operating system",
     "title": "System Information",
     "uptime": "Uptime (seconds)",
-    "platform_status_title": "Platform status"
+    "platform_status_title": "Platform status",
+    "platform_status_hint": "Host platform status from the Webina agent. Use Initialize if the platform stack is not ready.",
+    "platform_init": "Initialize platform",
+    "platform_init_running": "Initializing…",
+    "platform_init_ok": "Platform init finished"
   },
   "terminal": {
     "connected": "Connected",
