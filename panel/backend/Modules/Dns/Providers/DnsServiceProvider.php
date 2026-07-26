@@ -3,11 +3,12 @@
 namespace Modules\Dns\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class DnsServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Dns', 'Routes/api.php'));
+        ModuleRoutes::load('Dns');
     }
 }

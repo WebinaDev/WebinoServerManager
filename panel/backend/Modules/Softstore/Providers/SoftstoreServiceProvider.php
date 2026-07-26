@@ -3,13 +3,14 @@
 namespace Modules\Softstore\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 use Modules\Softstore\Entities\SoftstorePackage;
 
 class SoftstoreServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Softstore', 'Routes/api.php'));
+        ModuleRoutes::load('Softstore');
     }
 
     public static function seedCatalog(): void

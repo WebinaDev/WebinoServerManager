@@ -3,11 +3,12 @@
 namespace Modules\Domains\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class DomainsServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Domains', 'Routes/api.php'));
+        ModuleRoutes::load('Domains');
     }
 }

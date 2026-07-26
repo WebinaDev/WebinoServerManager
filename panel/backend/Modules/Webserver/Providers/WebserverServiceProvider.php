@@ -3,11 +3,12 @@
 namespace Modules\Webserver\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class WebserverServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Webserver', 'Routes/api.php'));
+        ModuleRoutes::load('Webserver');
     }
 }

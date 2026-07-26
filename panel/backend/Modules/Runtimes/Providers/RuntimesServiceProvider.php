@@ -3,13 +3,14 @@
 namespace Modules\Runtimes\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 use Modules\Runtimes\Entities\RuntimeVersion;
 
 class RuntimesServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Runtimes', 'Routes/api.php'));
+        ModuleRoutes::load('Runtimes');
     }
 
     public static function seedCatalog(): void

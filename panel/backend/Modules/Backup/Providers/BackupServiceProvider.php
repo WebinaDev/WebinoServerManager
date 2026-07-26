@@ -3,13 +3,14 @@
 namespace Modules\Backup\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 use Modules\Backup\Console\Commands\RunScheduledBackupsCommand;
 
 class BackupServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Backup', 'Routes/api.php'));
+        ModuleRoutes::load('Backup');
 
         if ($this->app->runningInConsole()) {
             $this->commands([RunScheduledBackupsCommand::class]);

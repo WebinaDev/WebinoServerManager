@@ -3,13 +3,14 @@
 namespace Modules\Metrics\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 use Modules\Metrics\Console\Commands\CollectMetricsCommand;
 
 class MetricsServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Metrics', 'Routes/api.php'));
+        ModuleRoutes::load('Metrics');
 
         if ($this->app->runningInConsole()) {
             $this->commands([CollectMetricsCommand::class]);

@@ -3,11 +3,12 @@
 namespace Modules\Embed\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class EmbedServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Embed', 'Routes/api.php'));
+        ModuleRoutes::load('Embed');
     }
 }

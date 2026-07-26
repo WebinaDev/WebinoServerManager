@@ -3,11 +3,12 @@
 namespace Modules\Databases\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class DatabasesServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Databases', 'Routes/api.php'));
+        ModuleRoutes::load('Databases');
     }
 }

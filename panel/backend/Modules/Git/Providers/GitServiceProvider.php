@@ -3,11 +3,12 @@
 namespace Modules\Git\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class GitServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Git', 'Routes/api.php'));
+        ModuleRoutes::load('Git');
     }
 }

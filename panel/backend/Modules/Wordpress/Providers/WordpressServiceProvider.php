@@ -3,11 +3,12 @@
 namespace Modules\Wordpress\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class WordpressServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Wordpress', 'Routes/api.php'));
+        ModuleRoutes::load('Wordpress');
     }
 }

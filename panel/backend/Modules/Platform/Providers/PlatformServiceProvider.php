@@ -3,11 +3,12 @@
 namespace Modules\Platform\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class PlatformServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Platform', 'Routes/api.php'));
+        ModuleRoutes::load('Platform');
     }
 }

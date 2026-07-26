@@ -5,13 +5,14 @@ namespace Modules\Security\Providers;
 use App\Models\PanelSetting;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 use Modules\Security\Console\Commands\ScanCommand;
 
 class SecurityServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Security', 'Routes/api.php'));
+        ModuleRoutes::load('Security');
 
         if ($this->app->runningInConsole()) {
             $this->commands([ScanCommand::class]);

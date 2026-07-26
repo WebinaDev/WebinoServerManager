@@ -3,11 +3,12 @@
 namespace Modules\Subdomains\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class SubdomainsServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Subdomains', 'Routes/api.php'));
+        ModuleRoutes::load('Subdomains');
     }
 }

@@ -3,11 +3,12 @@
 namespace Modules\Email\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\ModuleRoutes;
 
 class EmailServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-        $this->loadRoutesFrom(module_path('Email', 'Routes/api.php'));
+        ModuleRoutes::load('Email');
     }
 }
