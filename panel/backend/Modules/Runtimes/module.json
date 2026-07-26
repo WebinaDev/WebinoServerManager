@@ -1,0 +1,6 @@
+{
+  "name": "Runtimes",
+  "alias": "runtimes",
+  "providers": ["Modules\\Runtimes\\Providers\\RuntimesServiceProvider"],
+  "requires": []
+}

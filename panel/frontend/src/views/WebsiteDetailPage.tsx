@@ -49,9 +49,9 @@ export default function WebsiteDetailPage() {
   const t = useTranslations("websites")
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
-  const [tab, setTab] = useState<"overview" | "protection" | "logs" | "composer">(
-    "overview",
-  )
+  const [tab, setTab] = useState<
+    "overview" | "protection" | "logs" | "analytics" | "composer"
+  >("overview")
   const [htUser, setHtUser] = useState("")
   const [htPass, setHtPass] = useState("")
   const [htPath, setHtPath] = useState("/")
@@ -178,6 +178,7 @@ export default function WebsiteDetailPage() {
             ["overview", t("overview")],
             ["protection", t("protection")],
             ["logs", t("logs")],
+            ["analytics", t("analytics")],
             ["composer", t("composer")],
           ] as const
         ).map(([key, label]) => (
@@ -395,6 +396,8 @@ export default function WebsiteDetailPage() {
         </Card>
       )}
 
+      {tab === "analytics" && <WebsiteAnalytics id={id} />}
+
       {tab === "composer" && (
         <Card>
           <CardHeader>
@@ -435,5 +438,48 @@ function Field({
       <Label>{label}</Label>
       {children}
     </div>
+  )
+}
+
+function WebsiteAnalytics({ id }: { id: string }) {
+  const t = useTranslations("websites")
+  const tCommon = useTranslations("common")
+  const { data, isLoading } = useQuery({
+    queryKey: ["website-analytics", id],
+    enabled: Boolean(id),
+    queryFn: () =>
+      api<{
+        requests?: number
+        status_counts?: Record<string, number>
+      }>(`/api/v1/websites/${id}/analytics`),
+  })
+
+  if (isLoading) {
+    return <p className="p-4 text-sm">{tCommon("loading")}</p>
+  }
+
+  const statuses = data?.status_counts ?? {}
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("analytics")}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p>
+          {t("analytics_requests")}: {data?.requests ?? 0}
+        </p>
+        <div>
+          <p className="mb-2 font-medium">{t("analytics_status")}</p>
+          <ul className="space-y-1 font-mono text-xs" dir="ltr">
+            {Object.entries(statuses).map(([code, count]) => (
+              <li key={code}>
+                {code}: {count}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

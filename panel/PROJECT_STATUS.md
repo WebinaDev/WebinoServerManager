@@ -1,10 +1,10 @@
 # WebinoServer Panel — Project Status
 
-Last updated: 2026-07-26 (aaPanel parity SSOT Wave 0)
+Last updated: 2026-07-26 (aaPanel parity Waves 10–12)
 
 This document is the single source of truth for architecture, implementation status, known gaps, and planned phases of the WebinoServer hosting control panel.
 
-**aaPanel parity (C+R):** capability gap matrix and waves 0–12 live in [AAPANEL_PARITY.md](AAPANEL_PARITY.md). Waves **1–3 Have** (Website hub, dual-stack, Softstore). Reseller hierarchy remains won't-fix.
+**aaPanel parity (C+R):** capability gap matrix and waves 0–12 live in [AAPANEL_PARITY.md](AAPANEL_PARITY.md). Waves **1–12 Have** except Wave 7 (Files advanced). Reseller hierarchy remains won't-fix.
 
 **Important:** Module `index` endpoints list resources from the **panel MariaDB** by default. Provisioning (create/delete) calls the agent. A scheduled `panel:reconcile-host` job (every 15 minutes) compares panel rows with agent GET list endpoints and flags drift — see [Fixed in Phase 9](#fixed-in-phase-9) and [Fixed in Phase 12 & 13](#fixed-in-phase-12--13).
 
@@ -75,7 +75,7 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | **Domains** | ✅ | ✅ | ✅ | **Implemented** | Aliases create/PATCH; hosting quota; agent registry drift UI; reconcile; create/delete |
 | **Subdomains** | ✅ | ✅ | ✅ nginx vhost | **Implemented** | PHP pool + SSL/HTTPS/HSTS + PATCH edit; hosting quota; reconcile via `/v1/vhosts` |
 | **Webserver** | ✅ | ✅ | ✅ nginx + Apache | **Have** (Wave 2) | dual-stack `engine`, HTTP/3 nginx; raw editor/redirects/proxy; see [AAPANEL_PARITY.md](AAPANEL_PARITY.md) |
-| **Databases** | ✅ | ✅ | ✅ MySQL + PostgreSQL | **Implemented** | User CRUD, import/export, phpPgAdmin embed, remote IP UI; quota when `hosting_account_id` set |
+| **Databases** | ✅ | ✅ | ✅ MySQL + PostgreSQL + Redis partial | **Have** (Wave 10) | Recycle bin, repair/optimize/engine, root PW mgr |
 | **Hosting** | ✅ plans + accounts | ✅ | ✅ provision/suspend/usage | **Implemented** | Plans (incl. `max_apps`), accounts with OS provision/deprovision, quota, bandwidth metering, quota alerts; **reseller won't-fix** |
 | **Apps** (Docker containers) | ✅ | ✅ | ✅ docker.sock | **Have** (Wave 4) | Containers/images + Compose/networks/volumes/registry/daemon + Softstore docker one-click |
 | **Monitoring** (services, logs, uptime, channels) | ✅ | ✅ | ✅ systemctl/journalctl | **Partial** | Service control, log tail, HTTP/TCP uptime, Telegram/Slack/webhook/email; hosting quota breach alerts |
@@ -83,18 +83,19 @@ Go daemon (`webino-agent`) listening on a Unix socket. Endpoints include domains
 | **Automation** (API tokens, CLI, SDKs) | ✅ | ✅ | — | **Implemented** | Scoped Sanctum tokens; `wpanel` CLI with 2FA + write commands; TS/Python SDKs; OpenAPI export in CI |
 | **Platform / Sites** | ✅ | ✅ | ✅ via webina | **Implemented** | List/create/delete UI + `DELETE /api/v1/sites/{slug}` |
 | **Products** | ✅ | ✅ | ✅ via webina | **Implemented** | Webino platform products, not hosting plans |
-| **Dns** | ✅ | ✅ | ✅ list + CRUD | **Partial** | DNSSEC, slave zones, templates, import/export, PATCH records; reconcile record counts |
+| **Dns** | ✅ | ✅ | ✅ list + CRUD | **Have** (Wave 10 CF) | Cloudflare DNS-01 + sync; local DNSSEC/slaves/templates |
 | **Ssl** | ✅ | ✅ | ✅ renew/wildcard/custom | **Partial** | Auto-renew + expiry alerts; DNS-01 wildcard via pdnsutil hooks; custom upload + chain validation; panel/mail bind |
-| **Ftp** | ✅ | ✅ | ✅ list + provision | **Partial** | useradd + pure-pw passwd fixed; index panel DB; reconcile job |
+| **Ftp** | ✅ | ✅ | ✅ list + provision | **Have** (Wave 10) | Quota, enable/disable, passive/port + log source notes |
 | **Php** | ✅ | ✅ | ✅ settings in conf | **Implemented** | Pools + php.ini + extensions tabs; agent path jail |
-| **Email** | ✅ | ✅ | ✅ Rspamd/Dovecot | **Partial** | SPF/DKIM/DMARC + queue + autoresponders; no mailing list UI polish |
+| **Email** | ✅ | ✅ | ✅ Rspamd/Dovecot | **Have** (Wave 11 lists) | Mailing list member UX polish |
 | **Files** | ✅ | ✅ | ✅ live list | **Implemented** | Jailed to `WEBINO_FILES_ROOT` |
-| **Cron** | ✅ | ✅ | ✅ per-user crontab | **Implemented** | `crontab -u USER`; hosting account selector; reconcile per-user |
-| **Backup** | ✅ schedules + targets | ✅ | ✅ restic + restore | **Partial** | Restore/verify jobs; offsite targets (S3/SFTP/REST); restic incremental + retention prune |
-| **System** | ✅ | ✅ | ✅ live | **Implemented** | — |
+| **Cron** | ✅ | ✅ | ✅ per-user crontab | **Have** (Wave 10) | Typed tasks, script library, failure notify |
+| **Backup** | ✅ schedules + targets | ✅ | ✅ restic + restore | **Have** (Wave 11 UX) | Verify/retention/restore wizard polish |
+| **System** | ✅ | ✅ | ✅ live + panel control | **Have** (Wave 12) | `/settings` hub, `/v1/panel/*` restart/reboot/repair |
 | **Terminal** | ✅ | ✅ xterm.js | ✅ WS + PTY | **Partial** | CheckOrigin allowlist (not open-by-default) |
 | **Git** | ✅ | ✅ | ✅ | **Partial** | Index panel DB; reconcile drift via `panel:reconcile-host` (27.4) |
-| **Wordpress** | ✅ | ✅ | ✅ wp-cli | **Partial** | Index panel DB; reconcile drift via `panel:reconcile-host` (27.4) |
+| **Wordpress** | ✅ | ✅ | ✅ wp-cli toolkit | **Have** Wave 8 | Clone/migrate/staging, themes/plugins, integrity |
+| **Runtimes** | ✅ | ✅ | ✅ `/v1/runtimes/*` | **Have** Wave 9 | Node/Python/Go install + PM2-like projects (Java Partial) |
 | **Support** | ✅ | ✅ | DB-only | **Implemented** | No external desk/email integration (by design) |
 | **phpMyAdmin** | ✅ embed tickets | ✅ iframe | internal Docker | **Implemented** | — |
 | **phpPgAdmin** | ✅ embed tickets | ✅ iframe | internal Docker | **Implemented** | — |
@@ -228,7 +229,7 @@ Compared to cPanel, Plesk, DirectAdmin, HestiaCP, CyberPanel:
 - **Backups:** ~~Restore, offsite (S3/FTP/SFTP/rsync), incremental, verification~~ — done in Phase 15 (restic engine; S3/SFTP/REST targets)
 - **Multi-tenancy:** ~~Hosting packages, customer accounts, suspend/unsuspend, quota enforcement~~ — Phase 16 (customers + plans; resellers deferred)
 - **Databases:** ~~PostgreSQL, standalone DB-user CRUD, import/export, size stats~~ — Phase 17 (PG agent-only; no phpPgAdmin embed)
-- **Applications:** Docker depth **Have** Wave 4; Softstore catalog **Have** Waves 3–4; Node/Python runtimes planned — Wave 9
+- **Applications:** Docker depth **Have** Wave 4; Softstore catalog **Have** Waves 3–4; Runtimes **Have** Wave 9 (Java Partial)
 - **Monitoring:** ~~Service restart UI, log viewer, external uptime, Telegram/Slack/webhook alerts~~ — Phase 19; per-site limits and alert escalation still deferred
 - **API/CLI:** ~~Scoped API tokens, public customer CLI, webhooks, rate limiting, SDK~~ — done in Phase 20
 
@@ -568,7 +569,7 @@ flowchart LR
 - Optional nginx proxy vhost on create; `HostingQuota` `apps` resource; `apps.manage` permission
 - Frontend: `AppsPage` — containers, create form, logs sheet, images card; nav + i18n
 
-**Note:** Softstore + Docker Compose depth **Have** Waves 3–4; runtimes planned — Wave 9.
+**Note:** Softstore + Docker Compose depth **Have** Waves 3–4; Runtimes module **Have** Wave 9 (Node/Python/Go projects; Java Partial).
 
 **Key files:** `agent/handlers_docker.go`, `Modules/Apps/`, `frontend/src/pages/AppsPage.tsx`
 

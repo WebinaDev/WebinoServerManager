@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
@@ -17,7 +17,16 @@ type FtpRow = {
   username: string
   home_dir: string
   domain: string | null
+  quota_mb: number | null
+  enabled: boolean
   status: string
+}
+
+type FtpService = {
+  passive_port_range: string
+  control_port: number
+  log_source: string
+  note: string
 }
 
 export default function FtpPage() {
@@ -29,6 +38,11 @@ export default function FtpPage() {
     queryFn: () => api<{ accounts: FtpRow[] }>("/api/v1/ftp/accounts"),
   })
 
+  const { data: serviceData } = useQuery({
+    queryKey: ["ftp-service"],
+    queryFn: () => api<{ service: FtpService }>("/api/v1/ftp/service"),
+  })
+
   const accounts = data?.accounts ?? []
 
   const create = useMutation({
@@ -37,6 +51,7 @@ export default function FtpPage() {
       password: string
       home_dir: string
       domain?: string
+      quota_mb?: number
     }) => api("/api/v1/ftp/accounts", { method: "POST", json: body }),
     onSuccess: () => {
       toast.success(t("add"))
@@ -55,6 +70,20 @@ export default function FtpPage() {
     onError: toastMutationError,
   })
 
+  const setQuota = useMutation({
+    mutationFn: ({ id, quota_mb }: { id: number; quota_mb: number }) =>
+      api(`/api/v1/ftp/accounts/${id}/quota`, { method: "PATCH", json: { quota_mb } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ftp-accounts"] }),
+    onError: toastMutationError,
+  })
+
+  const toggleEnabled = useMutation({
+    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
+      api(`/api/v1/ftp/accounts/${id}/enabled`, { method: "PATCH", json: { enabled } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ftp-accounts"] }),
+    onError: toastMutationError,
+  })
+
   const columns: DataTableColumn<FtpRow>[] = [
     {
       id: "username",
@@ -67,13 +96,40 @@ export default function FtpPage() {
       ),
     },
     {
-      id: "domain",
-      header: t("field_domain"),
-      sortValue: (row) => row.domain ?? "",
+      id: "quota",
+      header: t("field_quota"),
+      sortValue: (row) => row.quota_mb ?? 0,
       cell: (a) => (
-        <span className="text-muted-foreground" dir="ltr">
-          {a.domain ?? tCommon("em_dash")}
-        </span>
+        <RequireRouteWrite>
+          <Input
+            className="h-8 w-24 font-mono"
+            defaultValue={a.quota_mb ?? ""}
+            dir="ltr"
+            placeholder="MB"
+            onBlur={(e) => {
+              const val = Number(e.target.value)
+              if (!Number.isNaN(val) && val >= 0) {
+                setQuota.mutate({ id: a.id, quota_mb: val })
+              }
+            }}
+          />
+        </RequireRouteWrite>
+      ),
+    },
+    {
+      id: "enabled",
+      header: t("field_enabled"),
+      cell: (a) => (
+        <RequireRouteWrite>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => toggleEnabled.mutate({ id: a.id, enabled: !a.enabled })}
+          >
+            {a.enabled ? t("enabled") : t("disabled")}
+          </Button>
+        </RequireRouteWrite>
       ),
     },
     {
@@ -100,8 +156,23 @@ export default function FtpPage() {
     },
   ]
 
+  const service = serviceData?.service
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
+      {service ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("service_title")}</CardTitle>
+            <CardDescription>{service.note}</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm" dir="ltr">
+            <p>{t("passive_ports")}: {service.passive_port_range}</p>
+            <p>{t("control_port")}: {service.control_port}</p>
+            <p>{t("log_source")}: {service.log_source}</p>
+          </CardContent>
+        </Card>
+      ) : null}
       <Card>
         <CardHeader>
           <CardTitle>{t("title")}</CardTitle>
@@ -113,11 +184,13 @@ export default function FtpPage() {
               onSubmit={(e) => {
                 e.preventDefault()
                 const fd = new FormData(e.currentTarget)
+                const quotaRaw = String(fd.get("quota_mb") ?? "")
                 create.mutate({
                   username: String(fd.get("username") ?? ""),
                   password: String(fd.get("password") ?? ""),
                   home_dir: String(fd.get("home_dir") ?? ""),
                   domain: String(fd.get("domain") ?? "") || undefined,
+                  quota_mb: quotaRaw ? Number(quotaRaw) : undefined,
                 })
                 e.currentTarget.reset()
               }}
@@ -137,6 +210,10 @@ export default function FtpPage() {
               <div className="space-y-2">
                 <Label htmlFor="domain">{t("field_domain")}</Label>
                 <Input id="domain" name="domain" dir="ltr" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quota_mb">{t("field_quota")}</Label>
+                <Input id="quota_mb" name="quota_mb" type="number" min={0} dir="ltr" />
               </div>
               <div className="md:col-span-2">
                 <Button type="submit" disabled={create.isPending}>

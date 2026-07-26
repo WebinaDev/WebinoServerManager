@@ -73,6 +73,8 @@ class ModulesApiTest extends TestCase
             'apps images' => ['/api/v1/apps/images'],
             'softstore packages' => ['/api/v1/softstore/packages'],
             'softstore installs' => ['/api/v1/softstore/installs'],
+            'runtimes versions' => ['/api/v1/runtimes/versions'],
+            'runtimes projects' => ['/api/v1/runtimes/projects'],
             'monitoring services' => ['/api/v1/monitoring/services'],
             'monitoring log sources' => ['/api/v1/monitoring/logs/sources'],
             'monitoring uptime' => ['/api/v1/monitoring/uptime'],

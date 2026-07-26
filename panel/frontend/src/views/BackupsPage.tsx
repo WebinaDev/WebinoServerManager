@@ -366,6 +366,7 @@ export default function BackupsPage() {
             <div className="space-y-2">
               <Label htmlFor="retention_days">{t("retention_days")}</Label>
               <Input id="retention_days" name="retention_days" type="number" defaultValue={7} min={1} />
+              <p className="text-muted-foreground text-xs">{t("retention_hint")}</p>
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={createSchedule.isPending}>
@@ -469,7 +470,9 @@ export default function BackupsPage() {
                           sha256: {b.checksum.slice(0, 16)}…
                           {b.verified_at
                             ? ` · ${t("verified")} ${formatDateTime(b.verified_at)}`
-                            : ""}
+                            : b.status === "completed"
+                              ? ` · ${t("verify_pending")}`
+                              : ""}
                         </p>
                       ) : null}
                     </div>

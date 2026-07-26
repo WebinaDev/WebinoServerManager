@@ -25,37 +25,38 @@ func handleFtpAccounts(w http.ResponseWriter, r *http.Request) {
 		writeMethod(w)
 		return
 	}
-	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		HomeDir  string `json:"home_dir"`
-		Action   string `json:"action"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Username == "" {
+	var body map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strVal(body["username"]) == "" {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "username required"})
 		return
 	}
-	if body.Action == "delete" {
-		if err := validateSafeName(body.Username, 32); err != nil {
+	if handleFtpAccountAction(w, body) {
+		return
+	}
+	username := strVal(body["username"])
+	password := strVal(body["password"])
+	homeDir := strVal(body["home_dir"])
+	action := strVal(body["action"])
+	if action == "delete" {
+		if err := validateSafeName(username, 32); err != nil {
 			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: err.Error()})
 			return
 		}
-		out, err := runArgv([]string{"pure-pw", "userdel", body.Username, "-m"}, "")
+		out, err := runArgv([]string{"pure-pw", "userdel", username, "-m"}, "")
 		if err != nil {
 			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
 			return
 		}
-		data, _ := json.Marshal(map[string]string{"output": out, "username": body.Username})
+		data, _ := json.Marshal(map[string]string{"output": out, "username": username})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 		return
 	}
-	if err := validateSafeName(body.Username, 32); err != nil {
+	if err := validateSafeName(username, 32); err != nil {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: err.Error()})
 		return
 	}
-	homeDir := body.HomeDir
 	if homeDir == "" {
-		homeDir = filepath.Join("sites", body.Username)
+		homeDir = filepath.Join("sites", username)
 	}
 	absHome, err := safeFilePath(homeDir)
 	if err != nil {
@@ -63,27 +64,30 @@ func handleFtpAccounts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = os.MkdirAll(absHome, 0o755)
-	if err := ensureFtpSystemUser(body.Username, absHome); err != nil {
+	if err := ensureFtpSystemUser(username, absHome); err != nil {
 		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
 		return
 	}
 	argv := []string{
-		"pure-pw", "useradd", body.Username,
-		"-u", body.Username,
+		"pure-pw", "useradd", username,
+		"-u", username,
 		"-d", absHome,
 		"-m",
+	}
+	if quota := intVal(body["quota_mb"]); quota > 0 {
+		argv = append(argv, "-N", strconv.Itoa(quota))
 	}
 	out, err := runArgv(argv, "")
 	if err != nil {
 		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
 		return
 	}
-	if err := setPurePwPassword(body.Username, body.Password); err != nil {
+	if err := setPurePwPassword(username, password); err != nil {
 		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
 		return
 	}
 	_, _ = runArgv([]string{"pure-pw", "mkdb"}, "")
-	data, _ := json.Marshal(map[string]string{"output": out, "username": body.Username})
+	data, _ := json.Marshal(map[string]string{"output": out, "username": username})
 	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 }
 
@@ -162,16 +166,37 @@ func handleFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Action  string `json:"action"`
-		Path    string `json:"path"`
-		Dest    string `json:"dest"`
-		Content string `json:"content"`
-		Mode    string `json:"mode"`
+		Action   string `json:"action"`
+		Path     string `json:"path"`
+		Dest     string `json:"dest"`
+		Content  string `json:"content"`
+		Mode     string `json:"mode"`
+		Query    string `json:"query"`
+		URL      string `json:"url"`
+		MaxDepth int    `json:"max_depth"`
+		MaxHits  int    `json:"max_hits"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid body"})
 		return
 	}
+
+	switch body.Action {
+	case "search", "recycle", "recycle_list", "recycle_restore", "recycle_purge", "remote_download", "versions", "restore_version":
+		pathArg := body.Path
+		if body.Action == "recycle_list" {
+			pathArg = "/"
+		}
+		out, err := handleFilesAdvanced(body.Action, pathArg, body.Dest, body.Content, body.Query, body.URL, body.MaxDepth, body.MaxHits)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(out)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return
+	}
+
 	abs, err := safeFilePath(body.Path)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: err.Error()})
@@ -195,6 +220,7 @@ func handleFiles(w http.ResponseWriter, r *http.Request) {
 		data, _ := json.Marshal(map[string]string{"content": string(b)})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 	case "write":
+		_ = saveFileVersion(abs)
 		if err := os.WriteFile(abs, []byte(body.Content), 0o644); err != nil {
 			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
 			return
@@ -209,11 +235,13 @@ func handleFiles(w http.ResponseWriter, r *http.Request) {
 		data, _ := json.Marshal(map[string]string{"path": body.Path})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 	case "delete":
-		if err := os.RemoveAll(abs); err != nil {
+		// soft-delete via recycle
+		out, err := handleFilesAdvanced("recycle", body.Path, "", "", "", "", 0, 0)
+		if err != nil {
 			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
 			return
 		}
-		data, _ := json.Marshal(map[string]string{"path": body.Path})
+		data, _ := json.Marshal(out)
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 	case "rename":
 		if body.Dest == "" {

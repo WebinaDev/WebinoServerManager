@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('panel:check-ssl-expiry')->daily();
         $schedule->command('panel:collect-hosting-usage')->hourly();
         $schedule->command('panel:check-uptime')->everyMinute();
+        $schedule->command('panel:check-cron-failures')->everyFiveMinutes();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(null);

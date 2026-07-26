@@ -3,9 +3,12 @@
 namespace Modules\Databases\Entities;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class HostingDatabase extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'hosting_databases';
 
     protected $fillable = [

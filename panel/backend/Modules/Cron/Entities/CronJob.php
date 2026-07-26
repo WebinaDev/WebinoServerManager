@@ -11,10 +11,21 @@ class CronJob extends Model
     protected $fillable = [
         'schedule',
         'command',
+        'task_type',
+        'task_config',
+        'notify_on_failure',
         'status',
         'last_error',
         'hosting_account_id',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'task_config' => 'array',
+            'notify_on_failure' => 'boolean',
+        ];
+    }
 
     public function hostingAccount(): BelongsTo
     {

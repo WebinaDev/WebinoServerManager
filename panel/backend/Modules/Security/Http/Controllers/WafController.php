@@ -26,6 +26,31 @@ class WafController extends Controller
         return response()->json($this->payload($result), ($result['ok'] ?? false) ? 200 : 422);
     }
 
+    public function sites(): JsonResponse
+    {
+        $result = $this->agent->get('/v1/security/waf/sites');
+
+        return response()->json($this->payload($result));
+    }
+
+    public function updateSite(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:128', 'regex:/^[a-zA-Z0-9_.-]+$/'],
+            'enabled' => ['required', 'boolean'],
+        ]);
+        $result = $this->agent->post('/v1/security/waf/sites', $data);
+
+        return response()->json($this->payload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
+    public function logs(): JsonResponse
+    {
+        $result = $this->agent->get('/v1/security/waf/sites?action=logs');
+
+        return response()->json($this->payload($result), ($result['ok'] ?? false) ? 200 : 422);
+    }
+
     /**
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>
@@ -33,6 +58,11 @@ class WafController extends Controller
     private function payload(array $result): array
     {
         $data = $result['data'] ?? [];
+        if (is_string($data)) {
+            $decoded = json_decode($data, true);
+
+            return is_array($decoded) ? $decoded : ['raw' => $data];
+        }
 
         return is_array($data) ? $data : [];
     }

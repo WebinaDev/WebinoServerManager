@@ -69,6 +69,24 @@ class SoftstoreServiceProvider extends ServiceProvider
                 'agent_script_id' => 'compose_up_nginx',
                 'pinable' => true,
             ],
+            [
+                'slug' => 'node-nvm',
+                'name' => 'Node.js (nvm LTS)',
+                'category' => 'runtime',
+                'description' => 'Install Node.js via nvm — see also /runtimes for project management',
+                'version_label' => 'lts',
+                'agent_script_id' => 'install_node_nvm',
+                'pinable' => true,
+            ],
+            [
+                'slug' => 'python-distro',
+                'name' => 'Python 3 (distro)',
+                'category' => 'runtime',
+                'description' => 'Install Python 3 via apt — see also /runtimes for project management',
+                'version_label' => '3',
+                'agent_script_id' => 'install_python_distro',
+                'pinable' => true,
+            ],
         ];
 
         foreach ($packages as $row) {

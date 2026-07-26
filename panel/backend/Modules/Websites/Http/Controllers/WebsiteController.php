@@ -182,6 +182,20 @@ class WebsiteController extends Controller
         ]);
     }
 
+    public function analytics(HostingWebsite $website): JsonResponse
+    {
+        $result = $this->agent->get('/v1/websites/analytics?fqdn='.urlencode($website->fqdn));
+        $payload = $result['data'] ?? [];
+        if (is_string($payload)) {
+            $payload = json_decode($payload, true) ?? [];
+        }
+
+        return response()->json(
+            is_array($payload) ? $payload : [],
+            ($result['ok'] ?? false) ? 200 : 422
+        );
+    }
+
     public function composer(Request $request, HostingWebsite $website): JsonResponse
     {
         $data = $request->validate([

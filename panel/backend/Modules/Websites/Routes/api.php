@@ -8,6 +8,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/websites/rewrite-templates', [WebsiteController::class, 'rewriteTemplates']);
     Route::get('/websites/{website}', [WebsiteController::class, 'show']);
     Route::get('/websites/{website}/logs', [WebsiteController::class, 'logs']);
+    Route::get('/websites/{website}/analytics', [WebsiteController::class, 'analytics']);
 
     Route::middleware('permission:domains.manage')->group(function () {
         Route::post('/websites', [WebsiteController::class, 'store']);

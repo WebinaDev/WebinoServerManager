@@ -300,6 +300,7 @@ export default function DatabasesPage() {
                 >
                   <option value="mysql">MySQL</option>
                   <option value="pgsql">PostgreSQL</option>
+                  <option value="redis">{t("engine_redis")}</option>
                 </select>
               </div>
               <Button type="submit" disabled={create.isPending}>

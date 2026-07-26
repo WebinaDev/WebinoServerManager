@@ -32,6 +32,8 @@ func handleDatabasesList(w http.ResponseWriter, r *http.Request) {
 	switch engine {
 	case "pgsql":
 		dbs, err = listPgsqlDatabases()
+	case "redis":
+		dbs, err = listRedisDatabases()
 	default:
 		dbs, err = listMysqlDatabasesWithSize()
 	}
@@ -65,6 +67,9 @@ func handleDatabasesPost(w http.ResponseWriter, r *http.Request) {
 	case "size":
 		handleDatabaseSize(w, body)
 	default:
+		if handleDatabaseExtraActions(w, body) {
+			return
+		}
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "unknown action"})
 	}
 }
@@ -92,6 +97,8 @@ func handleDatabaseCreate(w http.ResponseWriter, body map[string]any) {
 				pgsqlQuoteIdent(user), strings.ReplaceAll(password, "'", "''"), pgsqlQuoteIdent(name), pgsqlQuoteIdent(user))
 			_, err = runArgv([]string{"psql", "-c", sql}, "")
 		}
+	case "redis":
+		_, err = runArgv([]string{"redis-cli", "ping"}, "")
 	default:
 		sql := "CREATE DATABASE IF NOT EXISTS `" + mysqlEscapeIdent(name) + "`;"
 		if user != "" {

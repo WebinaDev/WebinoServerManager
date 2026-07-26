@@ -27,5 +27,6 @@
     "Webserver": true,
     "Websites": true,
     "Softstore": true,
-    "Wordpress": true
+    "Wordpress": true,
+    "Runtimes": true
 }

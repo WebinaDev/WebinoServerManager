@@ -131,3 +131,58 @@ UI: **Security → ClamAV** (tabs: Scan / History / Schedule).
 Audit entries are written by `LogAuditAction` middleware on mutating API calls. Login history is recorded by the auth layer on every login attempt.
 
 UI: **Security → Audit** (tabs: Audit log / Login history).
+
+---
+
+## Risk scanner (Wave 6)
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `GET` | `/api/v1/security/risks` | Runs agent checks; persists to `security_risk_checks` |
+| `POST` | `/api/v1/security/risks/fix` | `{ id }` — allowlisted one-click fix only |
+| `POST` | `/api/v1/security/risks/ignore` | `{ id }` — mark ignore in panel DB |
+
+Agent checks include: UFW active, fail2ban active, SSH PasswordAuthentication, world-writable sample under files root. UI: **Security → Risk scanner**.
+
+---
+
+## Tamper / file integrity (Wave 6)
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `GET` | `/api/v1/security/tamper` | Baseline status + watchlist |
+| `POST` | `/api/v1/security/tamper/watches` | `{ path }` under jailed roots |
+| `DELETE` | `/api/v1/security/tamper/watches/{id}` | Remove watch |
+| `POST` | `/api/v1/security/tamper/baseline` | Hash baseline via agent |
+| `POST` | `/api/v1/security/tamper/scan` | Diff vs baseline; alerts Monitoring channels |
+
+---
+
+## WAF deep (Wave 6)
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `GET` | `/api/v1/security/waf/sites` | Per-site enable markers |
+| `POST` | `/api/v1/security/waf/sites` | `{ name, enabled }` |
+| `GET` | `/api/v1/security/waf/logs` | Recent ModSecurity audit log tail |
+
+---
+
+## Disk analysis (Wave 6)
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `GET` | `/api/v1/system/disk` | Sample tree sizes (`permission:system.manage`) |
+| `POST` | `/api/v1/system/disk/cleanup` | `{ path }` — only allowlisted tmp/cache paths |
+
+UI: **System → Disk analysis** (`/system/disk`).
+
+---
+
+## Site analytics start (Wave 6)
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `GET` | `/api/v1/websites/{id}/analytics` | Light access-log status counts for the site FQDN |
+
+UI: Website detail → **Analytics** tab.

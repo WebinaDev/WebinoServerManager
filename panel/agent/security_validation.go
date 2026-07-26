@@ -243,6 +243,9 @@ func validateCronCommand(command string) error {
 		return fmt.Errorf("command required")
 	}
 	bin := strings.ToLower(filepath.Base(fields[0]))
+	if strings.HasPrefix(fields[0], "/usr/local/lib/webino/cron-") {
+		return nil
+	}
 	for _, denied := range cronDeniedBinaries {
 		if bin == denied {
 			return fmt.Errorf("command binary not allowed")

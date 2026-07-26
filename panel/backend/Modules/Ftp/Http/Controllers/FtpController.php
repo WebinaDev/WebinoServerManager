@@ -19,6 +19,17 @@ class FtpController extends Controller
         ]);
     }
 
+    public function serviceInfo(): JsonResponse
+    {
+        $result = $this->agent->get('/v1/ftp/service');
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('ftp.service_info_failed')], 422);
+        }
+
+        return response()->json(['service' => $this->agentPayload($result)]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -26,21 +37,29 @@ class FtpController extends Controller
             'password' => ['required', 'string', 'min:8'],
             'home_dir' => ['required', 'string', 'max:512'],
             'domain' => ['nullable', 'string', 'max:253'],
+            'quota_mb' => ['nullable', 'integer', 'min:0', 'max:1048576'],
         ]);
 
         $account = FtpAccount::query()->create([
             'username' => $data['username'],
             'home_dir' => $data['home_dir'],
             'domain' => $data['domain'] ?? null,
+            'quota_mb' => $data['quota_mb'] ?? null,
+            'enabled' => true,
             'status' => 'pending',
         ]);
 
-        $result = $this->agent->post('/v1/ftp/accounts', [
+        $payload = [
             'username' => $account->username,
             'password' => $data['password'],
             'home_dir' => $account->home_dir,
             'action' => 'create',
-        ]);
+        ];
+        if ($account->quota_mb !== null) {
+            $payload['quota_mb'] = $account->quota_mb;
+        }
+
+        $result = $this->agent->post('/v1/ftp/accounts', $payload);
 
         if (! ($result['ok'] ?? false)) {
             $account->update(['status' => 'error', 'last_error' => $result['error'] ?? 'agent error']);
@@ -53,6 +72,50 @@ class FtpController extends Controller
         return response()->json(['account' => $account->fresh(), 'agent' => $result], 201);
     }
 
+    public function updateQuota(Request $request, FtpAccount $account): JsonResponse
+    {
+        $data = $request->validate([
+            'quota_mb' => ['required', 'integer', 'min:0', 'max:1048576'],
+        ]);
+
+        $result = $this->agent->post('/v1/ftp/accounts', [
+            'username' => $account->username,
+            'action' => 'set_quota',
+            'quota_mb' => $data['quota_mb'],
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('ftp.quota_failed')], 422);
+        }
+
+        $account->update(['quota_mb' => $data['quota_mb']]);
+
+        return response()->json(['account' => $account->fresh(), 'message' => __('ftp.quota_updated')]);
+    }
+
+    public function setEnabled(Request $request, FtpAccount $account): JsonResponse
+    {
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ]);
+
+        $result = $this->agent->post('/v1/ftp/accounts', [
+            'username' => $account->username,
+            'action' => $data['enabled'] ? 'enable' : 'disable',
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('ftp.enable_failed')], 422);
+        }
+
+        $account->update(['enabled' => $data['enabled']]);
+
+        return response()->json([
+            'account' => $account->fresh(),
+            'message' => $data['enabled'] ? __('ftp.enabled') : __('ftp.disabled'),
+        ]);
+    }
+
     public function destroy(FtpAccount $account): JsonResponse
     {
         $this->agent->post('/v1/ftp/accounts', [
@@ -62,5 +125,21 @@ class FtpController extends Controller
         $account->delete();
 
         return response()->json(['message' => __('ftp.deleted')]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function agentPayload(array $result): array
+    {
+        $data = $result['data'] ?? [];
+        if (is_string($data)) {
+            $decoded = json_decode($data, true);
+
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return is_array($data) ? $data : [];
     }
 }

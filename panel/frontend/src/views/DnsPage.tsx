@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { DataTable, type DataTableColumn } from "@/components/data-table"
@@ -54,6 +54,42 @@ export default function DnsPage() {
   const [recordType, setRecordType] = useState<string>("A")
   const [editingRecord, setEditingRecord] = useState<DnsRecord | null>(null)
   const [ptrIp, setPtrIp] = useState("")
+  const [cfToken, setCfToken] = useState("")
+  const [cfZoneId, setCfZoneId] = useState("")
+  const [cfEnabled, setCfEnabled] = useState(false)
+
+  const { data: cfData } = useQuery({
+    queryKey: ["dns-cloudflare"],
+    queryFn: () =>
+      api<{ provider: { default_zone_id?: string; enabled?: boolean; has_token?: boolean } | null }>(
+        "/api/v1/dns/providers/cloudflare",
+      ),
+  })
+
+  useEffect(() => {
+    const p = cfData?.provider
+    if (!p) return
+    setCfZoneId(p.default_zone_id ?? "")
+    setCfEnabled(!!p.enabled)
+  }, [cfData])
+
+  const saveCloudflare = useMutation({
+    mutationFn: () =>
+      api("/api/v1/dns/providers/cloudflare", {
+        method: "PATCH",
+        json: {
+          api_token: cfToken || undefined,
+          default_zone_id: cfZoneId || null,
+          enabled: cfEnabled,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(t("cloudflare_save"))
+      setCfToken("")
+      qc.invalidateQueries({ queryKey: ["dns-cloudflare"] })
+    },
+    onError: toastMutationError,
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ["dns-zones"],
@@ -267,6 +303,40 @@ export default function DnsPage() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("cloudflare_title")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2">
+          <p className="text-muted-foreground text-sm md:col-span-2">{t("cloudflare_desc")}</p>
+          <RequireRouteWrite>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="cf_token">{t("cloudflare_token")}</Label>
+              <Input
+                id="cf_token"
+                type="password"
+                value={cfToken}
+                onChange={(e) => setCfToken(e.target.value)}
+                placeholder={cfData?.provider?.has_token ? "••••••••" : ""}
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cf_zone">{t("cloudflare_zone_id")}</Label>
+              <Input id="cf_zone" value={cfZoneId} onChange={(e) => setCfZoneId(e.target.value)} dir="ltr" />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={cfEnabled} onChange={(e) => setCfEnabled(e.target.checked)} />
+              {t("cloudflare_enabled")}
+            </label>
+            <div className="flex items-end">
+              <Button type="button" onClick={() => saveCloudflare.mutate()} disabled={saveCloudflare.isPending}>
+                {t("cloudflare_save")}
+              </Button>
+            </div>
+          </RequireRouteWrite>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>{t("title")}</CardTitle>

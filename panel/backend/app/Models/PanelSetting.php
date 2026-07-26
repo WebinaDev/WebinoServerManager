@@ -6,32 +6,49 @@ use Illuminate\Database\Eloquent\Model;
 
 class PanelSetting extends Model
 {
-    protected $table = 'panel_settings';
+    public $incrementing = false;
 
     protected $primaryKey = 'key';
 
-    public $incrementing = false;
-
     protected $keyType = 'string';
 
-    protected $fillable = ['key', 'value'];
+    protected $fillable = [
+        'key',
+        'value',
+        'value_encrypted',
+    ];
 
-    public static function get(string $key, mixed $default = null): mixed
+    public static function getValue(string $key, ?string $default = null): ?string
     {
         $row = static::query()->find($key);
 
-        if ($row === null || $row->value === null) {
-            return $default;
-        }
-
-        return $row->value;
+        return $row?->value ?? $default;
     }
 
-    public static function set(string $key, mixed $value): void
+    public static function getEncrypted(string $key): ?string
+    {
+        $row = static::query()->find($key);
+        if ($row === null || $row->value_encrypted === null) {
+            return null;
+        }
+
+        try {
+            return decrypt($row->value_encrypted);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public static function setValue(string $key, ?string $value): void
+    {
+        static::query()->updateOrCreate(['key' => $key], ['value' => $value]);
+    }
+
+    public static function setEncrypted(string $key, ?string $value): void
     {
         static::query()->updateOrCreate(
             ['key' => $key],
-            ['value' => is_bool($value) ? ($value ? '1' : '0') : (string) $value],
+            ['value_encrypted' => $value !== null && $value !== '' ? encrypt($value) : null],
         );
     }
 }

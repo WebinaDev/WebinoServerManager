@@ -3,6 +3,7 @@
 namespace Modules\Databases\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\PanelSetting;
 use App\Services\Agent\AgentClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,8 +25,9 @@ class DatabaseController extends Controller
 
         $agentMysql = $this->agent->get('/v1/databases?engine=mysql');
         $agentPgsql = $this->agent->get('/v1/databases?engine=pgsql');
+        $agentRedis = $this->agent->get('/v1/databases?engine=redis');
 
-        foreach ([$agentMysql, $agentPgsql] as $agentResult) {
+        foreach ([$agentMysql, $agentPgsql, $agentRedis] as $agentResult) {
             if (! ($agentResult['ok'] ?? false)) {
                 continue;
             }
@@ -49,11 +51,45 @@ class DatabaseController extends Controller
         ]);
     }
 
+    public function recycleIndex(): JsonResponse
+    {
+        return response()->json([
+            'databases' => HostingDatabase::onlyTrashed()->orderByDesc('deleted_at')->get(),
+        ]);
+    }
+
+    public function rootPasswordStatus(): JsonResponse
+    {
+        return response()->json([
+            'configured' => PanelSetting::getEncrypted('mysql_root_password') !== null,
+        ]);
+    }
+
+    public function updateRootPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:12', 'max:128'],
+        ]);
+
+        $result = $this->agent->post('/v1/databases', [
+            'action' => 'set_root_password',
+            'password' => $data['password'],
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('databases.root_password_failed')], 422);
+        }
+
+        PanelSetting::setEncrypted('mysql_root_password', $data['password']);
+
+        return response()->json(['message' => __('databases.root_password_updated')]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_]+$/'],
-            'engine' => ['nullable', 'in:mysql,pgsql'],
+            'engine' => ['nullable', 'in:mysql,pgsql,redis'],
             'create_user' => ['boolean'],
             'hosting_account_id' => ['nullable', 'exists:hosting_accounts,id'],
         ]);
@@ -97,7 +133,7 @@ class DatabaseController extends Controller
         }
 
         $agentData = $this->agentPayload($result);
-        $size = $this->fetchSize($record->name, $engine);
+        $size = $engine === 'redis' ? 0 : $this->fetchSize($record->name, $engine);
 
         $record->update([
             'status' => 'active',
@@ -115,6 +151,23 @@ class DatabaseController extends Controller
 
     public function destroy(HostingDatabase $database): JsonResponse
     {
+        $database->delete();
+
+        return response()->json(['message' => __('databases.recycled')]);
+    }
+
+    public function restoreRecycle(int $databaseId): JsonResponse
+    {
+        $database = HostingDatabase::onlyTrashed()->findOrFail($databaseId);
+        $database->restore();
+
+        return response()->json(['database' => $database->fresh(), 'message' => __('databases.restored')]);
+    }
+
+    public function purgeRecycle(int $databaseId): JsonResponse
+    {
+        $database = HostingDatabase::onlyTrashed()->findOrFail($databaseId);
+
         if ($database->db_user) {
             $this->agent->post('/v1/databases/users', [
                 'action' => 'drop_user',
@@ -133,9 +186,59 @@ class DatabaseController extends Controller
             return response()->json(['message' => $result['error'] ?? __('databases.delete_failed')], 422);
         }
 
-        $database->delete();
+        $database->forceDelete();
 
-        return response()->json(['message' => __('databases.deleted')]);
+        return response()->json(['message' => __('databases.purged')]);
+    }
+
+    public function repair(HostingDatabase $database): JsonResponse
+    {
+        $result = $this->agent->post('/v1/databases', [
+            'action' => 'repair',
+            'name' => $database->name,
+            'engine' => $database->engine ?? 'mysql',
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('databases.repair_failed')], 422);
+        }
+
+        return response()->json(['message' => __('databases.repair_started'), 'agent' => $this->agentPayload($result)]);
+    }
+
+    public function optimize(HostingDatabase $database): JsonResponse
+    {
+        $result = $this->agent->post('/v1/databases', [
+            'action' => 'optimize',
+            'name' => $database->name,
+            'engine' => $database->engine ?? 'mysql',
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('databases.optimize_failed')], 422);
+        }
+
+        return response()->json(['message' => __('databases.optimize_started'), 'agent' => $this->agentPayload($result)]);
+    }
+
+    public function changeEngine(Request $request, HostingDatabase $database): JsonResponse
+    {
+        $data = $request->validate([
+            'engine' => ['required', 'in:InnoDB,MyISAM'],
+        ]);
+
+        $result = $this->agent->post('/v1/databases', [
+            'action' => 'set_engine',
+            'name' => $database->name,
+            'storage_engine' => $data['engine'],
+            'engine' => $database->engine ?? 'mysql',
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('databases.engine_failed')], 422);
+        }
+
+        return response()->json(['message' => __('databases.engine_updated'), 'agent' => $this->agentPayload($result)]);
     }
 
     public function export(HostingDatabase $database): JsonResponse

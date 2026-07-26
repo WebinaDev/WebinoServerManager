@@ -10,7 +10,17 @@ class FtpAccount extends Model
         'username',
         'home_dir',
         'domain',
+        'quota_mb',
+        'enabled',
         'status',
         'last_error',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'quota_mb' => 'integer',
+            'enabled' => 'boolean',
+        ];
+    }
 }

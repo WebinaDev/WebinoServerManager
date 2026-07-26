@@ -32,6 +32,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/email/autoresponders', [AutoresponderController::class, 'store']);
         Route::delete('/email/autoresponders/{autoresponder}', [AutoresponderController::class, 'destroy']);
         Route::post('/email/lists', [MailingListController::class, 'store']);
+        Route::patch('/email/lists/{list}', [MailingListController::class, 'update']);
+        Route::post('/email/lists/{list}/members', [MailingListController::class, 'addMember']);
+        Route::delete('/email/lists/{list}/members', [MailingListController::class, 'removeMember']);
         Route::delete('/email/lists/{list}', [MailingListController::class, 'destroy']);
         Route::post('/email/queue/flush', [MailQueueController::class, 'flush']);
         Route::delete('/email/queue', [MailQueueController::class, 'destroy']);

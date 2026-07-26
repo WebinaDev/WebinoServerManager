@@ -11,12 +11,16 @@ import (
 
 // Allowlisted Softstore install scripts — no user-supplied shell.
 var softstoreScriptIDs = map[string]bool{
-	"install_redis":     true,
-	"install_memcached": true,
-	"ensure_composer":   true,
-	"cms_composer_stub": true,
-	"compose_up_redis":  true,
-	"compose_up_nginx":  true,
+	"install_redis":           true,
+	"install_memcached":       true,
+	"ensure_composer":         true,
+	"cms_composer_stub":       true,
+	"compose_up_redis":        true,
+	"compose_up_nginx":        true,
+	"install_node_nvm":        true,
+	"install_node_nodesource": true,
+	"install_python_distro":   true,
+	"install_go_distro":         true,
 }
 
 func handleSoftstoreStatus(w http.ResponseWriter, r *http.Request) {
@@ -144,6 +148,8 @@ func runSoftstoreScript(scriptID string, options map[string]any) (string, error)
 		return runSoftstoreComposeUp("compose_up_redis", "softstore-redis")
 	case "compose_up_nginx":
 		return runSoftstoreComposeUp("compose_up_nginx", "softstore-nginx")
+	case "install_node_nvm", "install_node_nodesource", "install_python_distro", "install_go_distro":
+		return runRuntimesInstallScript(scriptID)
 	default:
 		return "", errSoftstore("unknown script")
 	}

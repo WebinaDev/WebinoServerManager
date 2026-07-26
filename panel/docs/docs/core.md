@@ -15,7 +15,11 @@ Setup, authentication, navigation, dashboard, API tokens, 2FA, and terminal tick
 
 ## Dashboard
 
-`GET /api/v1/dashboard/summary` returns KPI counts: `domains`, `databases`, `sites` (agent registry), `hosting_accounts`, `hosting_suspended`, plus `system_status` and latest CPU/mem/disk samples.
+`GET /api/v1/dashboard/summary` returns KPI counts (`domains`, `databases`, `sites`, `hosting_accounts`, `hosting_suspended`), `system_status`, CPU/mem/disk samples, NIC/Disk IO rates, `top_processes`, Softstore pins/recent installs, and a lightweight `security_risk` widget (firewall / fail2ban / ClamAV signals).
+
+## Metrics history
+
+`GET /api/v1/metrics/history` includes `net_rx_bps`, `net_tx_bps`, `disk_read_bps`, `disk_write_bps` when collected.
 
 ## Navigation
 

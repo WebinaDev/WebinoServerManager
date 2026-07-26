@@ -98,17 +98,25 @@ func handleWordpress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Action      string `json:"action"`
-		Domain      string `json:"domain"`
-		Path        string `json:"path"`
-		Title       string `json:"title"`
-		AdminUser   string `json:"admin_user"`
-		AdminPass   string `json:"admin_password"`
-		AdminEmail  string `json:"admin_email"`
-		DbName      string `json:"db_name"`
-		DbUser      string `json:"db_user"`
-		DbPassword  string `json:"db_password"`
-		DbHost      string `json:"db_host"`
+		Action         string `json:"action"`
+		Domain         string `json:"domain"`
+		Path           string `json:"path"`
+		SourcePath     string `json:"source_path"`
+		TargetPath     string `json:"target_path"`
+		OldURL         string `json:"old_url"`
+		NewURL         string `json:"new_url"`
+		StagingDomain  string `json:"staging_domain"`
+		ThemeSlug      string `json:"theme_slug"`
+		PluginSlug     string `json:"plugin_slug"`
+		All            bool   `json:"all"`
+		Title          string `json:"title"`
+		AdminUser      string `json:"admin_user"`
+		AdminPass      string `json:"admin_password"`
+		AdminEmail     string `json:"admin_email"`
+		DbName         string `json:"db_name"`
+		DbUser         string `json:"db_user"`
+		DbPassword     string `json:"db_password"`
+		DbHost         string `json:"db_host"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid body"})
@@ -172,6 +180,86 @@ func handleWordpress(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data, _ := json.Marshal(map[string]string{"deleted": body.Path})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "clone":
+		source := body.SourcePath
+		if source == "" {
+			source = body.Path
+		}
+		if body.TargetPath == "" {
+			writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "target_path required"})
+			return
+		}
+		result, err := wordpressClone(source, body.TargetPath)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(result)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "migrate":
+		result, err := wordpressMigrate(body.Path, body.OldURL, body.NewURL)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(result)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "staging":
+		source := body.SourcePath
+		if source == "" {
+			source = body.Path
+		}
+		target := body.TargetPath
+		if target == "" {
+			target = strings.TrimSuffix(source, "/") + "-staging"
+		}
+		result, err := wordpressStaging(source, target, body.StagingDomain)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(result)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "themes_list":
+		raw, err := wordpressThemesList(sitePath)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(map[string]any{"themes": json.RawMessage(raw)})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "themes_update":
+		result, err := wordpressThemesUpdate(sitePath, body.ThemeSlug, body.All)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(result)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "plugins_list":
+		raw, err := wordpressPluginsList(sitePath)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(map[string]any{"plugins": json.RawMessage(raw)})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "plugins_update":
+		result, err := wordpressPluginsUpdate(sitePath, body.PluginSlug, body.All)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(result)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "integrity":
+		result, err := wordpressIntegrity(sitePath)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(result)
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 	default:
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "unknown action"})

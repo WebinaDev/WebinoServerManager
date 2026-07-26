@@ -172,6 +172,19 @@ func handleMailLists(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 		return
 	}
+	if body.Action == "update" {
+		_ = removeMapLineByPrefix(virtual, strings.ToLower(body.Source)+" ")
+		if len(body.Destinations) > 0 {
+			if err := appendMapLine(virtual, line); err != nil {
+				writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+				return
+			}
+		}
+		_ = postmapReload(virtual)
+		data, _ := json.Marshal(map[string]string{"source": body.Source, "updated": "true"})
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return
+	}
 	if len(body.Destinations) == 0 {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "destinations required"})
 		return

@@ -32,8 +32,10 @@ class NavigationController extends Controller
                 'label_key' => 'section_security',
                 'items' => [
                     ['slug' => 'security-2fa', 'path' => '/security/2fa', 'label_key' => 'security_2fa'],
+                    ['slug' => 'security-risks', 'path' => '/security/risks', 'label_key' => 'security_risks', 'permission' => 'security.manage'],
                     ['slug' => 'security-firewall', 'path' => '/security/firewall', 'label_key' => 'security_firewall', 'permission' => 'security.manage'],
                     ['slug' => 'security-waf', 'path' => '/security/waf', 'label_key' => 'security_waf', 'permission' => 'security.manage'],
+                    ['slug' => 'security-tamper', 'path' => '/security/tamper', 'label_key' => 'security_tamper', 'permission' => 'security.manage'],
                     ['slug' => 'security-fail2ban', 'path' => '/security/fail2ban', 'label_key' => 'security_fail2ban', 'permission' => 'security.manage'],
                     ['slug' => 'security-sshkeys', 'path' => '/security/sshkeys', 'label_key' => 'security_sshkeys', 'permission' => 'security.manage'],
                     ['slug' => 'security-clamav', 'path' => '/security/clamav', 'label_key' => 'security_clamav', 'permission' => 'security.manage'],
@@ -63,6 +65,7 @@ class NavigationController extends Controller
                     ['slug' => 'webserver-vhosts', 'path' => '/webserver/vhosts', 'label_key' => 'webserver_vhosts', 'permission' => 'system.manage'],
                     ['slug' => 'apps', 'path' => '/apps', 'label_key' => 'apps', 'permission' => 'apps.manage'],
                     ['slug' => 'softstore', 'path' => '/softstore', 'label_key' => 'softstore'],
+                    ['slug' => 'runtimes', 'path' => '/runtimes', 'label_key' => 'runtimes'],
                 ],
             ],
             [
@@ -83,6 +86,7 @@ class NavigationController extends Controller
                     ['slug' => 'api-tokens', 'path' => '/api-tokens', 'label_key' => 'api_tokens'],
                     ['slug' => 'webhooks', 'path' => '/webhooks', 'label_key' => 'webhooks', 'permission' => 'webhooks.manage'],
                     ['slug' => 'profile', 'path' => '/profile', 'label_key' => 'profile'],
+                    ['slug' => 'settings', 'path' => '/settings', 'label_key' => 'settings'],
                 ],
             ],
             [
@@ -109,6 +113,7 @@ class NavigationController extends Controller
                     ['slug' => 'cron', 'path' => '/cron', 'label_key' => 'cron'],
                     ['slug' => 'backups', 'path' => '/backups', 'label_key' => 'backups'],
                     ['slug' => 'system-info', 'path' => '/system-info', 'label_key' => 'system_info'],
+                    ['slug' => 'system-disk', 'path' => '/system/disk', 'label_key' => 'system_disk', 'permission' => 'system.manage'],
                     ['slug' => 'metrics-alerts', 'path' => '/metrics-alerts', 'label_key' => 'metrics_alerts'],
                 ],
             ],
