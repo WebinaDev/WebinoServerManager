@@ -11,29 +11,49 @@ wait_for_db() {
   local db="${DB_DATABASE:-webinoserver}"
   local max=60
   local i=0
+  local err=""
 
-  echo "[entrypoint] Waiting for database at ${host}:${port}..."
+  export DB_HOST="$host" DB_PORT="$port" DB_USERNAME="$user" DB_PASSWORD="$pass" DB_DATABASE="$db"
+
+  echo "[entrypoint] Waiting for database at ${host}:${port} (user=${user}, db=${db})..."
   while [[ $i -lt $max ]]; do
-    if php -r "
-      try {
-        new PDO(
-          'mysql:host=${host};port=${port};dbname=${db}',
-          '${user}',
-          '${pass}',
-          [PDO::ATTR_TIMEOUT => 2]
-        );
-        exit(0);
-      } catch (Throwable \$e) {
-        exit(1);
-      }
-    "; then
+    err=$(
+      php -r '
+        $host = getenv("DB_HOST");
+        $port = getenv("DB_PORT") ?: "3306";
+        $user = getenv("DB_USERNAME");
+        $pass = getenv("DB_PASSWORD");
+        $db = getenv("DB_DATABASE");
+        try {
+          new PDO(
+            "mysql:host={$host};port={$port};dbname={$db}",
+            $user,
+            $pass,
+            [PDO::ATTR_TIMEOUT => 2, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+          );
+          exit(0);
+        } catch (Throwable $e) {
+          fwrite(STDERR, $e->getMessage());
+          exit(1);
+        }
+      ' 2>&1
+    ) && {
       echo "[entrypoint] Database is ready."
       return 0
-    fi
+    }
     i=$((i + 1))
+    if [[ $((i % 10)) -eq 0 || $i -eq 1 ]]; then
+      echo "[entrypoint] DB not ready yet (${i}/${max}): ${err}" >&2
+    fi
     sleep 2
   done
   echo "[entrypoint] Database not ready after ${max} attempts." >&2
+  echo "[entrypoint] Last error: ${err}" >&2
+  if echo "$err" | grep -qiE 'access denied|using password'; then
+    echo "[entrypoint] Hint: MariaDB volume may have been initialized with a different password than panel/backend .env." >&2
+    echo "[entrypoint] Fix (destroys panel DB data): docker compose --env-file panel/.env -f panel/docker-compose.panel.yml down && docker volume rm panel_panel_db_data && ./install.sh --panel" >&2
+    echo "[entrypoint] Or: WEBINO_PANEL_RESET_DB=1 ./install.sh --panel" >&2
+  fi
   exit 1
 }
 
@@ -51,8 +71,8 @@ if [[ ! -f vendor/autoload.php ]]; then
 fi
 
 if [[ "${RUN_MIGRATIONS:-1}" == "1" ]]; then
-  if ! grep -q '^APP_KEY=base64:' .env 2>/dev/null; then
-    if [[ -z "${APP_KEY:-}" ]] || [[ "${APP_KEY}" == "" ]]; then
+  if [[ ! -f .env ]] || ! grep -q '^APP_KEY=base64:' .env 2>/dev/null; then
+    if [[ -z "${APP_KEY:-}" || "${APP_KEY}" == "" ]]; then
       echo "[entrypoint] Generating APP_KEY..."
       php artisan key:generate --force --no-interaction
     fi

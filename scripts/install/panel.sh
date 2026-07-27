@@ -28,6 +28,22 @@ ensure_panel_secrets() {
   generate_panel_secrets "${PANEL}" 0
 }
 
+# When WEBINO_PANEL_RESET_DB=1, drop the MariaDB volume so MYSQL_* passwords from .env re-apply.
+panel_maybe_reset_db_volume() {
+  if [[ "${WEBINO_PANEL_RESET_DB:-0}" != "1" ]]; then
+    return 0
+  fi
+  log "WEBINO_PANEL_RESET_DB=1 — wiping panel MariaDB volume (panel metadata DB will be empty)..."
+  webina_compose -f "$COMPOSE" --env-file "${PANEL_ENV}" down -v 2>/dev/null || true
+  # Also remove by common project/volume names if compose project dir differs
+  local vol
+  for vol in panel_panel_db_data webinoservermanager_panel_db_data panel_db_data; do
+    if docker volume inspect "$vol" >/dev/null 2>&1; then
+      docker volume rm "$vol" && log "Removed leftover volume ${vol}" || true
+    fi
+  done
+}
+
 ensure_panel_runtime_dirs() {
   local backend="${PANEL}/backend"
   mkdir -p \
@@ -100,6 +116,7 @@ panel_up() {
   ensure_system_deps
   have docker || die "Docker required for web panel"
   ensure_panel_secrets
+  panel_maybe_reset_db_volume
   ensure_panel_runtime_dirs
   ensure_panel_embed_mounts
   ensure_platform_network
@@ -124,7 +141,16 @@ panel_up() {
       die "Panel compose failed — try: WEBINA_DOCKER_BUILD_NETWORK=host WEBINA_DOCKER_BUILD_RETRY_HOST=1 ./install.sh --panel"
     fi
   fi
-  wait_for_panel_api "$COMPOSE" "$PANEL_ENV" 120 || die "Panel API did not become ready — check: docker logs webinoserver-backend --tail 100"
+  wait_for_panel_api "$COMPOSE" "$PANEL_ENV" 120 || die "Panel API did not become ready — check: docker logs webinoserver-backend --tail 100
+
+If backend loops on 'Waiting for database at db:3306' / Access denied:
+  MariaDB volume was likely initialized with an older password than panel/.env.
+  Wipe panel DB and reinstall:
+    WEBINO_PANEL_RESET_DB=1 ./install.sh --panel
+  Or manually:
+    docker compose --env-file panel/.env -f panel/docker-compose.panel.yml down
+    docker volume rm panel_panel_db_data
+    ./install.sh --panel"
   local ip port
   ip=$(panel_detect_ip)
   port="${PANEL_HTTP_PORT:-2090}"
