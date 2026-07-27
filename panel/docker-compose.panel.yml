@@ -48,14 +48,19 @@ services:
       retries: 12
       start_period: 30s
     networks:
-      - webino_panel
+      webino_panel:
+        # Legacy hostname from older .env.example (DB_HOST=panel-db)
+        aliases:
+          - panel-db
 
   redis:
     image: ${PANEL_REDIS_IMAGE:-redis:7-alpine}
     container_name: webinoserver-redis
     restart: unless-stopped
     networks:
-      - webino_panel
+      webino_panel:
+        aliases:
+          - panel-redis
 
   backend:
     build: *panel-php-build
@@ -65,6 +70,8 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      # Compose service DNS names (override stale panel-db / panel-redis in backend/.env)
+      DB_HOST: db
       REDIS_HOST: redis
       WEBINO_BACKUP_DIR: /var/backups/webino
     volumes: *panel-php-volumes
@@ -221,6 +228,7 @@ services:
       - ./backend/.env
     environment:
       RUN_MIGRATIONS: "0"
+      DB_HOST: db
       REDIS_HOST: redis
       WEBINO_BACKUP_DIR: /var/backups/webino
     volumes: *panel-php-volumes
@@ -245,6 +253,7 @@ services:
       - ./backend/.env
     environment:
       RUN_MIGRATIONS: "0"
+      DB_HOST: db
       REDIS_HOST: redis
       WEBINO_BACKUP_DIR: /var/backups/webino
     volumes: *panel-php-volumes

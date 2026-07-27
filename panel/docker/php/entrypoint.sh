@@ -4,7 +4,7 @@ set -euo pipefail
 cd /var/www/html
 
 wait_for_db() {
-  local host="${DB_HOST:-panel-db}"
+  local host="${DB_HOST:-db}"
   local port="${DB_PORT:-3306}"
   local user="${DB_USERNAME:-webinoserver}"
   local pass="${DB_PASSWORD:-webinoserver}"

@@ -108,6 +108,10 @@ generate_panel_secrets() {
     patch_env "${backend_env}" "APP_DEBUG" "true"
   fi
 
+  # Compose service DNS names (not legacy panel-db / panel-redis aliases)
+  patch_env "${backend_env}" "DB_HOST" "db"
+  patch_env "${backend_env}" "REDIS_HOST" "redis"
+
   panel_validate_token_sync "${panel_env}" "${backend_env}"
   panel_configure_urls "${backend_env}"
 

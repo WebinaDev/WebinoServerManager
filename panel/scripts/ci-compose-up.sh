@@ -18,6 +18,6 @@ docker network inspect webino_platform >/dev/null 2>&1 || docker network create 
 generate_panel_secrets "${PANEL_DIR}" 1
 
 webina_compose --env-file "${PANEL_ENV}" -f "${COMPOSE_FILE}" up -d --build \
-  panel-db panel-redis backend agent frontend
+  db redis backend agent frontend
 
 wait_for_panel_api "${COMPOSE_FILE}" "${PANEL_ENV}" 60 || exit 1
