@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useState, type ReactNode } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import { AccentBarChart } from "@/components/charts/AccentCharts"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,6 +14,8 @@ import { Label } from "@/components/ui/label"
 import { RequireRouteWrite } from "@/hooks/usePermissions"
 import { api } from "@/lib/api"
 import { toast, toastMutationError } from "@/lib/toast"
+
+type AuthEntry = { path: string; user: string; updated_at?: string }
 
 type Website = {
   id: number
@@ -31,6 +34,7 @@ type Website = {
   rewrite_template: string
   rewrite_custom: string | null
   deny_paths: string[] | null
+  auth_entries?: AuthEntry[] | null
   traffic_limit_mb: number | null
   proxy_pass: string | null
   vhost_id: number | null
@@ -57,6 +61,8 @@ export default function WebsiteDetailPage() {
   const [htPath, setHtPath] = useState("/")
   const [logType, setLogType] = useState<"access" | "error">("access")
   const [logContent, setLogContent] = useState("")
+  const [logFilter, setLogFilter] = useState("")
+  const [composerLog, setComposerLog] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ["website", id],
@@ -71,6 +77,15 @@ export default function WebsiteDetailPage() {
   const website = data?.website
   const [draft, setDraft] = useState<Partial<Website> | null>(null)
   const form = draft ?? website
+
+  const filteredLog = useMemo(() => {
+    if (!logFilter.trim()) return logContent
+    const q = logFilter.toLowerCase()
+    return logContent
+      .split("\n")
+      .filter((line) => line.toLowerCase().includes(q))
+      .join("\n")
+  }, [logContent, logFilter])
 
   const save = useMutation({
     mutationFn: () => {
@@ -117,14 +132,32 @@ export default function WebsiteDetailPage() {
           path: htPath || "/",
         }),
       }),
-    onSuccess: () => toast.success(t("set_htpasswd")),
+    onSuccess: () => {
+      toast.success(t("set_htpasswd"))
+      setHtUser("")
+      setHtPass("")
+      void qc.invalidateQueries({ queryKey: ["website", id] })
+    },
+    onError: toastMutationError,
+  })
+
+  const removeHtpasswd = useMutation({
+    mutationFn: (path: string) =>
+      api(`/api/v1/websites/${id}/htpasswd`, {
+        method: "DELETE",
+        body: JSON.stringify({ path }),
+      }),
+    onSuccess: () => {
+      toast.success(t("delete_htpasswd"))
+      void qc.invalidateQueries({ queryKey: ["website", id] })
+    },
     onError: toastMutationError,
   })
 
   const loadLogs = useMutation({
     mutationFn: () =>
       api<{ content: string }>(
-        `/api/v1/websites/${id}/logs?type=${logType}&lines=200`,
+        `/api/v1/websites/${id}/logs?type=${logType}&lines=500`,
       ),
     onSuccess: (res) => setLogContent(res.content || ""),
     onError: toastMutationError,
@@ -132,11 +165,24 @@ export default function WebsiteDetailPage() {
 
   const composer = useMutation({
     mutationFn: (command: "install" | "update") =>
-      api(`/api/v1/websites/${id}/composer`, {
-        method: "POST",
-        body: JSON.stringify({ command }),
-      }),
-    onSuccess: () => toast.success(t("run_composer")),
+      api<{ message?: string; agent?: { data?: unknown } }>(
+        `/api/v1/websites/${id}/composer`,
+        {
+          method: "POST",
+          body: JSON.stringify({ command }),
+        },
+      ),
+    onSuccess: (res, command) => {
+      toast.success(t("run_composer"))
+      const raw = res.agent?.data
+      const detail =
+        typeof raw === "string"
+          ? raw
+          : raw
+            ? JSON.stringify(raw)
+            : res.message ?? command
+      setComposerLog(`${command}: ${detail}`)
+    },
     onError: toastMutationError,
   })
 
@@ -147,6 +193,8 @@ export default function WebsiteDetailPage() {
   const setField = <K extends keyof Website>(key: K, value: Website[K]) => {
     setDraft({ ...(draft ?? website!), [key]: value })
   }
+
+  const authEntries = form.auth_entries ?? website?.auth_entries ?? []
 
   return (
     <div className="space-y-4">
@@ -219,11 +267,38 @@ export default function WebsiteDetailPage() {
                 }
               />
             </Field>
-            <Field label={t("field_php_pool")}>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label={t("field_php_pool")}>
+                <Input
+                  value={form.php_pool ?? ""}
+                  onChange={(e) => setField("php_pool", e.target.value || null)}
+                />
+              </Field>
+              <Field label={t("field_php_version")}>
+                <Input
+                  value={form.php_version ?? ""}
+                  onChange={(e) => setField("php_version", e.target.value || null)}
+                  placeholder="8.3"
+                  dir="ltr"
+                />
+              </Field>
+            </div>
+            <Field label={t("proxy_pass")}>
               <Input
-                value={form.php_pool ?? ""}
-                onChange={(e) => setField("php_pool", e.target.value || null)}
+                value={form.proxy_pass ?? ""}
+                onChange={(e) => setField("proxy_pass", e.target.value || null)}
+                placeholder="http://127.0.0.1:3000"
+                dir="ltr"
               />
+              <p className="text-muted-foreground text-xs">{t("proxy_pass_hint")}</p>
+              {form.vhost_id ? (
+                <Link
+                  href={`/webserver/vhosts/${form.vhost_id}`}
+                  className="text-primary text-xs hover:underline"
+                >
+                  {t("advanced_vhost")}
+                </Link>
+              ) : null}
             </Field>
             <Field label={t("field_engine")}>
               <select
@@ -334,7 +409,36 @@ export default function WebsiteDetailPage() {
           <CardHeader>
             <CardTitle>{t("protection")}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
+            <div>
+              <p className="mb-2 text-sm font-medium">{t("htpasswd_list")}</p>
+              {authEntries.length === 0 ? (
+                <p className="text-muted-foreground text-sm">{t("empty_htpasswd")}</p>
+              ) : (
+                <ul className="divide-y rounded-md border text-sm">
+                  {authEntries.map((entry) => (
+                    <li
+                      key={`${entry.path}:${entry.user}`}
+                      className="flex items-center justify-between gap-2 px-3 py-2"
+                    >
+                      <span dir="ltr" className="font-mono text-xs">
+                        {entry.path} · {entry.user}
+                      </span>
+                      <RequireRouteWrite>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={removeHtpasswd.isPending}
+                          onClick={() => removeHtpasswd.mutate(entry.path)}
+                        >
+                          {t("delete_htpasswd")}
+                        </Button>
+                      </RequireRouteWrite>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <Field label={t("htpasswd_user")}>
               <Input value={htUser} onChange={(e) => setHtUser(e.target.value)} />
             </Field>
@@ -366,7 +470,7 @@ export default function WebsiteDetailPage() {
             <CardTitle>{t("logs")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant={logType === "access" ? "default" : "outline"}
@@ -388,9 +492,30 @@ export default function WebsiteDetailPage() {
               >
                 {t("load_logs")}
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!filteredLog}
+                onClick={() => {
+                  const blob = new Blob([filteredLog], { type: "text/plain" })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement("a")
+                  a.href = url
+                  a.download = `${form.fqdn}-${logType}.log`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                }}
+              >
+                {t("download_logs")}
+              </Button>
             </div>
+            <Input
+              value={logFilter}
+              onChange={(e) => setLogFilter(e.target.value)}
+              placeholder={t("filter_logs")}
+            />
             <pre className="bg-muted max-h-96 overflow-auto rounded-md p-3 text-xs whitespace-pre-wrap">
-              {logContent || "—"}
+              {filteredLog || "—"}
             </pre>
           </CardContent>
         </Card>
@@ -403,22 +528,35 @@ export default function WebsiteDetailPage() {
           <CardHeader>
             <CardTitle>{t("composer")}</CardTitle>
           </CardHeader>
-          <CardContent className="flex gap-2">
-            <RequireRouteWrite>
-              <Button
-                disabled={composer.isPending}
-                onClick={() => composer.mutate("install")}
-              >
-                {t("run_composer")}
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <RequireRouteWrite>
+                <Button
+                  disabled={composer.isPending}
+                  onClick={() => composer.mutate("install")}
+                >
+                  {t("run_composer")}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={composer.isPending}
+                  onClick={() => composer.mutate("update")}
+                >
+                  {t("run_composer_update")}
+                </Button>
+              </RequireRouteWrite>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/softstore">{t("composer_open_softstore")}</Link>
               </Button>
-              <Button
-                variant="outline"
-                disabled={composer.isPending}
-                onClick={() => composer.mutate("update")}
-              >
-                {t("run_composer_update")}
-              </Button>
-            </RequireRouteWrite>
+            </div>
+            {composerLog ? (
+              <div>
+                <p className="mb-1 text-sm font-medium">{t("composer_last_run")}</p>
+                <pre className="bg-muted max-h-48 overflow-auto rounded-md p-3 text-xs whitespace-pre-wrap" dir="ltr">
+                  {composerLog}
+                </pre>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       )}
@@ -444,15 +582,18 @@ function Field({
 function WebsiteAnalytics({ id }: { id: string }) {
   const t = useTranslations("websites")
   const tCommon = useTranslations("common")
-  const { data, isLoading } = useQuery({
-    queryKey: ["website-analytics", id],
+  const [range, setRange] = useState<"1h" | "24h" | "7d">("24h")
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["website-analytics", id, range],
     enabled: Boolean(id),
     queryFn: () =>
       api<{
         requests?: number
+        visitors?: number
         status_counts?: Record<string, number>
         top_paths?: { path: string; count: number }[]
-      }>(`/api/v1/websites/${id}/analytics`),
+        range?: string
+      }>(`/api/v1/websites/${id}/analytics?range=${range}`),
   })
 
   if (isLoading) {
@@ -461,6 +602,10 @@ function WebsiteAnalytics({ id }: { id: string }) {
 
   const statuses = data?.status_counts ?? {}
   const topPaths = data?.top_paths ?? []
+  const chartData = Object.entries(statuses).map(([label, value]) => ({
+    label,
+    value,
+  }))
 
   return (
     <Card>
@@ -468,9 +613,31 @@ function WebsiteAnalytics({ id }: { id: string }) {
         <CardTitle>{t("analytics")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
+        <div className="flex flex-wrap gap-2">
+          <span className="text-muted-foreground self-center text-xs">{t("analytics_range")}</span>
+          {(["1h", "24h", "7d"] as const).map((key) => (
+            <Button
+              key={key}
+              size="sm"
+              variant={range === key ? "default" : "outline"}
+              onClick={() => setRange(key)}
+              disabled={isFetching}
+            >
+              {t(`analytics_range_${key}`)}
+            </Button>
+          ))}
+        </div>
         <p>
           {t("analytics_requests")}: {data?.requests ?? 0}
         </p>
+        <p>
+          {t("analytics_visitors")}: {data?.visitors ?? 0}
+        </p>
+        {chartData.length > 0 ? (
+          <div className="rounded-md border p-2">
+            <AccentBarChart data={chartData} />
+          </div>
+        ) : null}
         <div>
           <p className="mb-2 font-medium">{t("analytics_top_paths")}</p>
           <ul className="space-y-1 font-mono text-xs" dir="ltr">

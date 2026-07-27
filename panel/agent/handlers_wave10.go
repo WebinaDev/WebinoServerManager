@@ -176,11 +176,20 @@ func handleDatabaseExtraActions(w http.ResponseWriter, body map[string]any) bool
 		data, _ := json.Marshal(map[string]string{"updated": "true", "output": out})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 		return true
-	case "redis_info":
+    case "redis_info":
 		if engine != "redis" {
 			engine = "redis"
 		}
 		info, err := redisInfoPayload()
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return true
+		}
+		data, _ := json.Marshal(info)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+		return true
+	case "mongo_info":
+		info, err := mongoInfoPayload()
 		if err != nil {
 			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
 			return true

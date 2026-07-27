@@ -11,6 +11,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/databases/users', [DatabaseUserController::class, 'index']);
     Route::get('/databases/remote-access', [DatabaseController::class, 'remoteAccess']);
     Route::get('/databases/redis/info', [DatabaseController::class, 'redisInfo']);
+    Route::get('/databases/mongo/info', [DatabaseController::class, 'mongoInfo']);
     Route::get('/databases/{database}/size', [DatabaseController::class, 'size']);
 
     Route::middleware('permission:databases.manage')->group(function () {

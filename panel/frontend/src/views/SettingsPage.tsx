@@ -20,10 +20,15 @@ type PanelSettings = {
     https_port: number
     ssl_enabled: boolean
   }
+  version?: {
+    panel?: string
+    name?: string
+  }
   links: {
     profile: string
     two_factor: string
     api_tokens: string
+    firewall?: string
   }
 }
 
@@ -114,16 +119,27 @@ export default function SettingsPage() {
           <CardTitle>{t("hub_title")}</CardTitle>
           <CardDescription>{t("hub_desc")}</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button asChild variant="outline">
-            <Link href={links?.profile ?? "/profile"}>{t("link_profile")}</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={links?.two_factor ?? "/security/2fa"}>{t("link_2fa")}</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={links?.api_tokens ?? "/api-tokens"}>{t("link_tokens")}</Link>
-          </Button>
+        <CardContent className="space-y-4">
+          <p className="text-sm">
+            {t("panel_version")}:{" "}
+            <span className="font-mono" dir="ltr">
+              {data?.version?.name ?? "WebinoServer"} {data?.version?.panel ?? "—"}
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild variant="outline">
+              <Link href={links?.profile ?? "/profile"}>{t("link_profile")}</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={links?.two_factor ?? "/security/2fa"}>{t("link_2fa")}</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={links?.api_tokens ?? "/api-tokens"}>{t("link_tokens")}</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={links?.firewall ?? "/security/firewall"}>{t("link_firewall")}</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

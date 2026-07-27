@@ -253,6 +253,26 @@ func handleWordpress(w http.ResponseWriter, r *http.Request) {
 		}
 		data, _ := json.Marshal(result)
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "plugin_activate", "plugin_deactivate":
+		mode := "activate"
+		if body.Action == "plugin_deactivate" {
+			mode = "deactivate"
+		}
+		result, err := wordpressPluginToggle(sitePath, body.PluginSlug, mode)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(result)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+	case "theme_activate":
+		result, err := wordpressThemeActivate(sitePath, body.ThemeSlug)
+		if err != nil {
+			writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error()})
+			return
+		}
+		data, _ := json.Marshal(result)
+		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 	case "integrity":
 		result, err := wordpressIntegrity(sitePath)
 		if err != nil {

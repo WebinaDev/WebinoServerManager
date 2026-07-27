@@ -74,10 +74,27 @@ func redisInfoPayload() (map[string]any, error) {
 		}
 	}
 	return map[string]any{
-		"ping":           "PONG",
-		"memory_bytes":   memUsed,
-		"memory_mb":      memUsed / (1024 * 1024),
-		"info_memory":    infoOut,
+		"ping":         "PONG",
+		"memory_bytes": memUsed,
+		"memory_mb":    memUsed / (1024 * 1024),
+		"info_memory":  infoOut,
+	}, nil
+}
+
+func mongoInfoPayload() (map[string]any, error) {
+	out, err := runArgv([]string{"mongosh", "--quiet", "--eval", "JSON.stringify(db.adminCommand({ ping: 1 }))"}, "")
+	if err != nil {
+		return nil, fmt.Errorf("mongodb unavailable: %w", err)
+	}
+	dbs, listErr := listMongoDatabases()
+	count := 0
+	if listErr == nil {
+		count = len(dbs)
+	}
+	return map[string]any{
+		"ping":            strings.TrimSpace(out),
+		"database_count":  count,
+		"ok":              strings.Contains(out, `"ok":1`) || strings.Contains(out, `"ok": 1`),
 	}, nil
 }
 

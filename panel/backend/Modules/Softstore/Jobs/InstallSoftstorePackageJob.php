@@ -18,6 +18,7 @@ class InstallSoftstorePackageJob implements ShouldQueue
 
     public function __construct(
         public readonly int $installId,
+        public readonly string $action = 'install',
     ) {}
 
     public function handle(AgentClient $agent): void
@@ -27,21 +28,27 @@ class InstallSoftstorePackageJob implements ShouldQueue
             return;
         }
 
+        $action = in_array($this->action, ['install', 'upgrade', 'uninstall'], true)
+            ? $this->action
+            : 'install';
+
         $install->update(['status' => 'running']);
 
-        $options = [];
+        $options = new \stdClass();
         if ($install->website_id) {
             $website = HostingWebsite::query()->find($install->website_id);
             if ($website !== null) {
-                $options['document_root'] = $website->document_root;
+                $options = (object) ['document_root' => $website->document_root];
             }
         }
 
+        $path = $action === 'uninstall' ? '/v1/softstore/uninstall' : '/v1/softstore/install';
+
         try {
-            $result = $agent->post('/v1/softstore/install', [
+            $result = $agent->post($path, [
                 'script_id' => $install->package->agent_script_id,
                 'options' => $options,
-            ]);
+            ], 600);
         } catch (\Throwable $e) {
             $install->update([
                 'status' => 'failed',
@@ -71,13 +78,33 @@ class InstallSoftstorePackageJob implements ShouldQueue
             return;
         }
 
-        if ($install->package->category === 'docker') {
+        if ($install->package->category === 'docker' && $action !== 'uninstall') {
             $this->syncComposeProject($install->package->agent_script_id, $log);
+        }
+
+        if ($install->package->category === 'docker' && $action === 'uninstall') {
+            $this->removeComposeProject($install->package->agent_script_id);
         }
 
         $install->update([
             'status' => 'success',
-            'log' => $log !== '' ? $log : 'ok',
+            'log' => ($action !== 'install' ? '['.$action.'] ' : '').($log !== '' ? $log : 'ok'),
+        ]);
+    }
+
+    private function removeComposeProject(string $scriptId): void
+    {
+        $map = [
+            'compose_up_redis' => 'softstore-redis',
+            'compose_up_nginx' => 'softstore-nginx',
+        ];
+        $name = $map[$scriptId] ?? null;
+        if ($name === null) {
+            return;
+        }
+        DockerComposeProject::query()->where('name', $name)->update([
+            'status' => 'removed',
+            'last_error' => null,
         ]);
     }
 

@@ -178,6 +178,31 @@ class WordpressController extends Controller
         ]);
     }
 
+    public function togglePlugin(Request $request, WordpressSite $site): JsonResponse
+    {
+        $data = $request->validate([
+            'plugin_slug' => ['required', 'string', 'max:128'],
+            'mode' => ['required', 'in:activate,deactivate'],
+        ]);
+
+        $action = $data['mode'] === 'deactivate' ? 'plugin_deactivate' : 'plugin_activate';
+
+        return $this->agentAction($site, $action, [
+            'plugin_slug' => $data['plugin_slug'],
+        ]);
+    }
+
+    public function activateTheme(Request $request, WordpressSite $site): JsonResponse
+    {
+        $data = $request->validate([
+            'theme_slug' => ['required', 'string', 'max:128'],
+        ]);
+
+        return $this->agentAction($site, 'theme_activate', [
+            'theme_slug' => $data['theme_slug'],
+        ]);
+    }
+
     public function integrity(WordpressSite $site): JsonResponse
     {
         $result = $this->agent->post('/v1/wordpress', [

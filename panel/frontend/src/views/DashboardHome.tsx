@@ -57,6 +57,50 @@ function formatBps(n?: number | null): string {
   return `${(n / (1024 * 1024)).toFixed(2)} MB/s`
 }
 
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) {
+    return <div className="text-muted-foreground h-10 text-xs">—</div>
+  }
+  const max = Math.max(...values, 1)
+  const min = Math.min(...values, 0)
+  const span = Math.max(max - min, 1)
+  const points = values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * 100
+      const y = 100 - ((v - min) / span) * 100
+      return `${x},${y}`
+    })
+    .join(" ")
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="text-primary h-10 w-full">
+      <polyline fill="none" stroke="currentColor" strokeWidth="2" points={points} vectorEffect="non-scaling-stroke" />
+    </svg>
+  )
+}
+
+function KpiCard({
+  href,
+  label,
+  value,
+  hint,
+}: {
+  href: string
+  label: string
+  value: string
+  hint?: string | null
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-xl border bg-card p-4 text-card-foreground shadow transition-colors hover:bg-muted/40"
+    >
+      <div className="text-muted-foreground text-sm">{label}</div>
+      <div className="text-2xl font-semibold">{value}</div>
+      {hint ? <div className="text-muted-foreground mt-1 text-xs">{hint}</div> : null}
+    </Link>
+  )
+}
+
 type Props = {
   initialSummary?: Summary | null
 }
@@ -74,7 +118,24 @@ export default function DashboardHome({ initialSummary = null }: Props) {
     queryFn: () => api<{ timezone?: string }>("/api/v1/auth/user"),
   })
 
+  const { data: metricsHistory } = useQuery({
+    queryKey: ["dashboard-metrics-history"],
+    queryFn: () =>
+      api<{
+        samples: Array<{
+          net_rx_bps?: number | null
+          net_tx_bps?: number | null
+          disk_read_bps?: number | null
+          disk_write_bps?: number | null
+        }>
+      }>("/api/v1/metrics/history?range=1h"),
+  })
+
   const timeZone = authUser?.timezone ?? "UTC"
+  const netSpark = (metricsHistory?.samples ?? []).map((s) => (s.net_rx_bps ?? 0) + (s.net_tx_bps ?? 0))
+  const diskSpark = (metricsHistory?.samples ?? []).map(
+    (s) => (s.disk_read_bps ?? 0) + (s.disk_write_bps ?? 0)
+  )
 
   useEffect(() => {
     if (initialSummary) {
@@ -131,43 +192,40 @@ export default function DashboardHome({ initialSummary = null }: Props) {
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">{t("kpi_domains")}</div>
-          <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.domains) : tCommon("em_dash")}
-          </div>
-        </div>
-        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">{t("kpi_databases")}</div>
-          <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.databases) : tCommon("em_dash")}
-          </div>
-        </div>
-        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">{t("kpi_sites")}</div>
-          <div className="text-2xl font-semibold">
-            {summary ? formatNumber(summary.sites) : tCommon("em_dash")}
-          </div>
-        </div>
-        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">{t("kpi_hosting")}</div>
-          <div className="text-2xl font-semibold">
-            {summary
-              ? formatNumber(summary.hosting_accounts ?? 0)
-              : tCommon("em_dash")}
-          </div>
-          {summary && (summary.hosting_suspended ?? 0) > 0 ? (
-            <div className="text-muted-foreground mt-1 text-xs">
-              {t("kpi_hosting_suspended", {
-                count: formatNumber(summary.hosting_suspended ?? 0),
-              })}
-            </div>
-          ) : null}
-        </div>
-        <div className="rounded-xl border bg-card p-4 text-card-foreground shadow">
-          <div className="text-muted-foreground text-sm">{t("kpi_system")}</div>
-          <div className="text-2xl font-semibold">{statusLabel}</div>
-        </div>
+        <KpiCard
+          href="/domains"
+          label={t("kpi_domains")}
+          value={summary ? formatNumber(summary.domains) : tCommon("em_dash")}
+        />
+        <KpiCard
+          href="/databases"
+          label={t("kpi_databases")}
+          value={summary ? formatNumber(summary.databases) : tCommon("em_dash")}
+        />
+        <KpiCard
+          href="/websites"
+          label={t("kpi_sites")}
+          value={summary ? formatNumber(summary.sites) : tCommon("em_dash")}
+        />
+        <KpiCard
+          href="/hosting/accounts"
+          label={t("kpi_hosting")}
+          value={
+            summary ? formatNumber(summary.hosting_accounts ?? 0) : tCommon("em_dash")
+          }
+          hint={
+            summary && (summary.hosting_suspended ?? 0) > 0
+              ? t("kpi_hosting_suspended", {
+                  count: formatNumber(summary.hosting_suspended ?? 0),
+                })
+              : null
+          }
+        />
+        <KpiCard
+          href="/system-info"
+          label={t("kpi_system")}
+          value={statusLabel}
+        />
       </div>
       {(summary?.softstore_pins?.length ?? 0) > 0 ||
       (summary?.softstore_active_installs ?? 0) > 0 ||
@@ -204,15 +262,17 @@ export default function DashboardHome({ initialSummary = null }: Props) {
               <ul className="divide-y rounded-md border text-sm">
                 {(summary?.softstore_recent_installs ?? []).map((job) => (
                   <li key={job.id} className="px-3 py-2">
-                    <div className="flex justify-between gap-2">
-                      <span>{job.package ?? `#${job.id}`}</span>
-                      <span className="text-muted-foreground">{job.status}</span>
-                    </div>
-                    {job.log ? (
-                      <p className="text-muted-foreground mt-1 truncate text-xs" dir="ltr">
-                        {job.log}
-                      </p>
-                    ) : null}
+                    <Link href="/softstore" className="block hover:bg-muted/40 -mx-3 -my-2 px-3 py-2">
+                      <div className="flex justify-between gap-2">
+                        <span>{job.package ?? `#${job.id}`}</span>
+                        <span className="text-muted-foreground">{job.status}</span>
+                      </div>
+                      {job.log ? (
+                        <p className="text-muted-foreground mt-1 truncate text-xs" dir="ltr">
+                          {job.log}
+                        </p>
+                      ) : null}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -268,16 +328,28 @@ export default function DashboardHome({ initialSummary = null }: Props) {
       {summary ? (
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-xl border bg-card p-4 shadow">
-            <div className="text-muted-foreground mb-2 text-sm">{t("nic_title")}</div>
-            <p className="text-sm" dir="ltr">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="text-muted-foreground text-sm">{t("nic_title")}</div>
+              <Link href="/metrics-alerts" className="text-primary text-xs hover:underline">
+                {t("io_open_metrics")}
+              </Link>
+            </div>
+            <p className="mb-2 text-sm" dir="ltr">
               RX {formatBps(summary.net_rx_bps)} · TX {formatBps(summary.net_tx_bps)}
             </p>
+            <Sparkline values={netSpark} />
           </div>
           <div className="rounded-xl border bg-card p-4 shadow">
-            <div className="text-muted-foreground mb-2 text-sm">{t("disk_io_title")}</div>
-            <p className="text-sm" dir="ltr">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="text-muted-foreground text-sm">{t("disk_io_title")}</div>
+              <Link href="/metrics-alerts" className="text-primary text-xs hover:underline">
+                {t("io_open_metrics")}
+              </Link>
+            </div>
+            <p className="mb-2 text-sm" dir="ltr">
               R {formatBps(summary.disk_read_bps)} · W {formatBps(summary.disk_write_bps)}
             </p>
+            <Sparkline values={diskSpark} />
           </div>
         </div>
       ) : null}

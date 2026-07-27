@@ -16,6 +16,7 @@ Route::prefix('api/v1')->group(function () {
     Route::get('/setup/status', [SetupController::class, 'status']);
     Route::get('/setup/stack', [SetupController::class, 'stackStatus'])->middleware('throttle:60,1');
     Route::post('/setup', [SetupController::class, 'submit'])->middleware('throttle:3,1');
+    Route::post('/setup/stack', [SetupController::class, 'submitStackOnly'])->middleware('throttle:3,1');
     Route::post('/setup/stack/retry', [SetupController::class, 'retryStack'])->middleware('throttle:6,1');
 
     Route::get('/auth/gate', [AuthController::class, 'gate']);

@@ -29,9 +29,14 @@ class DaemonController extends Controller
         $data = $request->validate([
             'registry-mirrors' => ['nullable', 'array'],
             'registry-mirrors.*' => ['string', 'max:512'],
+            'insecure-registries' => ['nullable', 'array'],
+            'insecure-registries.*' => ['string', 'max:512'],
             'log-opts' => ['nullable', 'array'],
             'log-opts.max-size' => ['nullable', 'string', 'max:32'],
             'log-opts.max-file' => ['nullable', 'string', 'max:16'],
+            'log-driver' => ['nullable', 'string', 'max:64'],
+            'data-root' => ['nullable', 'string', 'max:512'],
+            'live-restore' => ['nullable', 'boolean'],
         ]);
 
         $result = $this->agent->post('/v1/docker/daemon', $data);

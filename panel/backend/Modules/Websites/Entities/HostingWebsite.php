@@ -30,6 +30,7 @@ class HostingWebsite extends Model
         'rewrite_template',
         'rewrite_custom',
         'deny_paths',
+        'auth_entries',
         'traffic_limit_mb',
         'proxy_pass',
         'vhost_id',
@@ -42,6 +43,7 @@ class HostingWebsite extends Model
     protected $casts = [
         'aliases' => 'array',
         'deny_paths' => 'array',
+        'auth_entries' => 'array',
         'ssl_enabled' => 'boolean',
         'force_https' => 'boolean',
         'hsts' => 'boolean',

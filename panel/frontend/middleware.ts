@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 const LOCALES = ["fa", "en"] as const
-const PUBLIC_PATHS = ["/login", "/setup", "/forgot-password", "/reset-password"]
+const AUTH_PUBLIC = ["/login", "/forgot-password", "/reset-password"]
+const SETUP_PATHS = ["/setup", "/setup/stack"]
 
 function getInternalApiBase(): string {
   return process.env.INTERNAL_API_URL ?? "http://backend:8080"
@@ -9,6 +10,9 @@ function getInternalApiBase(): string {
 
 type GateStatus = {
   needs_setup: boolean
+  setup_completed: boolean
+  admin_created: boolean
+  needs_stack: boolean
   authenticated: boolean
   unreachable?: boolean
 }
@@ -27,15 +31,25 @@ async function fetchGate(request: NextRequest): Promise<GateStatus> {
     })
     if (res.ok) {
       const body = (await res.json()) as {
-        data?: { needs_setup?: boolean; authenticated?: boolean }
+        data?: {
+          needs_setup?: boolean
+          setup_completed?: boolean
+          admin_created?: boolean
+          needs_stack?: boolean
+          authenticated?: boolean
+        }
       }
+      const d = body.data ?? {}
       return {
-        needs_setup: body.data?.needs_setup ?? true,
-        authenticated: body.data?.authenticated ?? false,
+        needs_setup: d.needs_setup ?? true,
+        setup_completed: d.setup_completed ?? false,
+        admin_created: d.admin_created ?? false,
+        needs_stack: d.needs_stack ?? false,
+        authenticated: d.authenticated ?? false,
       }
     }
   } catch {
-    // try setup/status fallback below
+    // fallback below
   }
 
   try {
@@ -45,31 +59,34 @@ async function fetchGate(request: NextRequest): Promise<GateStatus> {
     })
     if (res.ok) {
       const body = (await res.json()) as {
-        data?: { needs_setup?: boolean }
-      }
-      const needs_setup = body.data?.needs_setup ?? true
-      let authenticated = false
-      if (!needs_setup) {
-        const check = await fetch(`${base}/api/v1/auth/check`, {
-          headers,
-          cache: "no-store",
-        })
-        if (check.ok) {
-          const checkBody = (await check.json()) as { authenticated?: boolean }
-          authenticated = checkBody.authenticated === true
+        data?: {
+          needs_setup?: boolean
+          setup_completed?: boolean
+          admin_created?: boolean
+          needs_stack?: boolean
         }
       }
-      return { needs_setup, authenticated }
+      const d = body.data ?? {}
+      return {
+        needs_setup: d.needs_setup ?? true,
+        setup_completed: d.setup_completed ?? false,
+        admin_created: d.admin_created ?? false,
+        needs_stack: d.needs_stack ?? false,
+        authenticated: false,
+      }
     }
   } catch {
-    // API unreachable from panel frontend
+    // unreachable
   }
 
-  return { needs_setup: true, authenticated: false, unreachable: true }
-}
-
-function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.includes(pathname)
+  return {
+    needs_setup: true,
+    setup_completed: false,
+    admin_created: false,
+    needs_stack: false,
+    authenticated: false,
+    unreachable: true,
+  }
 }
 
 function withLocaleCookie(request: NextRequest, res: NextResponse): NextResponse {
@@ -95,16 +112,47 @@ export async function middleware(request: NextRequest) {
   const gate = await fetchGate(request)
 
   if (gate.unreachable) {
-    if (isPublicPath(pathname)) {
+    if (AUTH_PUBLIC.includes(pathname) || SETUP_PATHS.includes(pathname)) {
       return withLocaleCookie(request, NextResponse.next())
     }
-    const setupUrl = new URL("/setup", request.url)
-    setupUrl.searchParams.set("error", "unavailable")
-    return withLocaleCookie(request, NextResponse.redirect(setupUrl))
+    const loginUrl = new URL("/login", request.url)
+    loginUrl.searchParams.set("error", "unavailable")
+    return withLocaleCookie(request, NextResponse.redirect(loginUrl))
   }
 
-  if (gate.needs_setup) {
+  // aaPanel-style: admin exists, stack not done
+  if (gate.admin_created && !gate.setup_completed) {
+    if (!gate.authenticated) {
+      if (AUTH_PUBLIC.includes(pathname)) {
+        return withLocaleCookie(request, NextResponse.next())
+      }
+      return withLocaleCookie(
+        request,
+        NextResponse.redirect(new URL("/login", request.url)),
+      )
+    }
+    // Authenticated → software wizard
+    if (pathname === "/setup/stack" || pathname === "/setup") {
+      if (pathname === "/setup") {
+        return withLocaleCookie(
+          request,
+          NextResponse.redirect(new URL("/setup/stack", request.url)),
+        )
+      }
+      return withLocaleCookie(request, NextResponse.next())
+    }
+    return withLocaleCookie(
+      request,
+      NextResponse.redirect(new URL("/setup/stack", request.url)),
+    )
+  }
+
+  // No admin yet → full /setup wizard (fallback if bootstrap-admin failed)
+  if (!gate.admin_created && gate.needs_setup) {
     if (pathname === "/setup") {
+      return withLocaleCookie(request, NextResponse.next())
+    }
+    if (AUTH_PUBLIC.includes(pathname)) {
       return withLocaleCookie(request, NextResponse.next())
     }
     return withLocaleCookie(
@@ -113,7 +161,8 @@ export async function middleware(request: NextRequest) {
     )
   }
 
-  if (pathname === "/setup") {
+  // Setup complete
+  if (SETUP_PATHS.includes(pathname)) {
     return withLocaleCookie(
       request,
       NextResponse.redirect(
@@ -122,7 +171,7 @@ export async function middleware(request: NextRequest) {
     )
   }
 
-  if (isPublicPath(pathname)) {
+  if (AUTH_PUBLIC.includes(pathname)) {
     if (gate.authenticated) {
       return withLocaleCookie(
         request,

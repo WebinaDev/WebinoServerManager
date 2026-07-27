@@ -143,17 +143,62 @@ class WebsiteController extends Controller
             'path' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $path = $data['path'] ?? '/';
         $result = $this->agent->post('/v1/vhosts/'.$website->configName().'/htpasswd', [
             'user' => $data['user'],
             'password' => $data['password'],
-            'path' => $data['path'] ?? '/',
+            'path' => $path,
+            'engine' => $website->engine ?? 'nginx',
         ]);
 
         if (! ($result['ok'] ?? false)) {
             return response()->json(['message' => $result['error'] ?? __('websites.htpasswd_failed')], 422);
         }
 
-        return response()->json(['message' => __('websites.htpasswd_ok'), 'agent' => $result]);
+        $entries = collect($website->auth_entries ?? [])
+            ->reject(fn ($row) => ($row['path'] ?? '') === $path)
+            ->values()
+            ->all();
+        $entries[] = [
+            'path' => $path,
+            'user' => $data['user'],
+            'updated_at' => now()->toIso8601String(),
+        ];
+        $website->update(['auth_entries' => $entries]);
+
+        return response()->json([
+            'message' => __('websites.htpasswd_ok'),
+            'auth_entries' => $entries,
+            'agent' => $result,
+        ]);
+    }
+
+    public function destroyHtpasswd(Request $request, HostingWebsite $website): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['required', 'string', 'max:255'],
+        ]);
+
+        $path = $data['path'];
+        $result = $this->agent->post('/v1/vhosts/'.$website->configName().'/htpasswd_remove', [
+            'path' => $path,
+            'engine' => $website->engine ?? 'nginx',
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('websites.htpasswd_failed')], 422);
+        }
+
+        $entries = collect($website->auth_entries ?? [])
+            ->reject(fn ($row) => ($row['path'] ?? '') === $path)
+            ->values()
+            ->all();
+        $website->update(['auth_entries' => $entries]);
+
+        return response()->json([
+            'message' => __('websites.htpasswd_removed'),
+            'auth_entries' => $entries,
+        ]);
     }
 
     public function logs(Request $request, HostingWebsite $website): JsonResponse
@@ -182,12 +227,27 @@ class WebsiteController extends Controller
         ]);
     }
 
-    public function analytics(HostingWebsite $website): JsonResponse
+    public function analytics(Request $request, HostingWebsite $website): JsonResponse
     {
-        $result = $this->agent->get('/v1/websites/analytics?fqdn='.urlencode($website->fqdn));
+        $data = $request->validate([
+            'range' => ['nullable', 'in:1h,24h,7d'],
+        ]);
+        $range = $data['range'] ?? '24h';
+        $lines = match ($range) {
+            '1h' => 800,
+            '7d' => 5000,
+            default => 2500,
+        };
+
+        $result = $this->agent->get(
+            '/v1/websites/analytics?fqdn='.urlencode($website->fqdn).'&lines='.$lines
+        );
         $payload = $result['data'] ?? [];
         if (is_string($payload)) {
             $payload = json_decode($payload, true) ?? [];
+        }
+        if (is_array($payload)) {
+            $payload['range'] = $range;
         }
 
         return response()->json(

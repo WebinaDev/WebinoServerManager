@@ -60,9 +60,12 @@ class SetupFlowTest extends TestCase
             $mock->shouldReceive('post')
                 ->atLeast()
                 ->once()
-                ->with('/v1/softstore/install', \Mockery::on(function (array $payload): bool {
-                    return isset($payload['script_id']) && is_string($payload['script_id']);
-                }))
+                ->withArgs(function (string $path, array $payload, int $timeout = 120): bool {
+                    return $path === '/v1/softstore/install'
+                        && isset($payload['script_id'])
+                        && is_string($payload['script_id'])
+                        && $payload['options'] instanceof \stdClass;
+                })
                 ->andReturn(['ok' => true, 'data' => ['log' => 'ok']]);
         });
 
@@ -109,5 +112,29 @@ class SetupFlowTest extends TestCase
 
         $this->postJson('/api/v1/setup', $payload)->assertCreated();
         $this->postJson('/api/v1/setup', $payload)->assertStatus(409);
+    }
+
+    public function test_stack_only_after_admin_exists(): void
+    {
+        $this->seed(RolesPermissionsSeeder::class);
+        $this->artisan('panel:bootstrap-admin', [
+            '--username' => 'admin',
+            '--password' => 'password123',
+            '--name' => 'Admin',
+        ])->assertSuccessful();
+
+        $this->assertTrue(panel_admin_exists());
+        $this->assertFalse(setup_completed());
+
+        $this->postJson('/api/v1/setup/stack', [
+            'stack' => ['skip' => true],
+        ])->assertCreated()
+            ->assertJsonPath('data.setup_completed', true);
+
+        $this->getJson('/api/v1/setup/status')
+            ->assertOk()
+            ->assertJsonPath('data.admin_created', true)
+            ->assertJsonPath('data.needs_stack', false)
+            ->assertJsonPath('data.needs_setup', false);
     }
 }

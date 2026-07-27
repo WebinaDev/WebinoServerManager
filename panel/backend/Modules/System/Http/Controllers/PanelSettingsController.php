@@ -26,10 +26,15 @@ class PanelSettingsController extends Controller
                 'https_port' => (int) (PanelSetting::getValue('https_port', $agentSettings['https_port'] ?? '2090') ?? 2090),
                 'ssl_enabled' => filter_var(PanelSetting::getValue('ssl_enabled', $agentSettings['ssl_enabled'] ?? '0'), FILTER_VALIDATE_BOOLEAN),
             ],
+            'version' => [
+                'panel' => config('app.version', env('WEBINO_PANEL_VERSION', '1.0.0')),
+                'name' => config('app.name', 'WebinoServer'),
+            ],
             'links' => [
                 'profile' => '/profile',
                 'two_factor' => '/security/2fa',
                 'api_tokens' => '/api-tokens',
+                'firewall' => '/security/firewall',
             ],
         ]);
     }

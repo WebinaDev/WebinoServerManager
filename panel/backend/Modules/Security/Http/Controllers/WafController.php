@@ -37,9 +37,30 @@ class WafController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:128', 'regex:/^[a-zA-Z0-9_.-]+$/'],
-            'enabled' => ['required', 'boolean'],
+            'enabled' => ['nullable', 'boolean'],
+            'action' => ['nullable', 'in:geo_deny'],
+            'countries' => ['nullable', 'array'],
+            'countries.*' => ['string', 'size:2'],
         ]);
-        $result = $this->agent->post('/v1/security/waf/sites', $data);
+
+        if (($data['action'] ?? null) === 'geo_deny') {
+            $result = $this->agent->post('/v1/security/waf/sites', [
+                'name' => $data['name'],
+                'action' => 'geo_deny',
+                'countries' => $data['countries'] ?? [],
+            ]);
+
+            return response()->json($this->payload($result), ($result['ok'] ?? false) ? 200 : 422);
+        }
+
+        if (! array_key_exists('enabled', $data)) {
+            return response()->json(['message' => 'enabled or action required'], 422);
+        }
+
+        $result = $this->agent->post('/v1/security/waf/sites', [
+            'name' => $data['name'],
+            'enabled' => (bool) $data['enabled'],
+        ]);
 
         return response()->json($this->payload($result), ($result['ok'] ?? false) ? 200 : 422);
     }

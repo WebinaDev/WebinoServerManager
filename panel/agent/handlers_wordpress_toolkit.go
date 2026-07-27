@@ -184,6 +184,31 @@ func wordpressPluginsUpdate(sitePath, slug string, all bool) (map[string]string,
 	return map[string]string{"path": sitePath, "output": out}, nil
 }
 
+func wordpressPluginToggle(sitePath, slug, mode string) (map[string]string, error) {
+	if !wpEntryNameRe.MatchString(slug) {
+		return nil, fmt.Errorf("invalid plugin slug")
+	}
+	if mode != "activate" && mode != "deactivate" {
+		return nil, fmt.Errorf("mode must be activate or deactivate")
+	}
+	out, err := wpRun(sitePath, "plugin", mode, slug)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{"path": sitePath, "output": out, "mode": mode, "slug": slug}, nil
+}
+
+func wordpressThemeActivate(sitePath, slug string) (map[string]string, error) {
+	if !wpEntryNameRe.MatchString(slug) {
+		return nil, fmt.Errorf("invalid theme slug")
+	}
+	out, err := wpRun(sitePath, "theme", "activate", slug)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{"path": sitePath, "output": out, "slug": slug}, nil
+}
+
 func wordpressIntegrity(sitePath string) (map[string]any, error) {
 	out, err := wpRun(sitePath, "core", "verify-checksums")
 	ok := err == nil

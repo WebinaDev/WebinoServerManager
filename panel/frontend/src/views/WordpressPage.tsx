@@ -91,8 +91,11 @@ export default function WordpressPage() {
   })
 
   const updateThemes = useMutation({
-    mutationFn: (id: number) =>
-      api(`/api/v1/wordpress/${id}/themes/update`, { method: "POST", json: { all: true } }),
+    mutationFn: ({ id, theme_slug, all }: { id: number; theme_slug?: string; all?: boolean }) =>
+      api(`/api/v1/wordpress/${id}/themes/update`, {
+        method: "POST",
+        json: theme_slug ? { theme_slug } : { all: all ?? true },
+      }),
     onSuccess: () => {
       toast.success(t("themes_updated"))
       void qc.invalidateQueries({ queryKey: ["wordpress-themes", selectedId] })
@@ -100,11 +103,48 @@ export default function WordpressPage() {
     onError: toastMutationError,
   })
 
+  const activateTheme = useMutation({
+    mutationFn: ({ id, theme_slug }: { id: number; theme_slug: string }) =>
+      api(`/api/v1/wordpress/${id}/themes/activate`, {
+        method: "POST",
+        json: { theme_slug },
+      }),
+    onSuccess: () => {
+      toast.success(t("theme_activated"))
+      void qc.invalidateQueries({ queryKey: ["wordpress-themes", selectedId] })
+    },
+    onError: toastMutationError,
+  })
+
   const updatePlugins = useMutation({
-    mutationFn: (id: number) =>
-      api(`/api/v1/wordpress/${id}/plugins/update`, { method: "POST", json: { all: true } }),
+    mutationFn: ({ id, plugin_slug, all }: { id: number; plugin_slug?: string; all?: boolean }) =>
+      api(`/api/v1/wordpress/${id}/plugins/update`, {
+        method: "POST",
+        json: plugin_slug ? { plugin_slug } : { all: all ?? true },
+      }),
     onSuccess: () => {
       toast.success(t("plugins_updated"))
+      void qc.invalidateQueries({ queryKey: ["wordpress-plugins", selectedId] })
+    },
+    onError: toastMutationError,
+  })
+
+  const togglePlugin = useMutation({
+    mutationFn: ({
+      id,
+      plugin_slug,
+      mode,
+    }: {
+      id: number
+      plugin_slug: string
+      mode: "activate" | "deactivate"
+    }) =>
+      api(`/api/v1/wordpress/${id}/plugins/toggle`, {
+        method: "POST",
+        json: { plugin_slug, mode },
+      }),
+    onSuccess: () => {
+      toast.success(t("plugin_toggled"))
       void qc.invalidateQueries({ queryKey: ["wordpress-plugins", selectedId] })
     },
     onError: toastMutationError,
@@ -309,7 +349,7 @@ export default function WordpressPage() {
                   size="sm"
                   variant="secondary"
                   disabled={updateThemes.isPending}
-                  onClick={() => updateThemes.mutate(selected.id)}
+                  onClick={() => updateThemes.mutate({ id: selected.id, all: true })}
                 >
                   {t("update_all_themes")}
                 </Button>
@@ -317,7 +357,7 @@ export default function WordpressPage() {
                   size="sm"
                   variant="secondary"
                   disabled={updatePlugins.isPending}
-                  onClick={() => updatePlugins.mutate(selected.id)}
+                  onClick={() => updatePlugins.mutate({ id: selected.id, all: true })}
                 >
                   {t("update_all_plugins")}
                 </Button>
@@ -336,23 +376,99 @@ export default function WordpressPage() {
               <div>
                 <h3 className="mb-2 font-medium">{t("themes")}</h3>
                 <ul className="divide-y rounded-md border text-sm">
-                  {(themesData?.themes ?? []).map((row, i) => (
-                    <li key={row.name ?? i} className="flex justify-between px-3 py-2">
-                      <span>{row.name}</span>
-                      <span className="text-muted-foreground">{row.status ?? row.update}</span>
-                    </li>
-                  ))}
+                  {(themesData?.themes ?? []).map((row, i) => {
+                    const slug = row.name ?? ""
+                    const active = String(row.status ?? "").toLowerCase().includes("active")
+                    return (
+                      <li key={slug || i} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                        <div>
+                          <div>{slug}</div>
+                          <div className="text-muted-foreground text-xs">
+                            {row.version ? `v${row.version}` : ""} {row.status ?? row.update}
+                          </div>
+                        </div>
+                        <RequireRouteWrite>
+                          <div className="flex gap-1">
+                            {!active && slug ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={activateTheme.isPending}
+                                onClick={() =>
+                                  activateTheme.mutate({ id: selected.id, theme_slug: slug })
+                                }
+                              >
+                                {t("activate")}
+                              </Button>
+                            ) : null}
+                            {slug ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={updateThemes.isPending}
+                                onClick={() =>
+                                  updateThemes.mutate({ id: selected.id, theme_slug: slug })
+                                }
+                              >
+                                {t("update_one")}
+                              </Button>
+                            ) : null}
+                          </div>
+                        </RequireRouteWrite>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
               <div>
                 <h3 className="mb-2 font-medium">{t("plugins")}</h3>
                 <ul className="divide-y rounded-md border text-sm">
-                  {(pluginsData?.plugins ?? []).map((row, i) => (
-                    <li key={row.name ?? i} className="flex justify-between px-3 py-2">
-                      <span>{row.name}</span>
-                      <span className="text-muted-foreground">{row.status ?? row.update}</span>
-                    </li>
-                  ))}
+                  {(pluginsData?.plugins ?? []).map((row, i) => {
+                    const slug = row.name ?? ""
+                    const active = String(row.status ?? "").toLowerCase().includes("active")
+                    return (
+                      <li key={slug || i} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                        <div>
+                          <div>{slug}</div>
+                          <div className="text-muted-foreground text-xs">
+                            {row.version ? `v${row.version}` : ""} {row.status ?? row.update}
+                          </div>
+                        </div>
+                        <RequireRouteWrite>
+                          <div className="flex gap-1">
+                            {slug ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={togglePlugin.isPending}
+                                onClick={() =>
+                                  togglePlugin.mutate({
+                                    id: selected.id,
+                                    plugin_slug: slug,
+                                    mode: active ? "deactivate" : "activate",
+                                  })
+                                }
+                              >
+                                {active ? t("deactivate") : t("activate")}
+                              </Button>
+                            ) : null}
+                            {slug ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={updatePlugins.isPending}
+                                onClick={() =>
+                                  updatePlugins.mutate({ id: selected.id, plugin_slug: slug })
+                                }
+                              >
+                                {t("update_one")}
+                              </Button>
+                            ) : null}
+                          </div>
+                        </RequireRouteWrite>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             </div>

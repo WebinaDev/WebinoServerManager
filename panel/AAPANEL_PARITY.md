@@ -30,29 +30,29 @@
 
 | aaPanel | SM equivalent (today) | Status | Primary gap | Target module(s) | Agent surface (today / needed) | UI path (today / planned) | Wave |
 |---------|----------------------|--------|-------------|------------------|-------------------------------|---------------------------|------|
-| Home | Dashboard `/` | Have (Wave 5 core) | richer Pro polish later | Core, Metrics, Monitoring, Security, Softstore | `/v1/system/info` + processes | `/` | 5 |
-| Website | `/websites` hub + Domains/Subdomains/Webserver | Have (Wave 1) | — | Websites (+ Webserver, Ftp, Databases, Php, Ssl) | `/v1/vhosts` + composer + per-site logs | `/websites`, `/websites/[id]` | 1 |
-| WP Toolkit | Wordpress | **Have** | — | Wordpress | `/v1/wordpress` | `/wordpress` | 8 |
-| FTP | Ftp | **Have** (Wave 10) | deeper log analysis later | Ftp | `/v1/ftp/accounts` + `/v1/ftp/service` | `/ftp` | 10 |
-| Databases | Databases + Embed | **Have** (Wave 10 + Phase D) | — | Databases | `/v1/databases*` + Mongo/Redis/tools | `/databases` | 10 |
-| Docker | Apps | Have (Wave 4 + Phase D) | — | Apps + Softstore | `/v1/docker/*` compose/net/vol/registry/daemon + container terminal | `/apps`, `/terminal` | 4 |
-| Monitor | Monitoring + Metrics | Have (Wave 5 core) | deeper log analysis later | Monitoring, Metrics | `/v1/services`, `/v1/logs`, processes, system/info IO | `/monitoring/*`, `/metrics-alerts` | 5 |
-| Security | Security | **Have** (Wave 6) | malware→recycle overlaps Files W7; heavy vuln scan later | Security | risks, waf sites/logs, tamper | `/security/*` | 6 |
-| WAF | Security WAF | **Have** (Wave 6 + Phase D) | Heavy vuln scan later | Security | `/v1/security/waf` + sites/logs/geo | `/security/waf` | 6 |
+| Home | Dashboard `/` | **Have** (Wave 5 + Phase E) | — | Core, Metrics, Monitoring, Security, Softstore | `/v1/system/info` + processes | `/` | 5+E |
+| Website | `/websites` hub + Domains/Subdomains/Webserver | **Have** (Wave 1 + Phase E) | — | Websites (+ Webserver, Ftp, Databases, Php, Ssl) | `/v1/vhosts` + composer + per-site logs | `/websites`, `/websites/[id]` | 1+E |
+| WP Toolkit | Wordpress | **Have** (Wave 8 + Phase E) | — | Wordpress | `/v1/wordpress` | `/wordpress` | 8+E |
+| FTP | Ftp | **Have** (Wave 10) | — | Ftp | `/v1/ftp/accounts` + `/v1/ftp/service` | `/ftp` | 10 |
+| Databases | Databases + Embed | **Have** (Wave 10 + Phase D/E) | — | Databases | `/v1/databases*` + Mongo/Redis/tools | `/databases` | 10+E |
+| Docker | Apps | **Have** (Wave 4 + Phase D/E) | — | Apps + Softstore | `/v1/docker/*` compose/net/vol/registry/daemon + container terminal | `/apps`, `/terminal` | 4+E |
+| Monitor | Monitoring + Metrics | **Have** (Wave 5 + Phase E) | — | Monitoring, Metrics | `/v1/services`, `/v1/logs`, processes, system/info IO | `/monitoring/*`, `/metrics-alerts` | 5+E |
+| Security | Security | **Have** (Wave 6 + Phase E) | heavy vuln scan out of scope | Security | risks, waf sites/logs, tamper | `/security/*` | 6+E |
+| WAF | Security WAF | **Have** (Wave 6 + Phase D/E) | Heavy vuln scan out of scope | Security | `/v1/security/waf` + sites/logs/geo | `/security/waf` | 6+E |
 | Mail Server | Email + Webmail | **Have** (Wave 11 lists UX) | bulk marketing send low priority | Email | `/v1/mail/*` | `/email/*`, `/webmail` | 11 |
 | Files | Files | **Have** (Wave 7) | — | Files | `/v1/files` advanced | `/files` | 7 |
-| Logs | Monitoring logs | **Have** (Phase D) | Deeper log analytics polish later | Monitoring | `/v1/logs` grouped panel/site/FTP | `/monitoring/logs` | 5 |
+| Logs | Monitoring logs | **Have** (Phase D + Phase E) | — | Monitoring | `/v1/logs` grouped panel/site/FTP | `/monitoring/logs` | 5+E |
 | Node / runtimes | Runtimes | **Have** (Phase D) | — | **Runtimes** | `/v1/runtimes/*` + Java via Softstore | `/runtimes` | 9 |
 | Domains (DNS APIs) | Dns + Ssl | **Have** (Wave 10 + Phase D) | Additional providers later | Dns, Ssl | `/v1/dns/providers/cloudflare` + `alidns` | `/dns`, `/ssl` | 10 |
 | Account | Hosting + Users | **Have** (Phase D) | Reseller tree N/A | Hosting, Users | hosting provision/usage/quota-alerts | `/hosting/*`, `/users` | 10–12 |
 | Terminal | Terminal | **Have** (Phase D) | — | Terminal, Apps | WS PTY + optional `container` attach | `/terminal`, `/apps` deep-link | 4–5 |
 | Cron | Cron | **Have** (Wave 10) | — | Cron | `/v1/cron` typed + scripts | `/cron` | 10 |
-| App Store | Softstore seeded catalog | Have (Waves 3–4) | — | **Softstore** | install allowlist + docker compose templates | `/softstore` | 3–4 |
-| Settings | Profile + System + Setup | **Have** (Wave 12) | — | Core, System | `/v1/panel/*` | `/settings` | 12 |
+| App Store | Softstore seeded catalog | **Have** (Waves 3–4 + Phase E) | — | **Softstore** | install/upgrade/uninstall allowlist + docker compose templates | `/softstore` | 3–4+E |
+| Settings | Profile + System + Setup | **Have** (Wave 12 + Phase E) | — | Core, System | `/v1/panel/*` | `/settings` | 12+E |
 | Apache / OLS | Webserver dual-stack | Have (Wave 2; OLS out of scope) | — | Webserver | `/v1/vhosts` Apache + HTTP/3 nginx | `/webserver/vhosts`, `/websites` | 2 |
 | Disk analysis | System | **Have** (Wave 6) | — | System | `/v1/system/disk` | `/system/disk` | 6 |
 | Tamper / file monitor | Security | **Have** (Wave 6) | — | Security | `/v1/security/tamper` | `/security/tamper` | 6 |
-| Site analytics | Websites | **Have** (Wave 6 light) | Full product analytics later | Websites | `/v1/websites/analytics` | Website hub Analytics tab | 6 |
+| Site analytics | Websites | **Have** (Wave 6 + Phase E) | — | Websites | `/v1/websites/analytics` | Website hub Analytics tab | 6+E |
 | Load balance / multi-node | — | N/A | After Softstore; lowest priority | — | — | — | — |
 | AI assistant | — | N/A | Out of mandatory parity | — | — | — | — |
 
@@ -64,10 +64,10 @@
 
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
-| OS / arch / version | System info + dashboard | Panel self-version/update/repair UI | 12 |
+| OS / arch / version | System info + dashboard + Settings version | — | 12+E |
 | CPU/RAM/disk gauges | **Have** | — | 5 |
-| NIC traffic / Disk IO | **Have** | — | 5 |
-| Counters sites/FTP/DB | Hosting + dashboard KPIs | Match aaPanel deep-links polish | 5 |
+| NIC traffic / Disk IO | **Have** (sparklines + metrics link) | — | 5+E |
+| Counters sites/FTP/DB | Hosting + dashboard KPIs (clickable) | — | 5+E |
 | Security risk widget | **Have** (lightweight signals) | Full scanner Wave 6 | 5–6 |
 | Software pins | **Have** Softstore pins on Home | — | 3 |
 | Install task / message box | **Have** recent installs on Home | — | 3, 5 |
@@ -240,7 +240,7 @@
 | Capability | SM today | Gap | Wave |
 |------------|----------|-----|------|
 | Profile / 2FA / tokens | **Have** | — | — |
-| Setup wizard | **Have** (admin + hosting stack install) | — | — |
+| Setup wizard | **Have** (shell prints URL+creds → `/login` → `/setup/stack` software + terminal log) | — | — |
 | Panel port / SSL / bind domain | **Have** | `/settings` hub + agent Caddy write | — |
 | Restart panel / OS | **Have** | Agent privileged actions | — |
 | Repair panel | **Have** | Health repair scripts | — |
@@ -300,6 +300,8 @@ Each wave: Laravel API → Go agent → Next UI → PHPUnit / `go test` → `pan
 **Done criteria per wave:** matrix rows for that wave → **Have**; module guide in `panel/docs/docs/`; TODO §9.3 updated.
 
 **Phase D polish (post Wave 12):** closed remaining **Partial** rows — grouped log sources (panel/site/FTP), FTP password + service info, MongoDB/Redis engines, AliDNS provider, container terminal attach, Java runtime via Softstore, WAF geo-deny, cron PATCH, metric alert severity, ClamAV auto-quarantine to Files recycle. Waves **0–12 remain Done**; mandatory aaPanel C parity is **Have** except documented **N/A** items.
+
+**Phase E — UI depth (Webino nav fixed):** deepen page widgets/actions without reordering [`NavigationController`](backend/Modules/Core/Http/Controllers/NavigationController.php). Delivered: `/monitoring/logs` route wiring; Home KPI deep-links + IO sparklines; Website hub editable php/proxy + htpasswd list/remove + log filter/download + analytics range/charts + Composer Softstore link; Softstore category tabs + upgrade/uninstall; Apps daemon (`insecure-registries`, `data-root`, `log-driver`, `live-restore`); Logs filter/highlight/export; WAF geo-deny UI; ClamAV → Files recycle link; Risks rescan; WP per-item theme/plugin actions; Redis/Mongo info tools; Settings version + firewall deep-link.
 
 ### Wave execution rules
 

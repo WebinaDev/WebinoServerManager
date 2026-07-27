@@ -22,7 +22,9 @@ class AuthGateTest extends TestCase
         $this->getJson('/api/v1/auth/gate')
             ->assertOk()
             ->assertJsonPath('data.needs_setup', true)
-            ->assertJsonPath('data.authenticated', false);
+            ->assertJsonPath('data.authenticated', false)
+            ->assertJsonPath('data.admin_created', false)
+            ->assertJsonPath('data.setup_completed', false);
     }
 
     public function test_gate_reports_authenticated_with_valid_cookie(): void

@@ -1,8 +1,8 @@
 "use client"
 
+import { useMemo, useState } from "react"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,6 +44,7 @@ export default function SoftstorePage() {
   const tCommon = useTranslations("common")
   const qc = useQueryClient()
   const [websiteId, setWebsiteId] = useState("")
+  const [category, setCategory] = useState<string>("all")
 
   const { data: packagesData, isLoading } = useQuery({
     queryKey: ["softstore-packages"],
@@ -68,20 +69,36 @@ export default function SoftstorePage() {
   })
 
   const pinnedIds = new Set((pinsData?.pins ?? []).map((p) => p.package_id))
+  const categories = useMemo(() => {
+    const set = new Set((packagesData?.packages ?? []).map((p) => p.category))
+    return ["all", ...Array.from(set).sort()]
+  }, [packagesData?.packages])
 
-  const install = useMutation({
-    mutationFn: (slug: string) => {
+  const filtered = useMemo(() => {
+    const rows = packagesData?.packages ?? []
+    if (category === "all") return rows
+    return rows.filter((p) => p.category === category)
+  }, [packagesData?.packages, category])
+
+  const queueAction = useMutation({
+    mutationFn: ({ slug, action }: { slug: string; action: "install" | "upgrade" | "uninstall" }) => {
       const body: { website_id?: number } = {}
       if (websiteId) {
         body.website_id = Number(websiteId)
       }
-      return api(`/api/v1/softstore/packages/${slug}/install`, {
+      return api(`/api/v1/softstore/packages/${slug}/${action}`, {
         method: "POST",
         json: body,
       })
     },
-    onSuccess: () => {
-      toast.success(t("install_queued"))
+    onSuccess: (_data, vars) => {
+      toast.success(
+        vars.action === "uninstall"
+          ? t("uninstall_queued")
+          : vars.action === "upgrade"
+            ? t("upgrade_queued")
+            : t("install_queued"),
+      )
       void qc.invalidateQueries({ queryKey: ["softstore-installs"] })
       void qc.invalidateQueries({ queryKey: ["softstore-packages"] })
     },
@@ -133,65 +150,114 @@ export default function SoftstorePage() {
             </select>
           </div>
 
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <Button
+                key={cat}
+                type="button"
+                size="sm"
+                variant={category === cat ? "default" : "outline"}
+                onClick={() => setCategory(cat)}
+              >
+                {cat === "all" ? t("category_all") : cat}
+              </Button>
+            ))}
+          </div>
+
           {isLoading ? (
             <p>{tCommon("loading")}</p>
           ) : (
             <ul className="divide-y rounded-md border">
-              {(packagesData?.packages ?? []).map((pkg) => (
-                <li
-                  key={pkg.id}
-                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm"
-                >
-                  <div>
-                    <div className="font-medium">{pkg.name}</div>
-                    <p className="text-muted-foreground text-xs">
-                      {pkg.category} · {pkg.host_status}
-                      {pkg.version_label ? ` · ${pkg.version_label}` : ""}
-                    </p>
-                    {pkg.description ? (
-                      <p className="text-muted-foreground mt-1 text-xs">{pkg.description}</p>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {pkg.pinable ? (
-                      pinnedIds.has(pkg.id) ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={unpin.isPending}
-                          onClick={() => unpin.mutate(pkg.id)}
-                        >
-                          {t("unpin")}
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={pin.isPending}
-                          onClick={() => pin.mutate(pkg.id)}
-                        >
-                          {t("pin")}
-                        </Button>
-                      )
-                    ) : null}
-                    <RequireRouteWrite>
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={
-                          install.isPending ||
-                          (pkg.requires_website && !websiteId)
-                        }
-                        onClick={() => install.mutate(pkg.slug)}
-                      >
-                        {t("install")}
-                      </Button>
-                    </RequireRouteWrite>
-                  </div>
-                </li>
-              ))}
+              {filtered.map((pkg) => {
+                const installed = pkg.host_status === "installed"
+                return (
+                  <li
+                    key={pkg.id}
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm"
+                  >
+                    <div>
+                      <div className="font-medium">{pkg.name}</div>
+                      <p className="text-muted-foreground text-xs">
+                        {pkg.category} · {pkg.host_status}
+                        {pkg.version_label ? ` · ${pkg.version_label}` : ""}
+                      </p>
+                      {pkg.description ? (
+                        <p className="text-muted-foreground mt-1 text-xs">{pkg.description}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {pkg.pinable ? (
+                        pinnedIds.has(pkg.id) ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={unpin.isPending}
+                            onClick={() => unpin.mutate(pkg.id)}
+                          >
+                            {t("unpin")}
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={pin.isPending}
+                            onClick={() => pin.mutate(pkg.id)}
+                          >
+                            {t("pin")}
+                          </Button>
+                        )
+                      ) : null}
+                      <RequireRouteWrite>
+                        {!installed ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={
+                              queueAction.isPending ||
+                              (pkg.requires_website && !websiteId)
+                            }
+                            onClick={() =>
+                              queueAction.mutate({ slug: pkg.slug, action: "install" })
+                            }
+                          >
+                            {t("install")}
+                          </Button>
+                        ) : (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={
+                                queueAction.isPending ||
+                                (pkg.requires_website && !websiteId)
+                              }
+                              onClick={() =>
+                                queueAction.mutate({ slug: pkg.slug, action: "upgrade" })
+                              }
+                            >
+                              {t("upgrade")}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="destructive"
+                              disabled={queueAction.isPending}
+                              onClick={() =>
+                                queueAction.mutate({ slug: pkg.slug, action: "uninstall" })
+                              }
+                            >
+                              {t("uninstall")}
+                            </Button>
+                          </>
+                        )}
+                      </RequireRouteWrite>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </CardContent>
@@ -202,27 +268,25 @@ export default function SoftstorePage() {
           <CardTitle>{t("installs_title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="divide-y rounded-md border">
-            {(installsData?.installs ?? []).length === 0 ? (
-              <li className="text-muted-foreground px-4 py-3 text-sm">{t("installs_empty")}</li>
-            ) : (
-              (installsData?.installs ?? []).map((row) => (
-                <li key={row.id} className="px-4 py-3 text-sm">
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <span className="font-medium">
-                      {row.package?.name ?? row.package?.slug ?? `#${row.id}`}
-                    </span>
+          {(installsData?.installs ?? []).length === 0 ? (
+            <p className="text-muted-foreground text-sm">{t("installs_empty")}</p>
+          ) : (
+            <ul className="divide-y rounded-md border text-sm">
+              {(installsData?.installs ?? []).map((row) => (
+                <li key={row.id} className="px-3 py-2">
+                  <div className="flex justify-between gap-2">
+                    <span>{row.package?.name ?? row.package?.slug ?? `#${row.id}`}</span>
                     <span className="text-muted-foreground">{row.status}</span>
                   </div>
                   {row.log ? (
-                    <pre className="bg-muted mt-2 max-h-32 overflow-auto rounded p-2 text-xs" dir="ltr">
+                    <p className="text-muted-foreground mt-1 truncate text-xs" dir="ltr">
                       {row.log}
-                    </pre>
+                    </p>
                   ) : null}
                 </li>
-              ))
-            )}
-          </ul>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>

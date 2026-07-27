@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -386,6 +387,12 @@ func handleSiteAnalytics(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "fqdn required"})
 		return
 	}
+	maxLines := 5000
+	if v := r.URL.Query().Get("lines"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 5000 {
+			maxLines = n
+		}
+	}
 	// resolve access log via same pattern as handlers_logs
 	logPath := filepath.Join(envOr("WEBINO_NGINX_LOG_DIR", "/var/log/nginx"), fqdn+"-access.log")
 	if _, err := os.Stat(logPath); err != nil {
@@ -397,19 +404,23 @@ func handleSiteAnalytics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	lines := strings.Split(string(b), "\n")
-	if len(lines) > 5000 {
-		lines = lines[len(lines)-5000:]
+	if len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
 	}
 	statusCounts := map[string]int{}
 	total := 0
 	bytesOut := int64(0)
+	visitors := map[string]struct{}{}
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
 		total++
-		// crude: look for " 200 " etc
+		parts := strings.Fields(line)
+		if len(parts) > 0 {
+			visitors[parts[0]] = struct{}{}
+		}
 		for _, code := range []string{"200", "301", "302", "304", "400", "401", "403", "404", "500", "502", "503"} {
 			if strings.Contains(line, " "+code+" ") {
 				statusCounts[code]++
@@ -421,10 +432,12 @@ func handleSiteAnalytics(w http.ResponseWriter, r *http.Request) {
 		"fqdn":          fqdn,
 		"log":           logPath,
 		"requests":      total,
+		"visitors":      len(visitors),
 		"status_counts": statusCounts,
 		"bytes_approx":  bytesOut,
 		"top_paths":     parseTopPathsFromAccessLog(logPath, 10),
 		"sampled_at":    time.Now().UTC().Format(time.RFC3339),
+		"lines":         maxLines,
 	})
 	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
 }
@@ -453,9 +466,26 @@ func handleSecurityWafDeep(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			name := e.Name()
+			if strings.HasSuffix(name, ".waf-on") || strings.HasSuffix(name, ".waf-geo-deny") {
+				continue
+			}
 			marker := filepath.Join(sitesDir, name+".waf-on")
 			_, err := os.Stat(marker)
-			sites = append(sites, map[string]any{"name": name, "enabled": err == nil})
+			geoPath := filepath.Join(sitesDir, name+".waf-geo-deny")
+			geoCountries := []string{}
+			if raw, err := os.ReadFile(geoPath); err == nil {
+				for _, line := range strings.Split(string(raw), "\n") {
+					line = strings.TrimSpace(line)
+					if line != "" {
+						geoCountries = append(geoCountries, line)
+					}
+				}
+			}
+			sites = append(sites, map[string]any{
+				"name":         name,
+				"enabled":      err == nil,
+				"geo_deny":     geoCountries,
+			})
 		}
 		data, _ := json.Marshal(map[string]any{"sites": sites})
 		writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})

@@ -1,0 +1,4 @@
+.admin-credentials
+.env
+.env.local
+!.env.example

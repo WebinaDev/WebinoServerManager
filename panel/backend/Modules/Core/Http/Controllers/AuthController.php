@@ -163,6 +163,9 @@ class AuthController extends Controller
         return response()->json([
             'data' => [
                 'needs_setup' => needs_setup(),
+                'setup_completed' => setup_completed(),
+                'admin_created' => panel_admin_exists(),
+                'needs_stack' => panel_admin_exists() && ! setup_completed(),
                 'authenticated' => $authenticated,
             ],
         ]);

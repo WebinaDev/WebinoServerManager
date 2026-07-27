@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -125,11 +126,16 @@ func handleSoftstoreInstall(w http.ResponseWriter, r *http.Request) {
 		writeMethod(w)
 		return
 	}
-	var body struct {
-		ScriptID string         `json:"script_id"`
-		Options  map[string]any `json:"options"`
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid body"})
+		return
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	var body struct {
+		ScriptID string          `json:"script_id"`
+		Options  json.RawMessage `json:"options"`
+	}
+	if err := json.Unmarshal(raw, &body); err != nil {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid body"})
 		return
 	}
@@ -137,16 +143,63 @@ func handleSoftstoreInstall(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "script_id not allowlisted"})
 		return
 	}
-	if body.Options == nil {
-		body.Options = map[string]any{}
-	}
-	logOut, err := runSoftstoreScript(body.ScriptID, body.Options)
+	opts := softstoreNormalizeOptions(body.Options)
+	logOut, err := runSoftstoreScript(body.ScriptID, opts)
 	if err != nil {
 		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error() + ": " + logOut})
 		return
 	}
 	data, _ := json.Marshal(map[string]string{"script_id": body.ScriptID, "log": logOut})
 	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+}
+
+func handleSoftstoreUninstall(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeMethod(w)
+		return
+	}
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid body"})
+		return
+	}
+	var body struct {
+		ScriptID string          `json:"script_id"`
+		Options  json.RawMessage `json:"options"`
+	}
+	if err := json.Unmarshal(raw, &body); err != nil {
+		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid body"})
+		return
+	}
+	if !softstoreScriptIDs[body.ScriptID] {
+		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "script_id not allowlisted"})
+		return
+	}
+	opts := softstoreNormalizeOptions(body.Options)
+	logOut, err := runSoftstoreUninstall(body.ScriptID, opts)
+	if err != nil {
+		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error() + ": " + logOut})
+		return
+	}
+	data, _ := json.Marshal(map[string]string{"script_id": body.ScriptID, "log": logOut, "action": "uninstall"})
+	writeJSON(w, http.StatusOK, envelope{OK: true, Data: data})
+}
+
+// softstoreNormalizeOptions accepts {}, [], null, or omitted options.
+func softstoreNormalizeOptions(raw json.RawMessage) map[string]any {
+	if len(raw) == 0 || string(raw) == "null" {
+		return map[string]any{}
+	}
+	var asMap map[string]any
+	if err := json.Unmarshal(raw, &asMap); err == nil && asMap != nil {
+		return asMap
+	}
+	// Tolerate JSON arrays (PHP empty slice encodes as [])
+	var asArr []any
+	if err := json.Unmarshal(raw, &asArr); err == nil {
+		return map[string]any{}
+	}
+	return map[string]any{}
 }
 
 func runSoftstoreScript(scriptID string, options map[string]any) (string, error) {
@@ -202,6 +255,64 @@ func softstoreComposeProjectExists(project string) bool {
 	}
 	_, err = os.Stat(filepath.Join(dir, "docker-compose.yml"))
 	return err == nil
+}
+
+func runSoftstoreUninstall(scriptID string, options map[string]any) (string, error) {
+	switch scriptID {
+	case "install_redis":
+		return runArgv([]string{"apt-get", "remove", "-y", "redis-server"}, "")
+	case "install_memcached":
+		return runArgv([]string{"apt-get", "remove", "-y", "memcached"}, "")
+	case "ensure_composer":
+		return runArgv([]string{"apt-get", "remove", "-y", "composer"}, "")
+	case "compose_up_redis":
+		return runSoftstoreComposeDown("softstore-redis")
+	case "compose_up_nginx":
+		return runSoftstoreComposeDown("softstore-nginx")
+	case "install_nginx":
+		return runArgv([]string{"apt-get", "remove", "-y", "nginx"}, "")
+	case "install_apache":
+		return runArgv([]string{"apt-get", "remove", "-y", "apache2"}, "")
+	case "install_mariadb":
+		return runArgv([]string{"apt-get", "remove", "-y", "mariadb-server"}, "")
+	case "install_mysql":
+		return runArgv([]string{"apt-get", "remove", "-y", "mysql-server"}, "")
+	case "install_php_fpm_81":
+		return runArgv([]string{"apt-get", "remove", "-y", "php8.1-fpm"}, "")
+	case "install_php_fpm_82":
+		return runArgv([]string{"apt-get", "remove", "-y", "php8.2-fpm"}, "")
+	case "install_php_fpm_83":
+		return runArgv([]string{"apt-get", "remove", "-y", "php8.3-fpm"}, "")
+	case "install_php_fpm_84":
+		return runArgv([]string{"apt-get", "remove", "-y", "php8.4-fpm"}, "")
+	case "install_pureftpd":
+		return runArgv([]string{"apt-get", "remove", "-y", "pure-ftpd"}, "")
+	case "install_wordpress_cms":
+		return "WordPress CMS uninstall is manual via Files / Website hub", nil
+	case "install_node_nvm", "install_node_nodesource", "install_python_distro", "install_go_distro", "install_java_distro":
+		return "Runtime uninstall is managed via distro packages; use system package manager if needed", nil
+	case "ensure_ufw_baseline", "ensure_fail2ban":
+		return "Security baseline packages are not auto-removed", nil
+	default:
+		_ = options
+		return "", errSoftstore("uninstall not supported for script")
+	}
+}
+
+func runSoftstoreComposeDown(project string) (string, error) {
+	if !validContainerName(project) {
+		return "", errSoftstore("invalid project name")
+	}
+	dir, err := jailComposeProjectDir(project)
+	if err != nil {
+		return "", err
+	}
+	composePath := filepath.Join(dir, "docker-compose.yml")
+	out, err := runArgv([]string{"docker", "compose", "-f", composePath, "-p", project, "down", "-v"}, dir)
+	if err != nil {
+		return out, err
+	}
+	return "project=" + project + "\n" + out, nil
 }
 
 type softstoreError string

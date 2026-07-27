@@ -376,8 +376,12 @@ func handleDockerDaemon(w http.ResponseWriter, r *http.Request) {
 func readDockerDaemonAllowlisted() (map[string]any, error) {
 	raw, err := os.ReadFile(dockerDaemonJSON)
 	out := map[string]any{
-		"registry-mirrors": []string{},
-		"log-opts":         map[string]string{},
+		"registry-mirrors":    []string{},
+		"insecure-registries": []string{},
+		"log-opts":            map[string]string{},
+		"log-driver":          "",
+		"data-root":           "",
+		"live-restore":        false,
 	}
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -398,6 +402,15 @@ func readDockerDaemonAllowlisted() (map[string]any, error) {
 		}
 		out["registry-mirrors"] = mirrors
 	}
+	if m, ok := full["insecure-registries"].([]any); ok {
+		regs := make([]string, 0, len(m))
+		for _, v := range m {
+			if s, ok := v.(string); ok {
+				regs = append(regs, s)
+			}
+		}
+		out["insecure-registries"] = regs
+	}
 	if lo, ok := full["log-opts"].(map[string]any); ok {
 		opts := map[string]string{}
 		if v, ok := lo["max-size"].(string); ok {
@@ -407,6 +420,15 @@ func readDockerDaemonAllowlisted() (map[string]any, error) {
 			opts["max-file"] = v
 		}
 		out["log-opts"] = opts
+	}
+	if v, ok := full["log-driver"].(string); ok {
+		out["log-driver"] = v
+	}
+	if v, ok := full["data-root"].(string); ok {
+		out["data-root"] = v
+	}
+	if v, ok := full["live-restore"].(bool); ok {
+		out["live-restore"] = v
 	}
 	return out, nil
 }
@@ -420,6 +442,9 @@ func writeDockerDaemonAllowlisted(body map[string]any) error {
 	if mirrors, ok := body["registry-mirrors"]; ok {
 		full["registry-mirrors"] = toStringSlice(mirrors)
 	}
+	if regs, ok := body["insecure-registries"]; ok {
+		full["insecure-registries"] = toStringSlice(regs)
+	}
 	if logOptsRaw, ok := body["log-opts"]; ok {
 		opts := map[string]string{}
 		src := toStringMap(logOptsRaw)
@@ -430,6 +455,23 @@ func writeDockerDaemonAllowlisted(body map[string]any) error {
 			opts["max-file"] = v
 		}
 		full["log-opts"] = opts
+	}
+	if v, ok := body["log-driver"].(string); ok {
+		if v == "" {
+			delete(full, "log-driver")
+		} else {
+			full["log-driver"] = v
+		}
+	}
+	if v, ok := body["data-root"].(string); ok {
+		if v == "" {
+			delete(full, "data-root")
+		} else {
+			full["data-root"] = v
+		}
+	}
+	if v, ok := body["live-restore"].(bool); ok {
+		full["live-restore"] = v
 	}
 	b, err := json.MarshalIndent(full, "", "  ")
 	if err != nil {

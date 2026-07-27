@@ -31,7 +31,7 @@ class AgentClient
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    public function post(string $path, array $payload = []): array
+    public function post(string $path, array $payload = [], int $timeout = 120): array
     {
         $socket = $this->socketPath();
         if (! is_readable($socket)) {
@@ -44,7 +44,7 @@ class AgentClient
                 'curl' => [
                     CURLOPT_UNIX_SOCKET_PATH => $socket,
                 ],
-            ])->acceptJson()->timeout(120);
+            ])->acceptJson()->timeout($timeout);
 
             if ($this->token() !== '') {
                 $pending = $pending->withHeaders(['X-Agent-Token' => $this->token()]);

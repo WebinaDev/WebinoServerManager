@@ -24,14 +24,14 @@ class SetupController extends Controller
 
     public function status(): JsonResponse
     {
-        $needsSetup = needs_setup();
         $run = SetupStackRun::query()->latest('id')->first();
 
         return response()->json([
             'data' => [
-                'needs_setup' => $needsSetup,
+                'needs_setup' => needs_setup(),
                 'setup_completed' => setup_completed(),
                 'admin_created' => panel_admin_exists(),
+                'needs_stack' => panel_admin_exists() && ! setup_completed(),
                 'stack' => $this->serializeStack($run),
             ],
         ]);
@@ -45,6 +45,8 @@ class SetupController extends Controller
             'data' => [
                 'needs_setup' => needs_setup(),
                 'setup_completed' => setup_completed(),
+                'admin_created' => panel_admin_exists(),
+                'needs_stack' => panel_admin_exists() && ! setup_completed(),
                 'stack' => $this->serializeStack($run),
             ],
         ]);
@@ -58,17 +60,9 @@ class SetupController extends Controller
             ], 409);
         }
 
+        // Post-login (aaPanel-style): admin already exists → start hosting stack only.
         if (panel_admin_exists()) {
-            $run = SetupStackRun::query()->with('steps')->latest('id')->first();
-
-            return response()->json([
-                'message' => __('setup.already_in_progress'),
-                'data' => [
-                    'needs_setup' => needs_setup(),
-                    'setup_completed' => false,
-                    'stack' => $this->serializeStack($run),
-                ],
-            ], 409);
+            return $this->submitStackOnly($request);
         }
 
         $data = $request->validate([
@@ -97,21 +91,9 @@ class SetupController extends Controller
             'stack.pureftpd' => ['sometimes', 'boolean'],
         ]);
 
-        $stackConfig = $data['stack'] ?? [];
-        $skip = (bool) ($stackConfig['skip'] ?? false);
-        if (! $skip) {
-            $stackConfig['webserver'] = $stackConfig['webserver'] ?? 'nginx';
-            $stackConfig['database'] = $stackConfig['database'] ?? 'mariadb';
-            $phpVersions = $stackConfig['php_versions'] ?? ['8.2', '8.3'];
-            if (! is_array($phpVersions) || $phpVersions === []) {
-                return response()->json(['message' => __('setup.php_required')], 422);
-            }
-            $stackConfig['php_versions'] = array_values($phpVersions);
-            $stackConfig['redis'] = (bool) ($stackConfig['redis'] ?? false);
-            $stackConfig['memcached'] = (bool) ($stackConfig['memcached'] ?? false);
-            $stackConfig['pureftpd'] = (bool) ($stackConfig['pureftpd'] ?? false);
-        } else {
-            $stackConfig = ['skip' => true];
+        [$stackConfig, $skip] = $this->normalizeStackConfig($data['stack'] ?? []);
+        if ($stackConfig === null) {
+            return response()->json(['message' => __('setup.php_required')], 422);
         }
 
         $planned = $this->stackPlanner->plan($stackConfig);
@@ -154,25 +136,9 @@ class SetupController extends Controller
                 }
             }
 
-            // Do not mark setup complete until stack finishes (unless skipped).
             PanelSetting::set('setup_completed', false);
 
-            $run = SetupStackRun::query()->create([
-                'status' => $skip ? 'skipped' : 'pending',
-                'skip' => $skip,
-                'config' => $stackConfig,
-            ]);
-            $runId = $run->id;
-
-            foreach ($planned as $i => $step) {
-                $run->steps()->create([
-                    'position' => $i + 1,
-                    'slug' => $step['slug'],
-                    'script_id' => $step['script_id'],
-                    'label' => $step['label'],
-                    'status' => 'pending',
-                ]);
-            }
+            $runId = $this->createStackRun($stackConfig, $skip, $planned);
         });
 
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
@@ -195,10 +161,77 @@ class SetupController extends Controller
             'data' => [
                 'needs_setup' => needs_setup(),
                 'setup_completed' => setup_completed(),
+                'admin_created' => true,
+                'needs_stack' => ! setup_completed(),
                 'stack' => $this->serializeStack($run),
                 'message' => setup_completed()
                     ? __('setup.completed')
                     : __('setup.stack_started'),
+            ],
+        ], 201);
+    }
+
+    /**
+     * Start or skip hosting stack when admin already exists (post-login wizard).
+     */
+    public function submitStackOnly(Request $request): JsonResponse
+    {
+        if (setup_completed()) {
+            return response()->json(['message' => __('setup.already_completed')], 409);
+        }
+
+        if (! panel_admin_exists()) {
+            return response()->json(['message' => __('setup.admin_required')], 422);
+        }
+
+        $active = SetupStackRun::query()
+            ->whereIn('status', ['pending', 'running'])
+            ->latest('id')
+            ->first();
+        if ($active !== null) {
+            return response()->json([
+                'message' => __('setup.already_in_progress'),
+                'data' => [
+                    'needs_setup' => needs_setup(),
+                    'setup_completed' => false,
+                    'admin_created' => true,
+                    'needs_stack' => true,
+                    'stack' => $this->serializeStack($active->load('steps')),
+                ],
+            ], 409);
+        }
+
+        $data = $request->validate([
+            'stack' => ['required', 'array'],
+            'stack.skip' => ['sometimes', 'boolean'],
+            'stack.webserver' => ['nullable', 'in:nginx,apache'],
+            'stack.database' => ['nullable', 'in:mariadb,mysql'],
+            'stack.php_versions' => ['nullable', 'array'],
+            'stack.php_versions.*' => ['in:8.1,8.2,8.3,8.4'],
+            'stack.redis' => ['sometimes', 'boolean'],
+            'stack.memcached' => ['sometimes', 'boolean'],
+            'stack.pureftpd' => ['sometimes', 'boolean'],
+        ]);
+
+        [$stackConfig, $skip] = $this->normalizeStackConfig($data['stack']);
+        if ($stackConfig === null) {
+            return response()->json(['message' => __('setup.php_required')], 422);
+        }
+
+        $planned = $this->stackPlanner->plan($stackConfig);
+        $runId = $this->createStackRun($stackConfig, $skip, $planned);
+        RunSetupStackJob::dispatch($runId);
+
+        $run = SetupStackRun::query()->with('steps')->find($runId);
+
+        return response()->json([
+            'data' => [
+                'needs_setup' => needs_setup(),
+                'setup_completed' => setup_completed(),
+                'admin_created' => true,
+                'needs_stack' => ! setup_completed(),
+                'stack' => $this->serializeStack($run),
+                'message' => __('setup.stack_started'),
             ],
         ], 201);
     }
@@ -234,9 +267,62 @@ class SetupController extends Controller
             'data' => [
                 'needs_setup' => needs_setup(),
                 'setup_completed' => setup_completed(),
+                'admin_created' => panel_admin_exists(),
+                'needs_stack' => panel_admin_exists() && ! setup_completed(),
                 'stack' => $this->serializeStack($run),
             ],
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $stackConfig
+     * @return array{0: array<string, mixed>|null, 1: bool}
+     */
+    private function normalizeStackConfig(array $stackConfig): array
+    {
+        $skip = (bool) ($stackConfig['skip'] ?? false);
+        if ($skip) {
+            return [['skip' => true], true];
+        }
+
+        $stackConfig['webserver'] = $stackConfig['webserver'] ?? 'nginx';
+        $stackConfig['database'] = $stackConfig['database'] ?? 'mariadb';
+        $phpVersions = $stackConfig['php_versions'] ?? ['8.2', '8.3'];
+        if (! is_array($phpVersions) || $phpVersions === []) {
+            return [null, false];
+        }
+        $stackConfig['php_versions'] = array_values($phpVersions);
+        $stackConfig['redis'] = (bool) ($stackConfig['redis'] ?? false);
+        $stackConfig['memcached'] = (bool) ($stackConfig['memcached'] ?? false);
+        $stackConfig['pureftpd'] = (bool) ($stackConfig['pureftpd'] ?? false);
+        $stackConfig['skip'] = false;
+
+        return [$stackConfig, false];
+    }
+
+    /**
+     * @param  array<string, mixed>  $stackConfig
+     * @param  list<array{slug: string, script_id: string, label: string}>  $planned
+     */
+    private function createStackRun(array $stackConfig, bool $skip, array $planned): int
+    {
+        $run = SetupStackRun::query()->create([
+            'status' => $skip ? 'skipped' : 'pending',
+            'skip' => $skip,
+            'config' => $stackConfig,
+        ]);
+
+        foreach ($planned as $i => $step) {
+            $run->steps()->create([
+                'position' => $i + 1,
+                'slug' => $step['slug'],
+                'script_id' => $step['script_id'],
+                'label' => $step['label'],
+                'status' => 'pending',
+            ]);
+        }
+
+        return (int) $run->id;
     }
 
     /**

@@ -305,6 +305,20 @@ class DatabaseController extends Controller
         return response()->json(['redis' => $this->agentPayload($result)]);
     }
 
+    public function mongoInfo(): JsonResponse
+    {
+        $result = $this->agent->post('/v1/databases', [
+            'action' => 'mongo_info',
+            'engine' => 'mongodb',
+        ]);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['error'] ?? __('databases.mongo_info_failed')], 422);
+        }
+
+        return response()->json(['mongo' => $this->agentPayload($result)]);
+    }
+
     public function remoteAccess(): JsonResponse
     {
         $result = $this->agent->get('/v1/databases/remote-access');

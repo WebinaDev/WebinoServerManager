@@ -6,6 +6,7 @@ return [
     'deleted' => 'وب‌سایت حذف شد.',
     'htpasswd_failed' => 'تنظیم احراز هویت پوشه ناموفق بود.',
     'htpasswd_ok' => 'احراز هویت پوشه به‌روز شد.',
+    'htpasswd_removed' => 'احراز هویت پوشه حذف شد.',
     'logs_failed' => 'بارگذاری لاگ وب‌سایت ناموفق بود.',
     'composer_failed' => 'اجرای Composer ناموفق بود.',
     'composer_ok' => 'Composer با موفقیت تمام شد.',

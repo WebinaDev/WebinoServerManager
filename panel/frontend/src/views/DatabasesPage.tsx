@@ -150,6 +150,19 @@ export default function DatabasesPage() {
     onError: toastMutationError,
   })
 
+  const mongoInfo = useMutation({
+    mutationFn: () =>
+      api<{ mongo: { ok?: boolean; database_count?: number; ping?: string } }>(
+        "/api/v1/databases/mongo/info",
+      ),
+    onSuccess: (res) => {
+      toast.success(
+        `${t("mongo_info")}: ${res.mongo?.ok ? "ok" : "—"} · dbs=${res.mongo?.database_count ?? 0}`,
+      )
+    },
+    onError: toastMutationError,
+  })
+
   const importDb = useMutation({
     mutationFn: () =>
       api("/api/v1/databases/import", {
@@ -437,6 +450,16 @@ export default function DatabasesPage() {
                   disabled={redisInfo.isPending}
                 >
                   {t("redis_info")}
+                </Button>
+              ) : null}
+              {engine === "mongodb" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => mongoInfo.mutate(undefined)}
+                  disabled={mongoInfo.isPending}
+                >
+                  {t("mongo_info")}
                 </Button>
               ) : null}
               <Button type="submit" disabled={create.isPending}>

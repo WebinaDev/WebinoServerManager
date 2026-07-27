@@ -261,6 +261,23 @@ func handleVhostAction(w http.ResponseWriter, r *http.Request, name, action stri
 `, path, htfile)
 			content += block
 		}
+	case "htpasswd_remove":
+		path := strVal(body["path"])
+		if path == "" {
+			path = "/"
+		}
+		htfile := filepath.Join(nginxSitesDir, name+".htpasswd")
+		if engine == "apache" {
+			htfile = filepath.Join(apacheSitesDir, name+".htpasswd")
+		}
+		if engine == "apache" {
+			content = stripApacheAuthLocation(content, path)
+		} else {
+			content = stripNginxAuthLocation(content, path)
+		}
+		if !strings.Contains(content, "auth_basic_user_file") && !strings.Contains(content, "AuthUserFile") {
+			_ = os.Remove(htfile)
+		}
 	case "ssl":
 		fqdn := strings.ReplaceAll(name, "_", ".")
 		plugin := "--nginx"
@@ -723,4 +740,54 @@ func listNginxVhosts() ([]map[string]string, error) {
 		out = append(out, v)
 	}
 	return out, nil
+}
+
+func stripNginxAuthLocation(content, path string) string {
+	needle := fmt.Sprintf("location %s {", path)
+	idx := strings.Index(content, needle)
+	for idx >= 0 {
+		rest := content[idx:]
+		end := strings.Index(rest, "}")
+		if end < 0 {
+			break
+		}
+		block := rest[:end+1]
+		if strings.Contains(block, "auth_basic") {
+			start := idx
+			if start > 0 && content[start-1] == '\n' {
+				start--
+			}
+			content = content[:start] + rest[end+1:]
+			idx = strings.Index(content, needle)
+			continue
+		}
+		next := strings.Index(rest[1:], needle)
+		if next < 0 {
+			break
+		}
+		idx = idx + 1 + next
+	}
+	return content
+}
+
+func stripApacheAuthLocation(content, path string) string {
+	needle := fmt.Sprintf(`<Location "%s">`, path)
+	start := strings.Index(content, needle)
+	if start < 0 {
+		needle = fmt.Sprintf("<Location %s>", path)
+		start = strings.Index(content, needle)
+	}
+	if start < 0 {
+		return content
+	}
+	endMarker := "</Location>"
+	end := strings.Index(content[start:], endMarker)
+	if end < 0 {
+		return content
+	}
+	end += start + len(endMarker)
+	if start > 0 && content[start-1] == '\n' {
+		start--
+	}
+	return content[:start] + content[end:]
 }

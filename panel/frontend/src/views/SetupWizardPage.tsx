@@ -116,6 +116,32 @@ export default function SetupWizardPage() {
   const [err, setErr] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await api<{
+          admin_created?: boolean
+          setup_completed?: boolean
+          needs_stack?: boolean
+        }>("/api/v1/setup/status")
+        if (cancelled) return
+        if (res.setup_completed) {
+          window.location.assign(res.admin_created ? "/login" : "/")
+          return
+        }
+        if (res.admin_created || res.needs_stack) {
+          window.location.assign("/setup/stack")
+        }
+      } catch {
+        // keep full wizard as fallback
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   function updateField<K extends keyof SetupForm>(key: K, value: SetupForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
@@ -651,14 +677,29 @@ export default function SetupWizardPage() {
                 </p>
                 <ul className="space-y-2 text-sm">
                   {(stackStatus?.steps ?? []).map((s) => (
-                    <li key={s.id} className="flex items-center justify-between gap-2 border-b pb-1">
-                      <span>{s.label}</span>
-                      <span className="text-muted-foreground font-mono text-xs" dir="ltr">
-                        {s.status}
-                      </span>
+                    <li key={s.id} className="flex flex-col gap-1 border-b pb-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span>{s.label}</span>
+                        <span className="text-muted-foreground font-mono text-xs" dir="ltr">
+                          {s.status}
+                        </span>
+                      </div>
+                      {s.log ? (
+                        <pre
+                          dir="ltr"
+                          className="max-h-32 overflow-auto rounded bg-zinc-950 p-2 font-mono text-[10px] text-zinc-100"
+                        >
+                          {s.log}
+                        </pre>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
+                {stackStatus?.error ? (
+                  <p className="text-destructive text-sm" role="alert">
+                    {stackStatus.error}
+                  </p>
+                ) : null}
                 {stackStatus?.status === "failed" ? (
                   <Button type="button" disabled={pending} onClick={() => void retryStack()}>
                     {t("retry_install")}

@@ -30,8 +30,8 @@ class InstallRuntimeVersionJob implements ShouldQueue
         try {
             $result = $agent->post('/v1/runtimes/install', [
                 'script_id' => $version->agent_script_id,
-                'options' => [],
-            ]);
+                'options' => new \stdClass(),
+            ], 600);
         } catch (\Throwable $e) {
             $version->update(['status' => 'failed', 'last_error' => $e->getMessage()]);
 

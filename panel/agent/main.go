@@ -129,6 +129,7 @@ func main() {
 	mux.HandleFunc("/v1/websites/composer", handleWebsiteComposer)
 	mux.HandleFunc("/v1/softstore/status", handleSoftstoreStatus)
 	mux.HandleFunc("/v1/softstore/install", handleSoftstoreInstall)
+	mux.HandleFunc("/v1/softstore/uninstall", handleSoftstoreUninstall)
 	mux.HandleFunc("/v1/runtimes/status", handleRuntimesStatus)
 	mux.HandleFunc("/v1/runtimes/install", handleRuntimesInstall)
 	mux.HandleFunc("/v1/runtimes/projects", handleRuntimesProjects)

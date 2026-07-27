@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -106,6 +107,9 @@ export default function ClamAvScanPage() {
             >
               {t("clamav_tab_schedule")}
             </Button>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/files">{t("clamav_open_recycle")}</Link>
+            </Button>
           </div>
 
           {tab === "scan" && (
@@ -135,11 +139,16 @@ export default function ClamAvScanPage() {
                       : t("clamav_infected", { count: result.count ?? 0 })}
                   </p>
                   {(result.infected ?? []).length > 0 && (
-                    <ul className="list-inside list-disc text-sm" dir="ltr">
-                      {result.infected!.map((file) => (
-                        <li key={file}>{file}</li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul className="list-inside list-disc text-sm" dir="ltr">
+                        {result.infected!.map((file) => (
+                          <li key={file}>{file}</li>
+                        ))}
+                      </ul>
+                      <Button asChild size="sm" variant="outline">
+                        <Link href="/files">{t("clamav_open_recycle")}</Link>
+                      </Button>
+                    </>
                   )}
                   {result.output && (
                     <pre

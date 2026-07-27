@@ -120,7 +120,11 @@ export default function AppsPage() {
       api<{
         daemon: {
           "registry-mirrors"?: string[]
+          "insecure-registries"?: string[]
           "log-opts"?: { "max-size"?: string; "max-file"?: string }
+          "log-driver"?: string
+          "data-root"?: string
+          "live-restore"?: boolean
         }
       }>("/api/v1/apps/daemon"),
     enabled: tab === "daemon",
@@ -765,12 +769,20 @@ export default function AppsPage() {
                     .split("\n")
                     .map((l) => l.trim())
                     .filter(Boolean)
+                  const insecure = String(fd.get("insecure") ?? "")
+                    .split("\n")
+                    .map((l) => l.trim())
+                    .filter(Boolean)
                   saveDaemon.mutate({
                     "registry-mirrors": mirrors,
+                    "insecure-registries": insecure,
                     "log-opts": {
                       "max-size": String(fd.get("max_size") ?? "") || undefined,
                       "max-file": String(fd.get("max_file") ?? "") || undefined,
                     },
+                    "log-driver": String(fd.get("log_driver") ?? "") || undefined,
+                    "data-root": String(fd.get("data_root") ?? "") || undefined,
+                    "live-restore": fd.get("live_restore") === "on",
                   })
                 }}
               >
@@ -781,6 +793,15 @@ export default function AppsPage() {
                     dir="ltr"
                     rows={3}
                     defaultValue={(daemonData?.daemon?.["registry-mirrors"] ?? []).join("\n")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("daemon_insecure")}</Label>
+                  <Textarea
+                    name="insecure"
+                    dir="ltr"
+                    rows={2}
+                    defaultValue={(daemonData?.daemon?.["insecure-registries"] ?? []).join("\n")}
                   />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -800,7 +821,33 @@ export default function AppsPage() {
                       defaultValue={daemonData?.daemon?.["log-opts"]?.["max-file"] ?? ""}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>{t("daemon_log_driver")}</Label>
+                    <Input
+                      name="log_driver"
+                      dir="ltr"
+                      placeholder="json-file"
+                      defaultValue={daemonData?.daemon?.["log-driver"] ?? ""}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("daemon_data_root")}</Label>
+                    <Input
+                      name="data_root"
+                      dir="ltr"
+                      placeholder="/var/lib/docker"
+                      defaultValue={daemonData?.daemon?.["data-root"] ?? ""}
+                    />
+                  </div>
                 </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="live_restore"
+                    defaultChecked={Boolean(daemonData?.daemon?.["live-restore"])}
+                  />
+                  {t("daemon_live_restore")}
+                </label>
                 <Button type="submit" disabled={saveDaemon.isPending}>
                   {t("daemon_save")}
                 </Button>

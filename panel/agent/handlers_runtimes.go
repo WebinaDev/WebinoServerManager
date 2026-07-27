@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -68,11 +69,16 @@ func handleRuntimesInstall(w http.ResponseWriter, r *http.Request) {
 		writeMethod(w)
 		return
 	}
-	var body struct {
-		ScriptID string         `json:"script_id"`
-		Options  map[string]any `json:"options"`
+	raw, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid body"})
+		return
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	var body struct {
+		ScriptID string          `json:"script_id"`
+		Options  json.RawMessage `json:"options"`
+	}
+	if err := json.Unmarshal(raw, &body); err != nil {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "invalid body"})
 		return
 	}
@@ -80,6 +86,7 @@ func handleRuntimesInstall(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, envelope{OK: false, Error: "script_id not allowlisted"})
 		return
 	}
+	_ = softstoreNormalizeOptions(body.Options)
 	logOut, err := runRuntimesInstallScript(body.ScriptID)
 	if err != nil {
 		writeJSON(w, http.StatusOK, envelope{OK: false, Error: err.Error() + ": " + logOut})

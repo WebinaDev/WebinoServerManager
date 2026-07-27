@@ -151,12 +151,60 @@ If backend loops on 'Waiting for database at db:3306' / Access denied:
     docker compose --env-file panel/.env -f panel/docker-compose.panel.yml down
     docker volume rm panel_panel_db_data
     ./install.sh --panel"
-  local ip port
+
+  local ip port admin_user admin_pass creds_file
   ip=$(panel_detect_ip)
   port="${PANEL_HTTP_PORT:-2090}"
-  log "Panel ready: http://${ip}:${port}"
-  log "Open http://${ip}:${port}/setup to create the admin and install Nginx/MariaDB/PHP (hosting stack) via the wizard."
-  log "Until the setup wizard finishes (or you skip software), the dashboard stays locked."
+  admin_user="${PANEL_ADMIN_USER:-admin}"
+  admin_pass=$(panel_rand_hex 12)
+  creds_file="${PANEL}/.admin-credentials"
+
+  log "Creating initial admin (aaPanel-style credentials)..."
+  local boot_out=""
+  if boot_out=$(webina_compose -f "$COMPOSE" --env-file "${PANEL_ENV}" exec -T backend \
+      php artisan panel:bootstrap-admin \
+      --username="${admin_user}" \
+      --password="${admin_pass}" \
+      --name=Administrator \
+      --force \
+      --no-interaction 2>&1); then
+    # Prefer password line from artisan if --force regenerated; else use generated
+    local printed_pass
+    printed_pass=$(printf '%s\n' "$boot_out" | grep -E '^password=' | head -1 | cut -d= -f2- || true)
+    if [[ -n "$printed_pass" ]]; then
+      admin_pass="$printed_pass"
+    fi
+    umask 077
+    cat >"${creds_file}" <<EOF
+PANEL_URL=http://${ip}:${port}
+USERNAME=${admin_user}
+PASSWORD=${admin_pass}
+EOF
+    chmod 600 "${creds_file}" 2>/dev/null || true
+  else
+    warn "bootstrap-admin failed — open /setup to create admin manually."
+    warn "$boot_out"
+    admin_pass=""
+  fi
+
+  echo ""
+  echo "================================================================"
+  echo " WebinoServer panel is ready."
+  echo "================================================================"
+  echo ""
+  echo " Panel URL:  http://${ip}:${port}"
+  if [[ -n "$admin_pass" ]]; then
+    echo " Username:   ${admin_user}"
+    echo " Password:   ${admin_pass}"
+    echo ""
+    echo " Login, then install Nginx/MariaDB/PHP via the software wizard."
+    echo " Credentials also saved to panel/.admin-credentials (chmod 600)."
+  else
+    echo " Open http://${ip}:${port}/setup to create the admin."
+  fi
+  echo "================================================================"
+  echo ""
+  log "Panel ready: http://${ip}:${port}/login"
   if [[ "${PANEL_DEV_PROFILE:-}" == "1" ]]; then
     log "API docs (dev profile): http://${ip}:${PANEL_DOCS_PORT:-2091}"
   else

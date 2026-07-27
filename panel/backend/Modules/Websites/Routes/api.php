@@ -15,6 +15,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::patch('/websites/{website}', [WebsiteController::class, 'update']);
         Route::delete('/websites/{website}', [WebsiteController::class, 'destroy']);
         Route::post('/websites/{website}/htpasswd', [WebsiteController::class, 'htpasswd']);
+        Route::delete('/websites/{website}/htpasswd', [WebsiteController::class, 'destroyHtpasswd']);
         Route::post('/websites/{website}/composer', [WebsiteController::class, 'composer']);
     });
 });

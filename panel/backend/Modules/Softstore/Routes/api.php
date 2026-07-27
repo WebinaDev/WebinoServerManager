@@ -13,5 +13,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:system.manage')->group(function () {
         Route::post('/softstore/packages/{slug}/install', [SoftstoreController::class, 'install']);
+        Route::post('/softstore/packages/{slug}/upgrade', [SoftstoreController::class, 'upgrade']);
+        Route::post('/softstore/packages/{slug}/uninstall', [SoftstoreController::class, 'uninstall']);
     });
 });

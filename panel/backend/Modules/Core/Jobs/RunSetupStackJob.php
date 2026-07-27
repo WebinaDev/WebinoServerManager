@@ -49,8 +49,9 @@ class RunSetupStackJob implements ShouldQueue
             try {
                 $result = $agent->post('/v1/softstore/install', [
                     'script_id' => $step->script_id,
-                    'options' => [],
-                ]);
+                    // Must be JSON object {} — Go map[string]any rejects []
+                    'options' => new \stdClass(),
+                ], 600);
             } catch (\Throwable $e) {
                 $step->update(['status' => 'failed', 'log' => $e->getMessage()]);
                 $run->update(['status' => 'failed', 'error' => $e->getMessage()]);

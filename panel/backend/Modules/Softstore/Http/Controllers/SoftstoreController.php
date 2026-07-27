@@ -54,12 +54,27 @@ class SoftstoreController extends Controller
 
     public function install(Request $request, string $slug): JsonResponse
     {
+        return $this->queueAction($request, $slug, 'install');
+    }
+
+    public function upgrade(Request $request, string $slug): JsonResponse
+    {
+        return $this->queueAction($request, $slug, 'upgrade');
+    }
+
+    public function uninstall(Request $request, string $slug): JsonResponse
+    {
+        return $this->queueAction($request, $slug, 'uninstall');
+    }
+
+    private function queueAction(Request $request, string $slug, string $action): JsonResponse
+    {
         $package = SoftstorePackage::query()->where('slug', $slug)->firstOrFail();
         $data = $request->validate([
             'website_id' => ['nullable', 'integer', 'exists:hosting_websites,id'],
         ]);
 
-        if ($package->category === 'cms' && empty($data['website_id'])) {
+        if ($package->category === 'cms' && empty($data['website_id']) && $action !== 'uninstall') {
             return response()->json(['message' => 'website_id required for CMS packages'], 422);
         }
 
@@ -68,11 +83,12 @@ class SoftstoreController extends Controller
             'status' => 'pending',
             'requested_by' => $request->user()?->id,
             'website_id' => $data['website_id'] ?? null,
+            'log' => '['.$action.'] queued',
         ]);
 
-        InstallSoftstorePackageJob::dispatch($install->id);
+        InstallSoftstorePackageJob::dispatch($install->id, $action);
 
-        return response()->json(['install' => $install->load('package')], 202);
+        return response()->json(['install' => $install->load('package'), 'action' => $action], 202);
     }
 
     public function installs(): JsonResponse

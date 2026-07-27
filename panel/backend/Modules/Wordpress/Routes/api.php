@@ -16,6 +16,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/wordpress/{site}/migrate', [WordpressController::class, 'migrate']);
         Route::post('/wordpress/{site}/staging', [WordpressController::class, 'staging']);
         Route::post('/wordpress/{site}/themes/update', [WordpressController::class, 'updateThemes']);
+        Route::post('/wordpress/{site}/themes/activate', [WordpressController::class, 'activateTheme']);
         Route::post('/wordpress/{site}/plugins/update', [WordpressController::class, 'updatePlugins']);
+        Route::post('/wordpress/{site}/plugins/toggle', [WordpressController::class, 'togglePlugin']);
     });
 });
