@@ -67,7 +67,6 @@ function readStoredLocale(): string {
 
 function AccentAndAuthProviders({ children }: { children: ReactNode }) {
   const { resolvedTheme, setTheme } = useTheme()
-  const [hydrated, setHydrated] = useState(false)
   const [accent, setAccent] = useState<Accent>("zinc")
 
   const setToken = useCallback((_t: string | null) => {
@@ -105,18 +104,21 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
     document.documentElement.classList.add(
       toAppLocale(normalized) === "fa" ? "locale-fa" : "locale-en",
     )
-    setHydrated(true)
+    document.documentElement.setAttribute("data-accent", storedAccent ?? "zinc")
   }, [])
 
   useEffect(() => {
-    if (!hydrated) {
-      return
-    }
     localStorage.setItem("theme_accent", accent)
     document.documentElement.setAttribute("data-accent", accent)
-    document.body.className =
-      "min-h-svh bg-background text-foreground font-sans antialiased"
-  }, [hydrated, accent])
+    // Preserve next/font CSS variable classes already on <body>
+    document.body.classList.add(
+      "min-h-svh",
+      "bg-background",
+      "text-foreground",
+      "font-sans",
+      "antialiased",
+    )
+  }, [accent])
 
   const mode: ThemeMode = resolvedTheme === "dark" ? "dark" : "light"
 
@@ -131,10 +133,6 @@ function AccentAndAuthProviders({ children }: { children: ReactNode }) {
   )
 
   const authValue = useMemo(() => ({ setToken }), [setToken])
-
-  if (!hydrated) {
-    return null
-  }
 
   return (
     <AuthContext.Provider value={authValue}>

@@ -1,4 +1,5 @@
 # Edge reverse proxy for WebinoServerManager panel (Architecture §13: only `web` publishes).
+# Module routes live at /v1/* on the PHP app. Browsers call /api/v1/* — strip /api like Next rewrites.
 {
 	servers {
 		protocols h1 h2 h3
@@ -8,8 +9,7 @@
 :80 {
 	encode zstd gzip
 
-	@api path /api/*
-	handle /api* {
+	handle_path /api/* {
 		reverse_proxy backend:8080
 	}
 

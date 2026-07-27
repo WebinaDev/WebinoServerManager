@@ -157,6 +157,7 @@ wait_for_panel_api() {
   }
 
   panel_setup_status_ready() {
+    # Prefer public edge path (must strip /api → /v1 on Caddy)
     if curl -sf --max-time 5 "http://127.0.0.1:${port}/api/v1/setup/status" >/dev/null 2>&1; then
       return 0
     fi
@@ -167,12 +168,16 @@ wait_for_panel_api() {
 
   log "Waiting for panel API (up to $((max * 5))s)..."
   for ((i = 1; i <= max; i++)); do
-    if panel_api_direct_ready || panel_setup_status_ready; then
+    # Require public /api path OR (backend up + direct /v1) so Caddy misconfig is noticed
+    if panel_setup_status_ready; then
       log "Panel API reachable after ${i} attempt(s)"
       return 0
     fi
     if [[ $((i % 12)) -eq 0 ]]; then
       log "Still waiting for panel API (${i}/${max})..."
+      if panel_api_direct_ready && ! curl -sf --max-time 3 "http://127.0.0.1:${port}/api/v1/setup/status" >/dev/null 2>&1; then
+        warn "Backend /up OK but http://127.0.0.1:${port}/api/v1/setup/status failed — check Caddy strip /api (handle_path)"
+      fi
     fi
     if [[ $i -eq "$max" ]]; then
       warn "Panel API not reachable after ${max} attempts"
