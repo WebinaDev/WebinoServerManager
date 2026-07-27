@@ -72,6 +72,12 @@ webina_compose() {
 
 patch_env() {
   local file="$1" key="$2" value="$3"
+  if [[ -d "$file" ]]; then
+    die "Env path is a directory (Docker bind-mount created it): $file
+Remove it and re-run install:
+  rm -rf $file
+  ./install.sh --panel"
+  fi
   if [[ ! -f "$file" ]]; then
     die "Missing env file: $file"
   fi

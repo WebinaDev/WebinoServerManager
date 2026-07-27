@@ -49,6 +49,37 @@ panel_configure_urls() {
   patch_env "${backend_env}" "AUTH_COOKIE_SECURE" "false"
 }
 
+# Ensure PATH is a regular env file (not a Docker-created directory).
+# If EXAMPLE is set and the file is missing, copy from it; otherwise touch.
+panel_ensure_env_file() {
+  local path="$1"
+  local example="${2:-}"
+  local label="${3:-$path}"
+
+  if [[ -d "$path" ]]; then
+    warn "${label} is a directory (Docker bind-mount created it when the file was missing)."
+    warn "Removing and recreating as a file..."
+    rm -rf "$path"
+  fi
+
+  if [[ -f "$path" ]]; then
+    return 0
+  fi
+
+  if [[ -n "$example" && -f "$example" ]]; then
+    cp "$example" "$path"
+    log "Created ${label} from example"
+  else
+    touch "$path"
+    log "Created empty ${label}"
+  fi
+
+  if [[ ! -f "$path" ]]; then
+    die "Failed to create env file: ${path}
+If a directory exists there, remove it: rm -rf ${path}"
+  fi
+}
+
 # generate_panel_secrets PANEL_DIR [ci_mode]
 # Ensures panel/.env and panel/backend/.env exist with synced secrets.
 generate_panel_secrets() {
@@ -58,10 +89,9 @@ generate_panel_secrets() {
   local backend_env="${panel_dir}/backend/.env"
   local db_pass db_root_pass agent_token roundcube_key
 
-  if [[ ! -f "${backend_env}" && -f "${panel_dir}/backend/.env.example" ]]; then
-    cp "${panel_dir}/backend/.env.example" "${backend_env}"
-    log "Created panel/backend/.env from example"
-  fi
+  mkdir -p "${panel_dir}/backend"
+  panel_ensure_env_file "${backend_env}" "${panel_dir}/backend/.env.example" "panel/backend/.env"
+  panel_ensure_env_file "${panel_env}" "${panel_dir}/.env.example" "panel/.env"
 
   db_pass=$(read_env "${backend_env}" "DB_PASSWORD" "")
   if [[ -z "$db_pass" || "$db_pass" == "webinoserver" ]]; then
@@ -75,15 +105,6 @@ generate_panel_secrets() {
     agent_token=$(panel_rand_hex 32)
     patch_env "${backend_env}" "WEBINO_AGENT_TOKEN" "$agent_token"
     log "Generated WEBINO_AGENT_TOKEN"
-  fi
-
-  if [[ ! -f "${panel_env}" ]]; then
-    if [[ -f "${panel_dir}/.env.example" ]]; then
-      cp "${panel_dir}/.env.example" "${panel_env}"
-      log "Created panel/.env from example"
-    else
-      touch "${panel_env}"
-    fi
   fi
 
   db_root_pass=$(read_env "${panel_env}" "PANEL_DB_ROOT_PASSWORD" "")
