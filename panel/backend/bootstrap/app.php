@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function () {
+            // Always register /api/v1/setup + auth bootstrap (independent of module route loader)
+            require __DIR__.'/../routes/panel-bootstrap.php';
+        },
     )
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('panel:collect-metrics')->everyMinute();

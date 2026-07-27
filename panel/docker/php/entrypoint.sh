@@ -92,10 +92,16 @@ if [[ "${RUN_MIGRATIONS:-1}" == "1" ]]; then
     php artisan module:enable --all --no-interaction || true
   fi
 
+  echo "[entrypoint] Clearing stale route/config caches..."
+  rm -f bootstrap/cache/routes*.php bootstrap/cache/config.php 2>/dev/null || true
+  php artisan route:clear --no-interaction 2>/dev/null || true
+  php artisan config:clear --no-interaction 2>/dev/null || true
+
   echo "[entrypoint] Caching config..."
   php artisan config:cache --no-interaction
 else
   echo "[entrypoint] Skipping migrations (RUN_MIGRATIONS=0)."
+  rm -f bootstrap/cache/routes*.php 2>/dev/null || true
 fi
 
 echo "[entrypoint] Starting..."
