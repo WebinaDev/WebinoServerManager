@@ -21,7 +21,7 @@ async function fetchGate(request: NextRequest): Promise<GateStatus> {
   }
 
   try {
-    const res = await fetch(`${base}/v1/auth/gate`, {
+    const res = await fetch(`${base}/api/v1/auth/gate`, {
       headers,
       cache: "no-store",
     })
@@ -39,7 +39,7 @@ async function fetchGate(request: NextRequest): Promise<GateStatus> {
   }
 
   try {
-    const res = await fetch(`${base}/v1/setup/status`, {
+    const res = await fetch(`${base}/api/v1/setup/status`, {
       headers,
       cache: "no-store",
     })
@@ -50,7 +50,7 @@ async function fetchGate(request: NextRequest): Promise<GateStatus> {
       const needs_setup = body.data?.needs_setup ?? true
       let authenticated = false
       if (!needs_setup) {
-        const check = await fetch(`${base}/v1/auth/check`, {
+        const check = await fetch(`${base}/api/v1/auth/check`, {
           headers,
           cache: "no-store",
         })

@@ -163,12 +163,13 @@ wait_for_panel_api() {
     fi
     [[ -n "$compose_file" && -n "$panel_env" ]] && have docker || return 1
     webina_compose -f "$compose_file" --env-file "$panel_env" exec -T backend \
-      curl -sf --max-time 5 http://127.0.0.1:8080/v1/setup/status >/dev/null 2>&1
+      curl -sf --max-time 5 http://127.0.0.1:8080/api/v1/setup/status >/dev/null 2>&1 \
+      || webina_compose -f "$compose_file" --env-file "$panel_env" exec -T backend \
+           curl -sf --max-time 5 http://127.0.0.1:8080/v1/setup/status >/dev/null 2>&1
   }
 
   log "Waiting for panel API (up to $((max * 5))s)..."
   for ((i = 1; i <= max; i++)); do
-    # Require public /api path OR (backend up + direct /v1) so Caddy misconfig is noticed
     if panel_setup_status_ready; then
       log "Panel API reachable after ${i} attempt(s)"
       return 0
@@ -176,7 +177,7 @@ wait_for_panel_api() {
     if [[ $((i % 12)) -eq 0 ]]; then
       log "Still waiting for panel API (${i}/${max})..."
       if panel_api_direct_ready && ! curl -sf --max-time 3 "http://127.0.0.1:${port}/api/v1/setup/status" >/dev/null 2>&1; then
-        warn "Backend /up OK but http://127.0.0.1:${port}/api/v1/setup/status failed — check Caddy strip /api (handle_path)"
+        warn "Backend /up OK but :${port}/api/v1/setup/status failed — recreate web+backend after pulling ModuleRoutes /api prefix fix"
       fi
     fi
     if [[ $i -eq "$max" ]]; then
