@@ -48,8 +48,9 @@ const nextConfig = {
       ],
       afterFiles: [
         {
+          // Keep /api prefix — Laravel module + routes/api.php live at /api/v1/*
           source: "/api/:path*",
-          destination: `${apiProxyTarget}/:path*`,
+          destination: `${apiProxyTarget}/api/:path*`,
         },
       ],
     }
