@@ -56,7 +56,7 @@ class SoftstoreServiceProvider extends ServiceProvider
                 'slug' => 'wordpress-cms',
                 'name' => 'WordPress (one-click)',
                 'category' => 'cms',
-                'description' => 'Install WordPress in a website document root via webina wordpress install',
+                'description' => 'Install WordPress via wp-cli into a website document root (complete DB/admin in WordPress toolkit if needed)',
                 'version_label' => 'latest',
                 'agent_script_id' => 'install_wordpress_cms',
                 'pinable' => true,

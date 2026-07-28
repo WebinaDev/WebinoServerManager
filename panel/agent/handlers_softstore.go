@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -83,6 +84,13 @@ func probeSoftstorePackage(name string) map[string]any {
 		detail = "compose project softstore-nginx"
 	case "node-nvm", "node":
 		installed, detail = softstoreProbeBins("node")
+		if !installed {
+			out, err := softstoreBash(`export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && command -v node`)
+			out = strings.TrimSpace(out)
+			if err == nil && out != "" {
+				installed, detail = true, out+" (nvm)"
+			}
+		}
 	case "python-distro", "python":
 		installed, detail = softstoreProbeBins("python3")
 	case "go-distro", "go":
@@ -90,7 +98,15 @@ func probeSoftstorePackage(name string) map[string]any {
 	case "java-distro", "java":
 		installed, detail = softstoreProbeBins("java")
 	case "wordpress-cms":
-		detail = "install via website document root"
+		detail = "install via website document root (wp-cli)"
+		if root := os.Getenv("WEBINO_FILES_ROOT"); root != "" {
+			// Best-effort: any wp-config under files root counts as present for catalog status.
+			if matches, _ := filepath.Glob(filepath.Join(root, "*", "wp-config.php")); len(matches) > 0 {
+				installed, detail = true, matches[0]
+			} else if matches, _ := filepath.Glob(filepath.Join(root, "*", "*", "wp-config.php")); len(matches) > 0 {
+				installed, detail = true, matches[0]
+			}
+		}
 	default:
 		if installed2, detail2, ok := probeSoftstoreStackPackage(name); ok {
 			installed, detail = installed2, detail2
@@ -210,25 +226,7 @@ func runSoftstoreScript(scriptID string, options map[string]any) (string, error)
 	case "ensure_composer":
 		return softstoreEnsureComposer()
 	case "install_wordpress_cms":
-		docRoot := strVal(options["document_root"])
-		domain := strVal(options["domain"])
-		if docRoot == "" {
-			return "", errSoftstore("document_root required for install_wordpress_cms")
-		}
-		absRoot, err := safeFilePath(docRoot)
-		if err != nil {
-			return "", err
-		}
-		_ = os.MkdirAll(absRoot, 0o755)
-		if _, err := os.Stat(filepath.Join(absRoot, "wp-config.php")); err == nil {
-			return "WordPress already installed in " + absRoot, nil
-		}
-		webina := filepath.Join(webinaRoot, "bin", "webina")
-		argv := []string{webina, "wordpress", "install", "--path", absRoot}
-		if domain != "" {
-			argv = append(argv, "--domain", domain)
-		}
-		return runArgv(argv, webinaRoot)
+		return softstoreInstallWordPressCMS(options)
 	case "compose_up_redis":
 		return runSoftstoreComposeUp("compose_up_redis", "softstore-redis")
 	case "compose_up_nginx":
@@ -244,6 +242,80 @@ func runSoftstoreScript(scriptID string, options map[string]any) (string, error)
 	}
 }
 
+func softstoreInstallWordPressCMS(options map[string]any) (string, error) {
+	docRoot := strVal(options["document_root"])
+	domain := strVal(options["domain"])
+	if docRoot == "" {
+		return "", errSoftstore("document_root required for install_wordpress_cms (pick a website)")
+	}
+	absRoot, err := safeFilePath(docRoot)
+	if err != nil {
+		return "", err
+	}
+	_ = os.MkdirAll(absRoot, 0o755)
+	if _, err := os.Stat(filepath.Join(absRoot, "wp-config.php")); err == nil {
+		return "WordPress already installed in " + absRoot, nil
+	}
+	wpBin := "wp"
+	if path, err := exec.LookPath("wp"); err == nil {
+		wpBin = path
+	} else if path, err := softstoreHostLookPath("wp"); err == nil {
+		wpBin = path
+	} else {
+		return "", errSoftstore("wp-cli (wp) not found; rebuild panel-agent image")
+	}
+	out, err := runArgv([]string{wpBin, "core", "download", "--path=" + absRoot}, "")
+	if err != nil {
+		return out, err
+	}
+	dbName := strVal(options["db_name"])
+	dbUser := strVal(options["db_user"])
+	dbPass := strVal(options["db_password"])
+	dbHost := strVal(options["db_host"])
+	if dbHost == "" {
+		dbHost = "127.0.0.1"
+	}
+	title := strVal(options["title"])
+	adminUser := strVal(options["admin_user"])
+	adminPass := strVal(options["admin_password"])
+	adminEmail := strVal(options["admin_email"])
+	if domain == "" || dbUser == "" || adminUser == "" || adminPass == "" || adminEmail == "" {
+		return out + "\nWordPress core downloaded to " + absRoot +
+			". Complete DB/admin setup in WordPress toolkit (/wordpress) or re-run with domain, db_*, admin_* options.", nil
+	}
+	if dbName == "" {
+		dbName = strings.ReplaceAll(domain, ".", "_")
+	}
+	if title == "" {
+		title = domain
+	}
+	cfgOut, cfgErr := runArgv([]string{
+		wpBin, "config", "create",
+		"--path=" + absRoot,
+		"--dbname=" + dbName,
+		"--dbuser=" + dbUser,
+		"--dbpass=" + dbPass,
+		"--dbhost=" + dbHost,
+		"--skip-check",
+	}, "")
+	out = out + "\n" + cfgOut
+	if cfgErr != nil {
+		return out, cfgErr
+	}
+	instOut, instErr := runArgv([]string{
+		wpBin, "core", "install",
+		"--path=" + absRoot,
+		"--url=https://" + domain,
+		"--title=" + title,
+		"--admin_user=" + adminUser,
+		"--admin_password=" + adminPass,
+		"--admin_email=" + adminEmail,
+		"--skip-email",
+	}, "")
+	out = out + "\n" + instOut
+	return out, instErr
+}
+
 func softstoreComposeProjectExists(project string) bool {
 	dir, err := jailComposeProjectDir(project)
 	if err != nil {
@@ -256,33 +328,35 @@ func softstoreComposeProjectExists(project string) bool {
 func runSoftstoreUninstall(scriptID string, options map[string]any) (string, error) {
 	switch scriptID {
 	case "install_redis":
-		return runArgv([]string{"apt-get", "remove", "-y", "redis-server"}, "")
+		return softstoreAptRemove("redis-server", "redis")
 	case "install_memcached":
-		return runArgv([]string{"apt-get", "remove", "-y", "memcached"}, "")
+		return softstoreAptRemove("memcached")
 	case "ensure_composer":
-		return runArgv([]string{"apt-get", "remove", "-y", "composer"}, "")
+		out, err := softstoreAptRemove("composer")
+		_, _ = softstoreBash("rm -f /usr/local/bin/composer")
+		return out, err
 	case "compose_up_redis":
 		return runSoftstoreComposeDown("softstore-redis")
 	case "compose_up_nginx":
 		return runSoftstoreComposeDown("softstore-nginx")
 	case "install_nginx":
-		return runArgv([]string{"apt-get", "remove", "-y", "nginx"}, "")
+		return softstoreAptRemove("nginx")
 	case "install_apache":
-		return runArgv([]string{"apt-get", "remove", "-y", "apache2"}, "")
+		return softstoreAptRemove("apache2")
 	case "install_mariadb":
-		return runArgv([]string{"apt-get", "remove", "-y", "mariadb-server"}, "")
+		return softstoreAptRemove("mariadb-server", "default-mysql-server", "mysql-server")
 	case "install_mysql":
-		return runArgv([]string{"apt-get", "remove", "-y", "mysql-server"}, "")
+		return softstoreAptRemove("mysql-server", "default-mysql-server", "mariadb-server")
 	case "install_php_fpm_81":
-		return runArgv([]string{"apt-get", "remove", "-y", "php8.1-fpm"}, "")
+		return softstoreAptRemove("php8.1-fpm")
 	case "install_php_fpm_82":
-		return runArgv([]string{"apt-get", "remove", "-y", "php8.2-fpm"}, "")
+		return softstoreAptRemove("php8.2-fpm")
 	case "install_php_fpm_83":
-		return runArgv([]string{"apt-get", "remove", "-y", "php8.3-fpm"}, "")
+		return softstoreAptRemove("php8.3-fpm")
 	case "install_php_fpm_84":
-		return runArgv([]string{"apt-get", "remove", "-y", "php8.4-fpm"}, "")
+		return softstoreAptRemove("php8.4-fpm")
 	case "install_pureftpd":
-		return runArgv([]string{"apt-get", "remove", "-y", "pure-ftpd"}, "")
+		return softstoreAptRemove("pure-ftpd")
 	case "install_wordpress_cms":
 		return "WordPress CMS uninstall is manual via Files / Website hub", nil
 	case "install_node_nvm", "install_node_nodesource", "install_python_distro", "install_go_distro", "install_java_distro":
@@ -293,6 +367,11 @@ func runSoftstoreUninstall(scriptID string, options map[string]any) (string, err
 		_ = options
 		return "", errSoftstore("uninstall not supported for script")
 	}
+}
+
+func softstoreAptRemove(pkgs ...string) (string, error) {
+	argv := append([]string{"apt-get", "remove", "-y"}, pkgs...)
+	return softstoreAptRun(argv)
 }
 
 func runSoftstoreComposeDown(project string) (string, error) {

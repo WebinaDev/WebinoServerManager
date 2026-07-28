@@ -194,6 +194,7 @@ services:
     volumes:
       - ../:/opt/WebinoServer:ro
       - /var/lib/webina:/var/lib/webina
+      - /var/www:/var/www
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/postfix:/etc/postfix
       - /etc/dovecot:/etc/dovecot

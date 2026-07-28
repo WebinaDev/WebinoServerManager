@@ -9,7 +9,7 @@ Seeded catalog of allowlisted host packages (not aaPanel commercial downloads). 
 | `redis` | runtime | `install_redis` |
 | `memcached` | runtime | `install_memcached` |
 | `composer` | tool | `ensure_composer` |
-| `wordpress-cms` | cms | `install_wordpress_cms` (requires `website_id` → docroot) |
+| `wordpress-cms` | cms | `install_wordpress_cms` (requires `website_id` → docroot; uses wp-cli) |
 | `docker-redis` | docker | `compose_up_redis` |
 | `docker-nginx` | docker | `compose_up_nginx` |
 | `node-nvm` | runtime | `install_node_nvm` |

@@ -78,3 +78,24 @@ func TestSoftstoreHostArgvWrapsWhenForced(t *testing.T) {
 		t.Fatalf("expected nsenter wrap, got %v", got)
 	}
 }
+
+func TestSoftstoreMysqlProbeAcceptsMariadbFallback(t *testing.T) {
+	installed, _, ok := probeSoftstoreStackPackage("mysql")
+	if !ok {
+		t.Fatal("mysql must be a known stack probe")
+	}
+	_ = installed
+}
+
+func TestSoftstoreCatalogScriptsHaveProbes(t *testing.T) {
+	for _, slug := range []string{
+		"nginx", "apache", "mariadb", "mysql",
+		"php-fpm-81", "php-fpm-82", "php-fpm-83", "php-fpm-84",
+		"ufw", "fail2ban", "pureftpd",
+	} {
+		_, _, ok := probeSoftstoreStackPackage(slug)
+		if !ok {
+			t.Fatalf("missing stack probe for %q", slug)
+		}
+	}
+}

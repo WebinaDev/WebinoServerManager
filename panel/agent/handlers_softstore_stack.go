@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -45,9 +46,9 @@ func probeSoftstoreStackPackage(name string) (installed bool, detail string, ok 
 		}
 		return installed, detail, true
 	case "mysql":
-		installed, detail = softstoreProbeBins("mysqld")
+		installed, detail = softstoreProbeBins("mysqld", "mariadbd")
 		if !installed {
-			installed = softstoreSystemdActive("mysql") || softstoreSystemdActive("mysqld")
+			installed = softstoreSystemdActive("mysql") || softstoreSystemdActive("mysqld") || softstoreSystemdActive("mariadb")
 		}
 		return installed, detail, true
 	case "php-fpm-81", "php81":
@@ -96,25 +97,33 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 	switch scriptID {
 	case "install_nginx":
 		if path, err := softstoreHostLookPath("nginx"); err == nil {
-			_ = softstoreEnableService("nginx")
+			if err := softstoreEnableService("nginx"); err != nil {
+				return "nginx present but not active: " + path + "\n" + err.Error(), err
+			}
 			return "nginx already present: " + path, nil
 		}
 		out, err := softstoreAptInstall("nginx")
 		if err != nil {
 			return out, err
 		}
-		_ = softstoreEnableService("nginx")
+		if err := softstoreEnableService("nginx"); err != nil {
+			return out + "\n" + err.Error(), err
+		}
 		return out, nil
 	case "install_apache":
 		if path, err := softstoreHostLookPath("apache2"); err == nil {
-			_ = softstoreEnableService("apache2")
+			if err := softstoreEnableService("apache2"); err != nil {
+				return "apache2 present but not active: " + path + "\n" + err.Error(), err
+			}
 			return "apache2 already present: " + path, nil
 		}
 		out, err := softstoreAptInstall("apache2")
 		if err != nil {
 			return out, err
 		}
-		_ = softstoreEnableService("apache2")
+		if err := softstoreEnableService("apache2"); err != nil {
+			return out + "\n" + err.Error(), err
+		}
 		return out, nil
 	case "install_mariadb":
 		if softstoreSystemdActive("mariadb") || softstoreSystemdActive("mysql") {
@@ -124,8 +133,11 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 		if err != nil {
 			return out, err
 		}
-		_ = softstoreEnableService("mariadb")
-		_ = softstoreEnableService("mysql")
+		if err := softstoreEnableService("mariadb"); err != nil {
+			if err2 := softstoreEnableService("mysql"); err2 != nil {
+				return out + "\n" + err.Error() + "\n" + err2.Error(), err2
+			}
+		}
 		return out, nil
 	case "install_mysql":
 		if softstoreSystemdActive("mysql") || softstoreSystemdActive("mysqld") || softstoreSystemdActive("mariadb") {
@@ -135,8 +147,11 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 		if err != nil {
 			return out, err
 		}
-		_ = softstoreEnableService("mysql")
-		_ = softstoreEnableService("mariadb")
+		if err := softstoreEnableService("mysql"); err != nil {
+			if err2 := softstoreEnableService("mariadb"); err2 != nil {
+				return out + "\n" + err.Error() + "\n" + err2.Error(), err2
+			}
+		}
 		return out, nil
 	case "install_php_fpm_81":
 		return softstoreInstallPHP("8.1")
@@ -149,6 +164,7 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 	case "install_pureftpd":
 		if path, err := softstoreHostLookPath("pure-ftpd"); err == nil {
 			_ = softstoreEnableService("pure-ftpd")
+			_ = softstoreAllowFTPFirewall()
 			return "pure-ftpd already present: " + path, nil
 		}
 		out, err := softstoreAptInstallFirstAvailable(
@@ -158,24 +174,40 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 		if err != nil {
 			return out, err
 		}
-		_ = softstoreEnableService("pure-ftpd")
+		if err := softstoreEnableService("pure-ftpd"); err != nil {
+			return out + "\n" + err.Error(), err
+		}
+		_ = softstoreAllowFTPFirewall()
 		return out, nil
 	case "ensure_ufw_baseline":
 		return softstoreEnsureUFWBaseline()
 	case "ensure_fail2ban":
 		if path, err := softstoreHostLookPath("fail2ban-client"); err == nil {
-			_ = softstoreEnableService("fail2ban")
+			if err := softstoreEnableService("fail2ban"); err != nil {
+				return "fail2ban present but not active: " + path + "\n" + err.Error(), err
+			}
 			return "fail2ban already present: " + path, nil
 		}
 		out, err := softstoreAptInstall("fail2ban")
 		if err != nil {
 			return out, err
 		}
-		_ = softstoreEnableService("fail2ban")
+		if err := softstoreEnableService("fail2ban"); err != nil {
+			return out + "\n" + err.Error(), err
+		}
 		return out, nil
 	default:
 		return "", errSoftstore("unknown stack script")
 	}
+}
+
+func softstoreAllowFTPFirewall() error {
+	if _, err := softstoreHostLookPath("ufw"); err != nil {
+		return nil
+	}
+	_, _ = softstoreAptRun([]string{"ufw", "allow", "21/tcp"})
+	_, err := softstoreAptRun([]string{"ufw", "allow", "30000:30100/tcp"})
+	return err
 }
 
 // softstoreInstallDatabaseServer installs a MySQL-compatible server.
@@ -323,8 +355,27 @@ func softstoreAptInstallFirstAvailable(candidates ...[]string) (string, error) {
 }
 
 func softstoreEnableService(unit string) error {
-	_, err := softstoreAptRun([]string{"systemctl", "enable", "--now", unit})
-	return err
+	out, err := softstoreAptRun([]string{"systemctl", "enable", "--now", unit})
+	if err == nil && softstoreSystemdActive(unit) {
+		return nil
+	}
+	out2, err2 := softstoreAptRun([]string{"systemctl", "start", unit})
+	if softstoreSystemdActive(unit) {
+		return nil
+	}
+	msg := fmt.Sprintf("unit %s not active after enable/start", unit)
+	if err != nil {
+		msg += fmt.Sprintf("; enable: %v (%s)", err, strings.TrimSpace(out))
+	}
+	if err2 != nil {
+		msg += fmt.Sprintf("; start: %v (%s)", err2, strings.TrimSpace(out2))
+	}
+	return errSoftstore(msg)
+}
+
+func softstoreAptCacheHas(pkg string) bool {
+	out, err := softstoreBash(`apt-cache show ` + strconv.Quote(pkg) + ` 2>/dev/null | head -n1`)
+	return err == nil && strings.Contains(out, "Package:")
 }
 
 func softstoreInstallPHP(ver string) (string, error) {
@@ -339,6 +390,8 @@ func softstoreInstallPHP(ver string) (string, error) {
 		"php" + ver + "-zip",
 		"php" + ver + "-mbstring",
 		"php" + ver + "-gd",
+		"php" + ver + "-intl",
+		"php" + ver + "-bcmath",
 	}
 	pkgs := append(append([]string{}, core...), exts...)
 	unit := "php" + ver + "-fpm"
@@ -347,6 +400,11 @@ func softstoreInstallPHP(ver string) (string, error) {
 	}
 
 	var logs []string
+	// Bookworm only ships 8.2 by default; 8.1/8.3/8.4 need Sury/Ondřej before apt.
+	if !softstoreAptCacheHas("php" + ver + "-fpm") {
+		logs = append(logs, softstoreEnsureExtraPHPRepos())
+	}
+
 	out, err := softstoreAptInstall(pkgs...)
 	logs = append(logs, out)
 	if err != nil && softstoreAptPackageMissing(out) {
@@ -363,14 +421,21 @@ func softstoreInstallPHP(ver string) (string, error) {
 		if errCore != nil {
 			return strings.Join(logs, "\n"), errCore
 		}
-		outExt, _ := softstoreAptInstall(exts...)
+		outExt, extErr := softstoreAptInstall(exts...)
 		logs = append(logs, outExt)
+		if extErr != nil {
+			logs = append(logs, "warn: some PHP extensions failed: "+extErr.Error())
+		}
 		err = nil
 	}
 	if err != nil {
 		return strings.Join(logs, "\n"), err
 	}
-	_ = softstoreEnableService(unit)
+	if err := softstoreEnableService(unit); err != nil {
+		// Packages installed; surface unit failure so wizard can retry enable.
+		logs = append(logs, err.Error())
+		return strings.Join(logs, "\n"), err
+	}
 	return strings.Join(logs, "\n"), nil
 }
 
@@ -408,8 +473,12 @@ func softstoreInstallRedis() (string, error) {
 		return "redis already active", nil
 	}
 	if path, err := softstoreHostLookPath("redis-server"); err == nil {
-		_ = softstoreEnableService("redis-server")
-		_ = softstoreEnableService("redis")
+		if err := softstoreEnableService("redis-server"); err != nil {
+			_ = softstoreEnableService("redis")
+			if !softstoreSystemdActive("redis-server") && !softstoreSystemdActive("redis") {
+				return "redis-server present but not active: " + path + "\n" + err.Error(), err
+			}
+		}
 		return "redis-server already present: " + path, nil
 	}
 	out, err := softstoreAptInstallFirstAvailable(
@@ -419,8 +488,11 @@ func softstoreInstallRedis() (string, error) {
 	if err != nil {
 		return out, err
 	}
-	_ = softstoreEnableService("redis-server")
-	_ = softstoreEnableService("redis")
+	if err := softstoreEnableService("redis-server"); err != nil {
+		if err2 := softstoreEnableService("redis"); err2 != nil {
+			return out + "\n" + err.Error() + "\n" + err2.Error(), err2
+		}
+	}
 	return out, nil
 }
 
@@ -429,14 +501,18 @@ func softstoreInstallMemcached() (string, error) {
 		return "memcached already active", nil
 	}
 	if path, err := softstoreHostLookPath("memcached"); err == nil {
-		_ = softstoreEnableService("memcached")
+		if err := softstoreEnableService("memcached"); err != nil {
+			return "memcached present but not active: " + path + "\n" + err.Error(), err
+		}
 		return "memcached already present: " + path, nil
 	}
 	out, err := softstoreAptInstall("memcached")
 	if err != nil {
 		return out, err
 	}
-	_ = softstoreEnableService("memcached")
+	if err := softstoreEnableService("memcached"); err != nil {
+		return out + "\n" + err.Error(), err
+	}
 	return out, nil
 }
 

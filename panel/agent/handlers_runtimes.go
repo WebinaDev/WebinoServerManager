@@ -53,11 +53,18 @@ func handleRuntimesStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func probeRuntime(bin, label string) map[string]any {
-	path, err := exec.LookPath(bin)
+	path, err := softstoreHostLookPath(bin)
+	if err != nil && bin == "node" {
+		out, nerr := softstoreBash(`export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && command -v node`)
+		out = strings.TrimSpace(out)
+		if nerr == nil && out != "" {
+			path, err = out, nil
+		}
+	}
 	if err != nil {
 		return map[string]any{"status": "missing", "detail": label + " not in PATH"}
 	}
-	versionOut, verErr := runArgv([]string{bin, "--version"}, "")
+	versionOut, verErr := softstoreBash(strconv.Quote(path) + " --version")
 	if verErr != nil {
 		return map[string]any{"status": "installed", "path": path, "version": ""}
 	}

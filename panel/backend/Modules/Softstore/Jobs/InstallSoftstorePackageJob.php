@@ -38,7 +38,11 @@ class InstallSoftstorePackageJob implements ShouldQueue
         if ($install->website_id) {
             $website = HostingWebsite::query()->find($install->website_id);
             if ($website !== null) {
-                $options = (object) ['document_root' => $website->document_root];
+                $payload = ['document_root' => $website->document_root];
+                if (is_string($website->fqdn) && $website->fqdn !== '') {
+                    $payload['domain'] = $website->fqdn;
+                }
+                $options = (object) $payload;
             }
         }
 
