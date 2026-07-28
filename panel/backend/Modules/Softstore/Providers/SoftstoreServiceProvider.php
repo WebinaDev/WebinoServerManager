@@ -108,10 +108,10 @@ class SoftstoreServiceProvider extends ServiceProvider
             ],
             [
                 'slug' => 'java-distro',
-                'name' => 'OpenJDK 17',
+                'name' => 'OpenJDK',
                 'category' => 'runtime',
-                'description' => 'Install OpenJDK 17 via apt — see also /runtimes for project management',
-                'version_label' => '17',
+                'description' => 'Install OpenJDK (17/21/default via apt) — see also /runtimes for project management',
+                'version_label' => '17+',
                 'agent_script_id' => 'install_java_distro',
                 'pinable' => true,
             ],

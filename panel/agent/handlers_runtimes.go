@@ -124,23 +124,43 @@ func runRuntimesInstallScript(scriptID string) (string, error) {
 		if path, err := exec.LookPath("node"); err == nil {
 			return "node already present: " + path, nil
 		}
-		setupOut, setupErr := runArgv([]string{
+		_ = softstoreEnsureUbuntuUniverse()
+		setupOut, setupErr := runArgvEnv([]string{
 			"bash", "-c",
 			"curl -fsSL https://deb.nodesource.com/setup_20.x | bash -",
-		}, "")
+		}, map[string]string{"DEBIAN_FRONTEND": "noninteractive"})
 		if setupErr != nil {
-			return setupOut, setupErr
+			// Fallback: distro nodejs when NodeSource is blocked.
+			out, err := softstoreAptInstallFirstAvailable(
+				[]string{"nodejs"},
+				[]string{"nodejs", "npm"},
+			)
+			return setupOut + "\n" + out, err
 		}
-		return runArgv([]string{"apt-get", "install", "-y", "nodejs"}, "")
+		out, err := softstoreAptInstall("nodejs")
+		return setupOut + "\n" + out, err
 	case "install_python_distro":
-		return runArgv([]string{"apt-get", "install", "-y", "python3", "python3-venv", "python3-pip"}, "")
+		if path, err := exec.LookPath("python3"); err == nil {
+			return "python3 already present: " + path, nil
+		}
+		return softstoreAptInstall("python3", "python3-venv", "python3-pip")
 	case "install_go_distro":
-		return runArgv([]string{"apt-get", "install", "-y", "golang-go"}, "")
+		if path, err := exec.LookPath("go"); err == nil {
+			return "go already present: " + path, nil
+		}
+		return softstoreAptInstallFirstAvailable(
+			[]string{"golang-go"},
+			[]string{"golang"},
+		)
 	case "install_java_distro":
 		if path, err := exec.LookPath("java"); err == nil {
 			return "java already present: " + path, nil
 		}
-		return runArgv([]string{"apt-get", "install", "-y", "openjdk-17-jdk"}, "")
+		return softstoreAptInstallFirstAvailable(
+			[]string{"openjdk-17-jdk"},
+			[]string{"openjdk-21-jdk"},
+			[]string{"default-jdk"},
+		)
 	default:
 		return "", fmt.Errorf("unknown script")
 	}

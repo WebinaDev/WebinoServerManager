@@ -23,6 +23,23 @@ Seeded catalog of allowlisted host packages (not aaPanel commercial downloads). 
 
 Catalog rows are seeded on migrate and re-seeded idempotently from `SoftstoreServiceProvider::boot()`. Stack packages are also driven by the **first-run setup wizard**.
 
+## Install hardening (agent)
+
+All apt-backed Softstore/setup scripts:
+
+1. Enable Ubuntu **universe** (best-effort) and `apt-get update`
+2. Run with `DEBIAN_FRONTEND=noninteractive` and dpkg `force-confdef/old`
+3. Use package fallbacks where distros differ:
+   - MariaDB/MySQL: `mariadb-server` → `default-mysql-server` → `mysql-server`
+   - Redis: `redis-server` → `redis`
+   - Composer: distro package → getcomposer.org PHAR
+   - PHP non-default versions: add `ppa:ondrej/php` then retry
+   - Java: OpenJDK 17 → 21 → `default-jdk`
+   - Go: `golang-go` → `golang`
+4. Enable/start systemd units after install (nginx, php-fpm, redis, fail2ban, …)
+
+See [TROUBLESHOOTING.md](../../../docs/TROUBLESHOOTING.md) for common “no installation candidate” cases.
+
 ## Tables
 
 - `softstore_packages`

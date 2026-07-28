@@ -205,14 +205,11 @@ func softstoreNormalizeOptions(raw json.RawMessage) map[string]any {
 func runSoftstoreScript(scriptID string, options map[string]any) (string, error) {
 	switch scriptID {
 	case "install_redis":
-		return runArgv([]string{"apt-get", "install", "-y", "redis-server"}, "")
+		return softstoreInstallRedis()
 	case "install_memcached":
-		return runArgv([]string{"apt-get", "install", "-y", "memcached"}, "")
+		return softstoreInstallMemcached()
 	case "ensure_composer":
-		if path, err := exec.LookPath("composer"); err == nil {
-			return "composer already present: " + path, nil
-		}
-		return runArgv([]string{"apt-get", "install", "-y", "composer"}, "")
+		return softstoreEnsureComposer()
 	case "install_wordpress_cms":
 		docRoot := strVal(options["document_root"])
 		domain := strVal(options["domain"])

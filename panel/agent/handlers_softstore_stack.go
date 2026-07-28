@@ -80,18 +80,11 @@ func probeSoftstoreStackPackage(name string) (installed bool, detail string, ok 
 }
 
 func softstoreProbePHP(ver string) (bool, string, bool) {
-	bin := "php-fpm" + ver
-	if path, err := exec.LookPath(bin); err == nil {
-		return true, path, true
-	}
-	// Debian packages use php8.2-fpm binary name php-fpm8.2 or php8.2.
-	alt := "php" + ver
-	if path, err := exec.LookPath(alt); err == nil {
-		unit := "php" + ver + "-fpm"
-		if softstoreSystemdActive(unit) {
+	// Debian/Ubuntu: /usr/sbin/php-fpm8.2 ; some images also ship php8.2 CLI only.
+	for _, bin := range []string{"php-fpm" + ver, "php" + ver} {
+		if path, err := exec.LookPath(bin); err == nil {
 			return true, path, true
 		}
-		return true, path, true
 	}
 	unit := "php" + ver + "-fpm"
 	if softstoreSystemdActive(unit) {
@@ -159,14 +152,12 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 			_ = softstoreEnableService("pure-ftpd")
 			return "pure-ftpd already present: " + path, nil
 		}
-		out, err := softstoreAptInstall("pure-ftpd")
+		out, err := softstoreAptInstallFirstAvailable(
+			[]string{"pure-ftpd"},
+			[]string{"pure-ftpd-common", "pure-ftpd"},
+		)
 		if err != nil {
-			// Some distros use pure-ftpd-common + pure-ftpd
-			out2, err2 := softstoreAptInstall("pure-ftpd-common", "pure-ftpd")
-			if err2 != nil {
-				return out + "\n" + out2, err2
-			}
-			out = out2
+			return out, err
 		}
 		_ = softstoreEnableService("pure-ftpd")
 		return out, nil
@@ -211,17 +202,16 @@ func softstoreInstallDatabaseServer(preference string) (string, error) {
 	return softstoreAptInstallFirstAvailable(candidates...)
 }
 
-func softstoreAptUpdate() (string, error) {
-	return runArgv([]string{"apt-get", "update"}, "")
-}
-
 // softstoreEnsureUbuntuUniverse best-effort enables the universe component so
-// packages like mariadb-server become candidates on minimal Ubuntu cloud images.
+// packages like mariadb-server, redis-server, fail2ban, pure-ftpd, composer
+// become candidates on minimal Ubuntu cloud images.
 func softstoreEnsureUbuntuUniverse() string {
 	out, err := runArgv([]string{"bash", "-lc", `
 . /etc/os-release 2>/dev/null || true
 case "${ID:-}" in
   ubuntu)
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get install -y -qq software-properties-common ca-certificates 2>/dev/null || true
     if command -v add-apt-repository >/dev/null 2>&1; then
       add-apt-repository -y universe 2>/dev/null || true
     fi
@@ -243,10 +233,47 @@ apt-get update
 	return out
 }
 
+func softstoreEnsureOndrejPHP() string {
+	var logs []string
+	logs = append(logs, softstoreEnsureUbuntuUniverse())
+	out, err := runArgv([]string{"bash", "-lc", `
+. /etc/os-release 2>/dev/null || true
+case "${ID:-}" in
+  ubuntu)
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get install -y -qq software-properties-common ca-certificates apt-transport-https 2>/dev/null || true
+    if command -v add-apt-repository >/dev/null 2>&1; then
+      add-apt-repository -y ppa:ondrej/php 2>/dev/null || true
+    fi
+    apt-get update
+    ;;
+  *)
+    apt-get update
+    ;;
+esac
+`}, "")
+	logs = append(logs, out)
+	if err != nil {
+		logs = append(logs, err.Error())
+	}
+	return strings.Join(logs, "\n")
+}
+
+func softstoreAptRun(argv []string) (string, error) {
+	return runArgvEnv(argv, map[string]string{"DEBIAN_FRONTEND": "noninteractive"})
+}
+
+func softstoreAptInstallCmd(pkgs ...string) []string {
+	return append([]string{
+		"apt-get", "install", "-y",
+		"-o", "Dpkg::Options::=--force-confdef",
+		"-o", "Dpkg::Options::=--force-confold",
+	}, pkgs...)
+}
+
 func softstoreAptInstall(pkgs ...string) (string, error) {
-	updateOut, _ := softstoreAptUpdate()
-	argv := append([]string{"apt-get", "install", "-y"}, pkgs...)
-	out, err := runArgv(argv, "")
+	updateOut := softstoreEnsureUbuntuUniverse()
+	out, err := softstoreAptRun(softstoreAptInstallCmd(pkgs...))
 	combined := strings.TrimSpace(updateOut + "\n" + out)
 	return combined, err
 }
@@ -263,8 +290,7 @@ func softstoreAptInstallFirstAvailable(candidates ...[]string) (string, error) {
 
 	var lastErr error
 	for _, pkgs := range candidates {
-		argv := append([]string{"apt-get", "install", "-y"}, pkgs...)
-		out, err := runArgv(argv, "")
+		out, err := softstoreAptRun(softstoreAptInstallCmd(pkgs...))
 		logs = append(logs, "try "+strings.Join(pkgs, " ")+":\n"+out)
 		if err == nil {
 			logs = append(logs, "installed: "+strings.Join(pkgs, " "))
@@ -274,24 +300,25 @@ func softstoreAptInstallFirstAvailable(candidates ...[]string) (string, error) {
 		if softstoreAptPackageMissing(out) {
 			continue
 		}
-		// Real install failure (deps/conflict) — stop
 		return strings.Join(logs, "\n"), err
 	}
 	if lastErr == nil {
-		lastErr = errSoftstore("no installation candidate for database server packages")
+		lastErr = errSoftstore("no installation candidate for requested packages")
 	}
 	return strings.Join(logs, "\n"), lastErr
 }
 
 func softstoreEnableService(unit string) error {
-	_, err := runArgv([]string{"systemctl", "enable", "--now", unit}, "")
+	_, err := softstoreAptRun([]string{"systemctl", "enable", "--now", unit})
 	return err
 }
 
 func softstoreInstallPHP(ver string) (string, error) {
-	pkgs := []string{
+	core := []string{
 		"php" + ver + "-fpm",
 		"php" + ver + "-cli",
+	}
+	exts := []string{
 		"php" + ver + "-mysql",
 		"php" + ver + "-xml",
 		"php" + ver + "-curl",
@@ -299,15 +326,103 @@ func softstoreInstallPHP(ver string) (string, error) {
 		"php" + ver + "-mbstring",
 		"php" + ver + "-gd",
 	}
+	pkgs := append(append([]string{}, core...), exts...)
 	unit := "php" + ver + "-fpm"
 	if softstoreSystemdActive(unit) {
 		return unit + " already active", nil
 	}
+
+	var logs []string
 	out, err := softstoreAptInstall(pkgs...)
+	logs = append(logs, out)
+	if err != nil && softstoreAptPackageMissing(out) {
+		logs = append(logs, softstoreEnsureOndrejPHP())
+		out2, err2 := softstoreAptInstall(pkgs...)
+		logs = append(logs, out2)
+		err = err2
+		out = out2
+	}
+	if err != nil && softstoreAptPackageMissing(out) {
+		// Last resort: core packages only, then best-effort extensions.
+		outCore, errCore := softstoreAptInstall(core...)
+		logs = append(logs, outCore)
+		if errCore != nil {
+			return strings.Join(logs, "\n"), errCore
+		}
+		outExt, _ := softstoreAptInstall(exts...)
+		logs = append(logs, outExt)
+		err = nil
+	}
+	if err != nil {
+		return strings.Join(logs, "\n"), err
+	}
+	_ = softstoreEnableService(unit)
+	return strings.Join(logs, "\n"), nil
+}
+
+func softstoreEnsureComposer() (string, error) {
+	if path, err := exec.LookPath("composer"); err == nil {
+		return "composer already present: " + path, nil
+	}
+	out, err := softstoreAptInstall("composer")
+	if err == nil {
+		if path, lookErr := exec.LookPath("composer"); lookErr == nil {
+			return out + "\ncomposer at " + path, nil
+		}
+		return out, nil
+	}
+	// Distro package often missing; install official PHAR.
+	fallback, ferr := runArgv([]string{"bash", "-lc", `
+set -e
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y php-cli php-xml php-mbstring php-curl unzip curl ca-certificates
+curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php
+php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
+rm -f /tmp/composer-setup.php
+composer --version
+`}, "")
+	combined := strings.TrimSpace(out + "\n" + fallback)
+	if ferr != nil {
+		return combined, ferr
+	}
+	return combined, nil
+}
+
+func softstoreInstallRedis() (string, error) {
+	if softstoreSystemdActive("redis-server") || softstoreSystemdActive("redis") {
+		return "redis already active", nil
+	}
+	if path, err := exec.LookPath("redis-server"); err == nil {
+		_ = softstoreEnableService("redis-server")
+		_ = softstoreEnableService("redis")
+		return "redis-server already present: " + path, nil
+	}
+	out, err := softstoreAptInstallFirstAvailable(
+		[]string{"redis-server"},
+		[]string{"redis"},
+	)
 	if err != nil {
 		return out, err
 	}
-	_ = softstoreEnableService(unit)
+	_ = softstoreEnableService("redis-server")
+	_ = softstoreEnableService("redis")
+	return out, nil
+}
+
+func softstoreInstallMemcached() (string, error) {
+	if softstoreSystemdActive("memcached") {
+		return "memcached already active", nil
+	}
+	if path, err := exec.LookPath("memcached"); err == nil {
+		_ = softstoreEnableService("memcached")
+		return "memcached already present: " + path, nil
+	}
+	out, err := softstoreAptInstall("memcached")
+	if err != nil {
+		return out, err
+	}
+	_ = softstoreEnableService("memcached")
 	return out, nil
 }
 
@@ -332,7 +447,6 @@ func softstoreEnsureUFWBaseline() (string, error) {
 		out, err := runArgv(argv, "")
 		logs = append(logs, out)
 		if err != nil {
-			// Non-fatal for default rules if already set; continue.
 			logs = append(logs, fmt.Sprintf("warn: %v", err))
 		}
 	}
