@@ -128,21 +128,23 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 		if softstoreSystemdActive("mariadb") || softstoreSystemdActive("mysql") {
 			return "mariadb/mysql already active", nil
 		}
-		out, err := softstoreAptInstall("mariadb-server")
+		out, err := softstoreInstallDatabaseServer("mariadb")
 		if err != nil {
 			return out, err
 		}
 		_ = softstoreEnableService("mariadb")
+		_ = softstoreEnableService("mysql")
 		return out, nil
 	case "install_mysql":
-		if softstoreSystemdActive("mysql") || softstoreSystemdActive("mysqld") {
-			return "mysql already active", nil
+		if softstoreSystemdActive("mysql") || softstoreSystemdActive("mysqld") || softstoreSystemdActive("mariadb") {
+			return "mysql/mariadb already active", nil
 		}
-		out, err := softstoreAptInstall("mysql-server")
+		out, err := softstoreInstallDatabaseServer("mysql")
 		if err != nil {
 			return out, err
 		}
 		_ = softstoreEnableService("mysql")
+		_ = softstoreEnableService("mariadb")
 		return out, nil
 	case "install_php_fpm_81":
 		return softstoreInstallPHP("8.1")
@@ -186,9 +188,99 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 	}
 }
 
+// softstoreInstallDatabaseServer installs a MySQL-compatible server.
+// preference "mariadb" tries mariadb-server first; "mysql" tries mysql-server first.
+// Many cloud Ubuntu images omit mariadb-server (universe) and only ship
+// default-mysql-server / mysql-server.
+func softstoreInstallDatabaseServer(preference string) (string, error) {
+	var candidates [][]string
+	switch preference {
+	case "mysql":
+		candidates = [][]string{
+			{"mysql-server"},
+			{"default-mysql-server"},
+			{"mariadb-server"},
+		}
+	default:
+		candidates = [][]string{
+			{"mariadb-server"},
+			{"default-mysql-server"},
+			{"mysql-server"},
+		}
+	}
+	return softstoreAptInstallFirstAvailable(candidates...)
+}
+
+func softstoreAptUpdate() (string, error) {
+	return runArgv([]string{"apt-get", "update"}, "")
+}
+
+// softstoreEnsureUbuntuUniverse best-effort enables the universe component so
+// packages like mariadb-server become candidates on minimal Ubuntu cloud images.
+func softstoreEnsureUbuntuUniverse() string {
+	out, err := runArgv([]string{"bash", "-lc", `
+. /etc/os-release 2>/dev/null || true
+case "${ID:-}" in
+  ubuntu)
+    if command -v add-apt-repository >/dev/null 2>&1; then
+      add-apt-repository -y universe 2>/dev/null || true
+    fi
+    if [ -f /etc/apt/sources.list ]; then
+      sed -i 's/^deb \(.*\) main restricted$/deb \1 main restricted universe/g' /etc/apt/sources.list 2>/dev/null || true
+      sed -i 's/^deb \(.*\) main$/deb \1 main universe/g' /etc/apt/sources.list 2>/dev/null || true
+    fi
+    if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+      sed -i 's/Components: main restricted$/Components: main restricted universe/g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+      sed -i 's/Components: main$/Components: main universe/g' /etc/apt/sources.list.d/ubuntu.sources 2>/dev/null || true
+    fi
+    ;;
+esac
+apt-get update
+`}, "")
+	if err != nil {
+		return out + "\n" + err.Error()
+	}
+	return out
+}
+
 func softstoreAptInstall(pkgs ...string) (string, error) {
+	updateOut, _ := softstoreAptUpdate()
 	argv := append([]string{"apt-get", "install", "-y"}, pkgs...)
-	return runArgv(argv, "")
+	out, err := runArgv(argv, "")
+	combined := strings.TrimSpace(updateOut + "\n" + out)
+	return combined, err
+}
+
+func softstoreAptPackageMissing(log string) bool {
+	return strings.Contains(log, "no installation candidate") ||
+		strings.Contains(log, "Unable to locate package") ||
+		strings.Contains(log, "has no installation candidate")
+}
+
+func softstoreAptInstallFirstAvailable(candidates ...[]string) (string, error) {
+	var logs []string
+	logs = append(logs, softstoreEnsureUbuntuUniverse())
+
+	var lastErr error
+	for _, pkgs := range candidates {
+		argv := append([]string{"apt-get", "install", "-y"}, pkgs...)
+		out, err := runArgv(argv, "")
+		logs = append(logs, "try "+strings.Join(pkgs, " ")+":\n"+out)
+		if err == nil {
+			logs = append(logs, "installed: "+strings.Join(pkgs, " "))
+			return strings.Join(logs, "\n"), nil
+		}
+		lastErr = err
+		if softstoreAptPackageMissing(out) {
+			continue
+		}
+		// Real install failure (deps/conflict) — stop
+		return strings.Join(logs, "\n"), err
+	}
+	if lastErr == nil {
+		lastErr = errSoftstore("no installation candidate for database server packages")
+	}
+	return strings.Join(logs, "\n"), lastErr
 }
 
 func softstoreEnableService(unit string) error {

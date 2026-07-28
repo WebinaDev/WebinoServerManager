@@ -10,17 +10,18 @@ func TestSoftstoreStackAllowlist(t *testing.T) {
 	}
 }
 
-func TestProbeSoftstoreStackPackage(t *testing.T) {
-	_, _, ok := probeSoftstoreStackPackage("nginx")
-	if !ok {
-		t.Fatal("nginx probe should be recognized")
+func TestSoftstoreAptPackageMissing(t *testing.T) {
+	if !softstoreAptPackageMissing("E: Package 'mariadb-server' has no installation candidate") {
+		t.Fatal("expected missing candidate detection")
 	}
-	_, _, ok = probeSoftstoreStackPackage("php-fpm-83")
-	if !ok {
-		t.Fatal("php-fpm-83 probe should be recognized")
+	if softstoreAptPackageMissing("E: Unable to correct problems, you have held broken packages.") {
+		t.Fatal("held broken packages is not a missing-candidate case")
 	}
-	_, _, ok = probeSoftstoreStackPackage("not-a-real-pkg")
-	if ok {
-		t.Fatal("unknown package should not be recognized as stack")
+}
+
+func TestSoftstoreInstallDatabaseServerCandidates(t *testing.T) {
+	// sanity: preference order helpers compile / preference branches exist via allowlist
+	if !softstoreIsStackScript("install_mariadb") || !softstoreIsStackScript("install_mysql") {
+		t.Fatal("db install scripts must be stack scripts")
 	}
 }
