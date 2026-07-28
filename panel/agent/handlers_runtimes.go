@@ -99,38 +99,29 @@ func handleRuntimesInstall(w http.ResponseWriter, r *http.Request) {
 func runRuntimesInstallScript(scriptID string) (string, error) {
 	switch scriptID {
 	case "install_node_nvm":
-		if path, err := exec.LookPath("node"); err == nil {
+		if path, err := softstoreHostLookPath("node"); err == nil {
 			return "node already present: " + path, nil
 		}
-		home := os.Getenv("HOME")
-		if home == "" {
-			home = "/root"
-		}
-		nvmDir := filepath.Join(home, ".nvm")
-		if _, err := os.Stat(filepath.Join(nvmDir, "nvm.sh")); err != nil {
-			out, installErr := runArgv([]string{
-				"bash", "-c",
-				"curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash",
-			}, "")
-			if installErr != nil {
-				return out, installErr
-			}
-		}
-		return runArgv([]string{
-			"bash", "-c",
-			`export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" && nvm install --lts && nvm alias default 'lts/*'`,
-		}, "")
+		// Install nvm + LTS on the host when Softstore uses host namespaces.
+		return softstoreBash(`
+set -e
+export HOME="${HOME:-/root}"
+export NVM_DIR="$HOME/.nvm"
+if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+  curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+fi
+. "$NVM_DIR/nvm.sh"
+nvm install --lts
+nvm alias default 'lts/*'
+node --version
+`)
 	case "install_node_nodesource":
-		if path, err := exec.LookPath("node"); err == nil {
+		if path, err := softstoreHostLookPath("node"); err == nil {
 			return "node already present: " + path, nil
 		}
 		_ = softstoreEnsureUbuntuUniverse()
-		setupOut, setupErr := runArgvEnv([]string{
-			"bash", "-c",
-			"curl -fsSL https://deb.nodesource.com/setup_20.x | bash -",
-		}, map[string]string{"DEBIAN_FRONTEND": "noninteractive"})
+		setupOut, setupErr := softstoreBash(`curl -fsSL https://deb.nodesource.com/setup_20.x | bash -`)
 		if setupErr != nil {
-			// Fallback: distro nodejs when NodeSource is blocked.
 			out, err := softstoreAptInstallFirstAvailable(
 				[]string{"nodejs"},
 				[]string{"nodejs", "npm"},
@@ -140,12 +131,12 @@ func runRuntimesInstallScript(scriptID string) (string, error) {
 		out, err := softstoreAptInstall("nodejs")
 		return setupOut + "\n" + out, err
 	case "install_python_distro":
-		if path, err := exec.LookPath("python3"); err == nil {
+		if path, err := softstoreHostLookPath("python3"); err == nil {
 			return "python3 already present: " + path, nil
 		}
 		return softstoreAptInstall("python3", "python3-venv", "python3-pip")
 	case "install_go_distro":
-		if path, err := exec.LookPath("go"); err == nil {
+		if path, err := softstoreHostLookPath("go"); err == nil {
 			return "go already present: " + path, nil
 		}
 		return softstoreAptInstallFirstAvailable(
@@ -153,7 +144,7 @@ func runRuntimesInstallScript(scriptID string) (string, error) {
 			[]string{"golang"},
 		)
 	case "install_java_distro":
-		if path, err := exec.LookPath("java"); err == nil {
+		if path, err := softstoreHostLookPath("java"); err == nil {
 			return "java already present: " + path, nil
 		}
 		return softstoreAptInstallFirstAvailable(

@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -108,7 +107,7 @@ func probeSoftstorePackage(name string) map[string]any {
 
 func softstoreProbeBins(bins ...string) (bool, string) {
 	for _, b := range bins {
-		path, err := exec.LookPath(b)
+		path, err := softstoreHostLookPath(b)
 		if err == nil {
 			return true, path
 		}
@@ -117,7 +116,7 @@ func softstoreProbeBins(bins ...string) (bool, string) {
 }
 
 func softstoreSystemdActive(unit string) bool {
-	out, err := runArgv([]string{"systemctl", "is-active", unit}, "")
+	out, err := runArgvEnv(softstoreHostArgv([]string{"systemctl", "is-active", unit}), nil)
 	return err == nil && strings.TrimSpace(out) == "active"
 }
 

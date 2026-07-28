@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 )
 
@@ -82,7 +81,7 @@ func probeSoftstoreStackPackage(name string) (installed bool, detail string, ok 
 func softstoreProbePHP(ver string) (bool, string, bool) {
 	// Debian/Ubuntu: /usr/sbin/php-fpm8.2 ; some images also ship php8.2 CLI only.
 	for _, bin := range []string{"php-fpm" + ver, "php" + ver} {
-		if path, err := exec.LookPath(bin); err == nil {
+		if path, err := softstoreHostLookPath(bin); err == nil {
 			return true, path, true
 		}
 	}
@@ -96,7 +95,7 @@ func softstoreProbePHP(ver string) (bool, string, bool) {
 func runSoftstoreStackScript(scriptID string) (string, error) {
 	switch scriptID {
 	case "install_nginx":
-		if path, err := exec.LookPath("nginx"); err == nil {
+		if path, err := softstoreHostLookPath("nginx"); err == nil {
 			_ = softstoreEnableService("nginx")
 			return "nginx already present: " + path, nil
 		}
@@ -107,7 +106,7 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 		_ = softstoreEnableService("nginx")
 		return out, nil
 	case "install_apache":
-		if path, err := exec.LookPath("apache2"); err == nil {
+		if path, err := softstoreHostLookPath("apache2"); err == nil {
 			_ = softstoreEnableService("apache2")
 			return "apache2 already present: " + path, nil
 		}
@@ -148,7 +147,7 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 	case "install_php_fpm_84":
 		return softstoreInstallPHP("8.4")
 	case "install_pureftpd":
-		if path, err := exec.LookPath("pure-ftpd"); err == nil {
+		if path, err := softstoreHostLookPath("pure-ftpd"); err == nil {
 			_ = softstoreEnableService("pure-ftpd")
 			return "pure-ftpd already present: " + path, nil
 		}
@@ -164,7 +163,7 @@ func runSoftstoreStackScript(scriptID string) (string, error) {
 	case "ensure_ufw_baseline":
 		return softstoreEnsureUFWBaseline()
 	case "ensure_fail2ban":
-		if path, err := exec.LookPath("fail2ban-client"); err == nil {
+		if path, err := softstoreHostLookPath("fail2ban-client"); err == nil {
 			_ = softstoreEnableService("fail2ban")
 			return "fail2ban already present: " + path, nil
 		}
@@ -206,7 +205,7 @@ func softstoreInstallDatabaseServer(preference string) (string, error) {
 // packages like mariadb-server, redis-server, fail2ban, pure-ftpd, composer
 // become candidates on minimal Ubuntu cloud images.
 func softstoreEnsureUbuntuUniverse() string {
-	out, err := runArgv([]string{"bash", "-lc", `
+	out, err := softstoreBash(`
 . /etc/os-release 2>/dev/null || true
 case "${ID:-}" in
   ubuntu)
@@ -226,32 +225,47 @@ case "${ID:-}" in
     ;;
 esac
 apt-get update
-`}, "")
+`)
 	if err != nil {
 		return out + "\n" + err.Error()
 	}
 	return out
 }
 
-func softstoreEnsureOndrejPHP() string {
+// softstoreEnsureExtraPHPRepos adds third-party PHP repos when distro packages
+// are missing: Ubuntu → ppa:ondrej/php ; Debian → packages.sury.org/php.
+func softstoreEnsureExtraPHPRepos() string {
 	var logs []string
 	logs = append(logs, softstoreEnsureUbuntuUniverse())
-	out, err := runArgv([]string{"bash", "-lc", `
+	out, err := softstoreBash(`
 . /etc/os-release 2>/dev/null || true
+export DEBIAN_FRONTEND=noninteractive
 case "${ID:-}" in
   ubuntu)
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get install -y -qq software-properties-common ca-certificates apt-transport-https 2>/dev/null || true
+    apt-get install -y -qq software-properties-common ca-certificates apt-transport-https curl 2>/dev/null || true
     if command -v add-apt-repository >/dev/null 2>&1; then
       add-apt-repository -y ppa:ondrej/php 2>/dev/null || true
     fi
+    apt-get update
+    ;;
+  debian)
+    apt-get install -y -qq lsb-release ca-certificates curl 2>/dev/null || true
+    curl -fsSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
+    dpkg -i /tmp/debsuryorg-archive-keyring.deb
+    rm -f /tmp/debsuryorg-archive-keyring.deb
+    codename="$(lsb_release -sc 2>/dev/null || true)"
+    if [ -z "$codename" ]; then
+      . /etc/os-release 2>/dev/null || true
+      codename="${VERSION_CODENAME:-bookworm}"
+    fi
+    echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ ${codename} main" > /etc/apt/sources.list.d/php-sury.list
     apt-get update
     ;;
   *)
     apt-get update
     ;;
 esac
-`}, "")
+`)
 	logs = append(logs, out)
 	if err != nil {
 		logs = append(logs, err.Error())
@@ -260,7 +274,7 @@ esac
 }
 
 func softstoreAptRun(argv []string) (string, error) {
-	return runArgvEnv(argv, map[string]string{"DEBIAN_FRONTEND": "noninteractive"})
+	return runArgvEnv(softstoreHostArgv(argv), map[string]string{"DEBIAN_FRONTEND": "noninteractive"})
 }
 
 func softstoreAptInstallCmd(pkgs ...string) []string {
@@ -336,7 +350,7 @@ func softstoreInstallPHP(ver string) (string, error) {
 	out, err := softstoreAptInstall(pkgs...)
 	logs = append(logs, out)
 	if err != nil && softstoreAptPackageMissing(out) {
-		logs = append(logs, softstoreEnsureOndrejPHP())
+		logs = append(logs, softstoreEnsureExtraPHPRepos())
 		out2, err2 := softstoreAptInstall(pkgs...)
 		logs = append(logs, out2)
 		err = err2
@@ -361,18 +375,18 @@ func softstoreInstallPHP(ver string) (string, error) {
 }
 
 func softstoreEnsureComposer() (string, error) {
-	if path, err := exec.LookPath("composer"); err == nil {
+	if path, err := softstoreHostLookPath("composer"); err == nil {
 		return "composer already present: " + path, nil
 	}
 	out, err := softstoreAptInstall("composer")
 	if err == nil {
-		if path, lookErr := exec.LookPath("composer"); lookErr == nil {
+		if path, lookErr := softstoreHostLookPath("composer"); lookErr == nil {
 			return out + "\ncomposer at " + path, nil
 		}
 		return out, nil
 	}
 	// Distro package often missing; install official PHAR.
-	fallback, ferr := runArgv([]string{"bash", "-lc", `
+	fallback, ferr := softstoreBash(`
 set -e
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
@@ -381,7 +395,7 @@ curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php
 php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
 rm -f /tmp/composer-setup.php
 composer --version
-`}, "")
+`)
 	combined := strings.TrimSpace(out + "\n" + fallback)
 	if ferr != nil {
 		return combined, ferr
@@ -393,7 +407,7 @@ func softstoreInstallRedis() (string, error) {
 	if softstoreSystemdActive("redis-server") || softstoreSystemdActive("redis") {
 		return "redis already active", nil
 	}
-	if path, err := exec.LookPath("redis-server"); err == nil {
+	if path, err := softstoreHostLookPath("redis-server"); err == nil {
 		_ = softstoreEnableService("redis-server")
 		_ = softstoreEnableService("redis")
 		return "redis-server already present: " + path, nil
@@ -414,7 +428,7 @@ func softstoreInstallMemcached() (string, error) {
 	if softstoreSystemdActive("memcached") {
 		return "memcached already active", nil
 	}
-	if path, err := exec.LookPath("memcached"); err == nil {
+	if path, err := softstoreHostLookPath("memcached"); err == nil {
 		_ = softstoreEnableService("memcached")
 		return "memcached already present: " + path, nil
 	}
@@ -428,7 +442,7 @@ func softstoreInstallMemcached() (string, error) {
 
 func softstoreEnsureUFWBaseline() (string, error) {
 	var logs []string
-	if _, err := exec.LookPath("ufw"); err != nil {
+	if _, err := softstoreHostLookPath("ufw"); err != nil {
 		out, err := softstoreAptInstall("ufw")
 		logs = append(logs, out)
 		if err != nil {
@@ -444,13 +458,13 @@ func softstoreEnsureUFWBaseline() (string, error) {
 		{"ufw", "allow", "2090/tcp"},
 	}
 	for _, argv := range steps {
-		out, err := runArgv(argv, "")
+		out, err := softstoreAptRun(argv)
 		logs = append(logs, out)
 		if err != nil {
 			logs = append(logs, fmt.Sprintf("warn: %v", err))
 		}
 	}
-	out, err := runArgv([]string{"ufw", "--force", "enable"}, "")
+	out, err := softstoreAptRun([]string{"ufw", "--force", "enable"})
 	logs = append(logs, out)
 	if err != nil {
 		return strings.Join(logs, "\n"), err

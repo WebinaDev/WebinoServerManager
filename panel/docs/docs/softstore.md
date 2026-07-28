@@ -27,16 +27,17 @@ Catalog rows are seeded on migrate and re-seeded idempotently from `SoftstoreSer
 
 All apt-backed Softstore/setup scripts:
 
-1. Enable Ubuntu **universe** (best-effort) and `apt-get update`
-2. Run with `DEBIAN_FRONTEND=noninteractive` and dpkg `force-confdef/old`
-3. Use package fallbacks where distros differ:
+1. Prefer the **host** namespaces via `nsenter -t 1` when the agent runs privileged with `pid: host` (disable with `WEBINO_SOFTSTORE_ON_HOST=0`)
+2. Enable Ubuntu **universe** (best-effort) and `apt-get update`
+3. Run with `DEBIAN_FRONTEND=noninteractive` and dpkg `force-confdef/old`
+4. Use package fallbacks where distros differ:
    - MariaDB/MySQL: `mariadb-server` → `default-mysql-server` → `mysql-server`
    - Redis: `redis-server` → `redis`
    - Composer: distro package → getcomposer.org PHAR
-   - PHP non-default versions: add `ppa:ondrej/php` then retry
+   - PHP non-default versions: Debian → `packages.sury.org`; Ubuntu → `ppa:ondrej/php`
    - Java: OpenJDK 17 → 21 → `default-jdk`
    - Go: `golang-go` → `golang`
-4. Enable/start systemd units after install (nginx, php-fpm, redis, fail2ban, …)
+5. Enable/start systemd units after install (nginx, php-fpm, redis, fail2ban, …)
 
 See [TROUBLESHOOTING.md](../../../docs/TROUBLESHOOTING.md) for common “no installation candidate” cases.
 

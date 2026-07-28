@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -51,5 +53,28 @@ func TestSoftstoreRuntimeScriptsAllowlisted(t *testing.T) {
 		if !softstoreScriptIDs[id] {
 			t.Fatalf("%q must be allowlisted", id)
 		}
+	}
+}
+
+func TestSoftstoreHostArgvPassthroughWhenDisabled(t *testing.T) {
+	t.Setenv("WEBINO_SOFTSTORE_ON_HOST", "0")
+	in := []string{"apt-get", "install", "-y", "nginx"}
+	got := softstoreHostArgv(in)
+	if len(got) != len(in) || got[0] != "apt-get" {
+		t.Fatalf("expected passthrough when host NS disabled, got %v", got)
+	}
+}
+
+func TestSoftstoreHostArgvWrapsWhenForced(t *testing.T) {
+	if _, err := exec.LookPath("nsenter"); err != nil {
+		t.Skip("nsenter not available")
+	}
+	if _, err := os.Stat("/proc/1/root/etc/os-release"); err != nil {
+		t.Skip("host root not visible")
+	}
+	t.Setenv("WEBINO_SOFTSTORE_ON_HOST", "1")
+	got := softstoreHostArgv([]string{"apt-get", "update"})
+	if len(got) < 3 || got[0] != "nsenter" {
+		t.Fatalf("expected nsenter wrap, got %v", got)
 	}
 }
